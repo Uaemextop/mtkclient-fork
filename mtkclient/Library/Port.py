@@ -152,6 +152,7 @@ class Port(metaclass=LogBase):
 
     def handshake(self, maxtries=None, loop=0):
         counter = 0
+        retry_delay = 0.5  # Start with 500ms
 
         while not self.cdc.connected:
             try:
@@ -175,14 +176,17 @@ class Port(metaclass=LogBase):
                         sys.stdout.write('\n')
                         loop = 0
                     loop += 1
-                    time.sleep(0.3)
+                    time.sleep(retry_delay)
+                    # Increase delay up to 2s for Windows USB re-enumeration
+                    if retry_delay < 2.0:
+                        retry_delay = min(retry_delay * 1.5, 2.0)
                     sys.stdout.flush()
 
             except Exception as serr:
                 if "access denied" in str(serr):
                     self.warning(str(serr))
                 self.debug(str(serr))
-                pass
+                time.sleep(retry_delay)
         return False
 
     def mtk_cmd(self, value, bytestoread=0, nocmd=False):

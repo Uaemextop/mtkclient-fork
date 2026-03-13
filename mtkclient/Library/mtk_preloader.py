@@ -168,6 +168,8 @@ class Preloader(metaclass=LogBase):
                     self.config.set_gui_status(self.config.tr("Status: Handshake failed, retrying..."))
                 self.mtk.port.close()
                 tries += 1
+                # Wait for device re-enumeration before retrying
+                time.sleep(1)
         if tries == 1000:
             return False
 

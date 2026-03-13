@@ -181,7 +181,7 @@ def getDevInfo(thread, parameters):
             with lock:
                 phone_info['cdcInit'] = True
     except Exception as e:
-        print(f"Connection exception: {e}")  # Add for debugging; replace with thread.sendToLogSignal if available
+        thread.sendToLogSignal.emit(f"Connection error: {e}")
         with lock:
             phone_info['cantConnect'] = True
     with lock:
@@ -190,6 +190,7 @@ def getDevInfo(thread, parameters):
     thread.sendUpdateSignal.emit(phone_info.copy())
     mtk_class = da_handler.connect(mtk_class)
     if mtk_class is None:
+        thread.sendToLogSignal.emit("DA handler connect returned None")
         return
     mtk_class = da_handler.configure_da(mtk_class)
     if mtk_class:
@@ -207,6 +208,7 @@ def getDevInfo(thread, parameters):
     else:
         with lock:
             phone_info['cantConnect'] = True
+        thread.sendToLogSignal.emit("DA configuration failed")
         thread.sendUpdateSignal.emit(phone_info.copy())
 
 
@@ -563,16 +565,21 @@ class MainWindow(QMainWindow):
     @Slot()
     def updateGui(self, phone_info):
         with lock:
-            phone_info['chipset'] = phone_info['chipset'].replace("()", "")
-            if phone_info['cdcInit'] and phone_info['bootMode'] == "":
+            chipset = phone_info.get('chipset', '').replace("()", "")
+            phone_info['chipset'] = chipset
+            cdc_init = phone_info.get('cdcInit', False)
+            da_init = phone_info.get('daInit', False)
+            boot_mode = phone_info.get('bootMode', '')
+            cant_connect = phone_info.get('cantConnect', False)
+
+            if cdc_init and boot_mode == "":
                 self.ui.phoneInfoTextbox.setText(
                     QCoreApplication.translate("main", "Phone detected:\nReading model info..."))
             else:
                 self.ui.phoneInfoTextbox.setText(QCoreApplication.translate("main",
-                                                                            "Phone detected:\n" + phone_info[
-                                                                                'chipset'] + "\n" + phone_info[
-                                                                                'bootMode']))
-            if phone_info['daInit']:
+                                                                            "Phone detected:\n" + chipset +
+                                                                            "\n" + boot_mode))
+            if da_init:
                 self.ui.menubar.setEnabled(True)
                 self.pixmap = QPixmap(path.get_images_path("phone_connected.png"))
                 self.ui.phoneDebugInfoTextbox.setText("")
@@ -592,7 +599,7 @@ class MainWindow(QMainWindow):
                 self.ui.tabWidget.update()
                 self.ui.tabWidget.setHidden(False)
             else:
-                if 'cantConnect' in phone_info:
+                if cant_connect:
                     self.ui.phoneInfoTextbox.setText(
                         QCoreApplication.translate("main", "Error initialising. Did you install the drivers?"))
                 self.spinnerAnim.start()
@@ -671,15 +678,17 @@ def main():
     win.show()
     # win.setFixedSize(746, 400 + addTopMargin)
 
-    # Device setup
+    # Device setup - connect signals BEFORE starting the thread
     devhandler.sendToLogSignal.connect(win.sendToLog)
-    # Get the device info
 
+    # Connect thread signals before starting to avoid race conditions
     thread.sendToLogSignal.connect(win.sendToLog)
     thread.sendUpdateSignal.connect(win.updateGui)
     thread.sendToProgressSignal.connect(win.sendToProgress)
-    thread.start()
     win.setdevhandler(devhandler)
+
+    # Now start the thread after all signal connections are established
+    thread.start()
 
     # Run loop the app
     try:

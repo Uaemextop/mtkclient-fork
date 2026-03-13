@@ -99,17 +99,19 @@ class UsbClass(DeviceClass):
     @staticmethod
     def load_windows_dll():
         if os.name == 'nt':
+            windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
+            windows_dir = os.path.normpath(windows_dir)
+            if not os.path.exists(windows_dir):
+                logging.warning(f"Windows DLL directory not found: {windows_dir}")
+                return
             try:
-                # add pygame folder to Windows DLL search paths
-                windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
-                try:
-                    os.add_dll_directory(windows_dir)
-                except Exception:
-                    pass
+                os.add_dll_directory(windows_dir)
+            except AttributeError:
+                pass  # os.add_dll_directory not available before Python 3.8 / Windows 10 1607
+            except OSError as e:
+                logging.warning(f"Could not add DLL directory {windows_dir}: {e}")
+            if windows_dir not in os.environ.get('PATH', ''):
                 os.environ['PATH'] = windows_dir + ';' + os.environ['PATH']
-            except Exception:
-                pass
-            del windows_dir
 
     def __init__(self, loglevel=logging.INFO, portconfig=None, devclass=-1):
         super().__init__(loglevel, portconfig, devclass)
@@ -140,8 +142,10 @@ class UsbClass(DeviceClass):
             try:
                 self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
                 self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
+            except Exception as e:
+                self.debug(f"libusb_set_option not available, using default backend behavior: {e}")
+        else:
+            self.warning("No USB backend available. Check libusb installation.")
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
@@ -297,7 +301,7 @@ class UsbClass(DeviceClass):
 
     def connect(self, ep_in=-1, ep_out=-1, devclass=0x2):
         if self.connected:
-            self.close()
+            self.close(reset=True)
             self.connected = False
         self.device = None
         self.EP_OUT = None
@@ -317,11 +321,32 @@ class UsbClass(DeviceClass):
             self.configuration = self.device.get_active_configuration()
         except usb.core.USBError as e:
             if e.strerror == "Configuration not set":
-                self.device.set_configuration()
-                self.configuration = self.device.get_active_configuration()
-            if e.errno == 13:
-                self.backend = usb.backend.libusb0.get_backend()
-                self.device = usb.core.find(idVendor=self.vid, idProduct=self.pid, backend=self.backend)
+                try:
+                    self.device.set_configuration()
+                    self.configuration = self.device.get_active_configuration()
+                except usb.core.USBError as e2:
+                    self.error(f"Failed to set USB configuration: {e2}")
+                    return False
+            elif e.errno == 13:
+                self.debug("Permission error, trying libusb0 backend...")
+                try:
+                    self.backend = usb.backend.libusb0.get_backend()
+                    self.device = usb.core.find(idVendor=self.vid, idProduct=self.pid, backend=self.backend)
+                    if self.device is not None:
+                        try:
+                            self.device.set_configuration()
+                        except Exception:
+                            pass
+                        self.configuration = self.device.get_active_configuration()
+                    else:
+                        self.error("Device not found with libusb0 backend.")
+                        return False
+                except Exception as e2:
+                    self.error(f"libusb0 backend fallback failed: {e2}")
+                    return False
+            else:
+                self.error(f"USB configuration error: {e}")
+                return False
         if self.configuration is None:
             self.error("Couldn't get device configuration.")
             return False
@@ -337,7 +362,7 @@ class UsbClass(DeviceClass):
                     break
 
         self.debug(self.configuration)
-        if self.interface > self.configuration.bNumInterfaces:
+        if self.interface >= self.configuration.bNumInterfaces:
             print("Invalid interface, max number is %d" % self.configuration.bNumInterfaces)
             return False
 
@@ -391,28 +416,39 @@ class UsbClass(DeviceClass):
         if self.connected:
             try:
                 if reset:
-                    self.device.reset()
+                    try:
+                        self.device.reset()
+                    except Exception as err:
+                        self.debug(f"Device reset during close: {err}")
                 try:
                     if not self.device.is_kernel_driver_active(self.interface):
-                        # self.device.attach_kernel_driver(self.interface) #Do NOT uncomment
                         self.device.attach_kernel_driver(0)
                 except Exception:
                     pass
             except Exception as err:
-                self.info(str(err))
+                self.debug(f"Close cleanup: {err}")
             if reset:
                 try:
                     if not self.device.is_kernel_driver_active(0):
-                        # self.device.attach_kernel_driver(self.interface) #Do NOT uncomment
                         self.device.attach_kernel_driver(0)
                 except Exception:
                     pass
-            pass
-            usb.util.dispose_resources(self.device)
-            del self.device
-            if reset:
-                time.sleep(2)
+            try:
+                usb.util.dispose_resources(self.device)
+            except Exception:
+                pass
+            try:
+                del self.device
+            except Exception:
+                pass
             self.connected = False
+            # Windows needs time for USB device re-enumeration
+            if os.name == 'nt':
+                time.sleep(2)
+            elif reset:
+                time.sleep(2)
+            else:
+                time.sleep(0.5)
 
     def write(self, command, pktsize=None):
         if pktsize is None:
@@ -432,8 +468,9 @@ class UsbClass(DeviceClass):
                 except Exception as err:
                     self.debug(str(err))
                     if 'No such device' in str(err):
-                        self.error(str(err))
-                        sys.exit(1)
+                        self.error("Device disconnected during write")
+                        self.connected = False
+                        return False
                     # print("Error while writing")
                     # time.sleep(0.01)
                     i += 1
@@ -521,8 +558,9 @@ class UsbClass(DeviceClass):
                     self.error("USB Overflow")
                     return b""
                 elif "No such device" in error:
-                    self.error("Device disconnected")
-                    sys.exit(1)
+                    self.error("Device disconnected during read")
+                    self.connected = False
+                    return b""
                 else:
                     self.info(repr(e))
                     return b""
