@@ -911,7 +911,7 @@ class DAXML(metaclass=LogBase):
             return False
         else:
             self.error("Read flash isn't supported")
-            sys.exit(1)
+            return False
 
     def writeflash(self, addr, length, filename, offset=0, parttype=None, wdata=None, display=True):
         fh = None
@@ -983,8 +983,7 @@ class DAXML(metaclass=LogBase):
         self.ufs = self.get_ufs_info(display)
         """
         if not self.get_hw_info():
-            self.error("Error: Cannot Reinit daconfig")
-            return
+            raise RuntimeError("DA communication failed during reinit: cannot get hardware info")
 
     def formatflash(self, addr, length, storage=None,
                     parttype=None, display=False):

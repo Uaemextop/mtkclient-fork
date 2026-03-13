@@ -137,6 +137,9 @@ class DAXFlash(metaclass=LogBase):
 
     def status(self):
         hdr = self.usbread(4 + 4 + 4)
+        if len(hdr) < 12:
+            self.error(f"Status error: Received only {len(hdr)} of 12 bytes")
+            return -1
         magic, _, length = unpack("<III", hdr)
         if magic != 0xFEEEEEEF:
             self.error("Status error: Wrong magic")
@@ -181,7 +184,8 @@ class DAXFlash(metaclass=LogBase):
             self.error(f"Error on sending parameter: {self.eh.status(status)}")
             if status == 0xc0020053:
                 # Anti roll back DA error
-                sys.exit(1)
+                self.error("Anti roll back DA error - device rejected the DA")
+                return False
         return False
 
     def send_devctrl(self, cmd, param=None, status=None):
@@ -992,7 +996,12 @@ class DAXFlash(metaclass=LogBase):
         return False
 
     def reinit(self, display=False):
-        self.config.sram, self.config.dram = self.get_ram_info()
+        try:
+            self.config.sram, self.config.dram = self.get_ram_info()
+        except Exception as e:
+            raise RuntimeError(f"DA communication failed during reinit (RAM info): {e}")
+        if self.config.sram is None and self.config.dram is None:
+            raise RuntimeError("DA communication failed during reinit: no RAM info received")
         self.emmc = self.get_emmc_info(display)
         self.nand = self.get_nand_info(display)
         self.nor = self.get_nor_info(display)
@@ -1009,6 +1018,8 @@ class DAXFlash(metaclass=LogBase):
         elif self.ufs is not None and self.ufs.type != 0:
             self.daconfig.storage.flashtype = "ufs"
             self.daconfig.storage.ufs = self.ufs
+        else:
+            raise RuntimeError("DA communication failed during reinit: no storage device detected")
         self.chipid = self.get_chip_id(display=False)
         self.daversion = self.get_da_version(display=False)
         self.randomid = self.get_random_id()

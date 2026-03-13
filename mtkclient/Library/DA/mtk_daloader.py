@@ -159,7 +159,7 @@ class DAloader(metaclass=LogBase):
             config = json.loads(open(os.path.join(self.mtk.config.hwparam_path, ".state"), "r").read())
             self.config.hwcode = config["hwcode"]
             meid_val = None
-            if hasattr(config, 'meid') and config.meid is not None:
+            if "meid" in config and config["meid"] is not None:
                 self.config.meid = bytes.fromhex(config["meid"])
                 meid_val = self.config.meid.hex()
             if "socid" in config:
