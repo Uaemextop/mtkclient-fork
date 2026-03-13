@@ -19,11 +19,19 @@ cd mtkclient
 pip3 install -r requirements.txt
 ```
 
-#### 获取最新的 UsbDk 64位 驱动
-- 安装 MTK 串口驱动 (或使用默认的 Windows COM 端口驱动程序，请确保没有感叹号显示)
-- 下载 [UsbDk驱动 安装程序 (.msi) ](https://github.com/daynix/UsbDk/releases/) 并手动安装。
-- 使用 "UsbDkController -n" 命令测试设备连接，如果看到设备地址为 0x0E8D 0x0003
-- 在 Windows 10 和 11 系统上完美运行 :D
+#### 安装 USB 驱动
+mtkclient 使用 WinUSB 与 MediaTek 设备通信。安装 mtkclient 驱动程序包：
+
+**方式 A：MSI 安装程序（推荐）**
+- 从 [Releases](../../releases) 页面下载 `mtkclient_drivers.msi`
+- 运行 MSI — 自动安装 BROM/Preloader/DA/ADB 的 WinUSB 驱动和串口 (COM) 驱动
+- 安装程序会自动删除旧的 MTK 驱动，安装签名证书，并注册新驱动
+
+**方式 B：手动安装**
+- 以管理员身份运行 `Setup\Windows\driver\install_drivers.bat`
+
+> **注意：** 不再需要 UsbDk。WinUSB 驱动直接通过 libusb（包含在 `mtkclient/Windows/` 中）工作。
+> 如果你之前安装了 UsbDk，可以将其卸载。
 
 #### 解决编译 wheel 报错的问题 (感谢 @Oyoh-Edmond)
 ##### 下载并安装构建工具:

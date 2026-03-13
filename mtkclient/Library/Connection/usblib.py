@@ -16,7 +16,6 @@ import usb.backend.libusb1
 from struct import pack, calcsize
 from enum import Enum
 from binascii import hexlify
-from ctypes import c_void_p, c_int
 
 from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
@@ -100,7 +99,6 @@ class UsbClass(DeviceClass):
     def load_windows_dll():
         if os.name == 'nt':
             try:
-                # add pygame folder to Windows DLL search paths
                 windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
                 try:
                     os.add_dll_directory(windows_dir)
@@ -109,7 +107,6 @@ class UsbClass(DeviceClass):
                 os.environ['PATH'] = windows_dir + ';' + os.environ['PATH']
             except Exception:
                 pass
-            del windows_dir
 
     def __init__(self, loglevel=logging.INFO, portconfig=None, devclass=-1):
         super().__init__(loglevel, portconfig, devclass)
@@ -136,12 +133,6 @@ class UsbClass(DeviceClass):
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
             else:
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
