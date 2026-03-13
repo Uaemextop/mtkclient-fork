@@ -72,11 +72,11 @@ foreach ($dev in $allDevices) {
     # Fallback: Use WMI/CIM for removal if pnputil didn't work
     if (-not $removed) {
         try {
-            $wmiDev = Get-CimInstance -ClassName Win32_PnPEntity -Filter "DeviceID='$($dev.InstanceId -replace '\\','\\\\')'" -ErrorAction SilentlyContinue
+            $escapedId = $dev.InstanceId -replace '\\', '\\\\'
+            $wmiDev = Get-CimInstance -ClassName Win32_PnPEntity -Filter "PNPDeviceID='$escapedId'" -ErrorAction SilentlyContinue
             if ($wmiDev) {
-                $wmiResult = Invoke-CimMethod -InputObject $wmiDev -MethodName 'Disable' -ErrorAction SilentlyContinue
-                # CIM doesn't have a Remove method, but disabling hides it from Device Manager
-                Write-Host "         -> Disabled via CIM (device hidden from Device Manager)"
+                Invoke-CimMethod -InputObject $wmiDev -MethodName 'Disable' -ErrorAction SilentlyContinue | Out-Null
+                Write-Host "         -> Disabled via CIM (device will be removed after reboot or re-scan)"
                 $removed = $true
             }
         } catch {
