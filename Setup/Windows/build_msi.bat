@@ -60,8 +60,14 @@ if not exist "%DRIVER_DIR%\mtkclient.cat" (
 REM --- Create output directory ---
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
+REM --- Create RTF license file for WiX UI ---
+if not exist "%SCRIPT_DIR%LICENSE.rtf" (
+    echo Creating LICENSE.rtf from project LICENSE...
+    powershell -NoProfile -Command "$t = Get-Content '%SCRIPT_DIR%..\..\LICENSE' -Raw; $r = '{\rtf1\ansi\deff0{\fonttbl{\f0 Consolas;}}\f0\fs18 ' + ($t -replace '\\','\\\\' -replace '\{','\{' -replace '\}','\}' -replace \"`r`n\",'\par ' -replace \"`n\",'\par ') + '}'; Set-Content '%SCRIPT_DIR%LICENSE.rtf' $r"
+)
+
 echo Compiling WiX source...
-"%CANDLE%" -arch x64 -dDriverDir="%DRIVER_DIR%" -out "%OUTPUT_DIR%\mtkclient_driver.wixobj" "%WXS_FILE%"
+"%CANDLE%" -arch x64 -dDriverDir="%DRIVER_DIR%" -ext WixUtilExtension -out "%OUTPUT_DIR%\mtkclient_driver.wixobj" "%WXS_FILE%"
 if %errorlevel% neq 0 (
     echo ERROR: WiX compilation failed.
     pause

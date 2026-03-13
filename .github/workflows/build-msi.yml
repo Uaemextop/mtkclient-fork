@@ -1,0 +1,105 @@
+# build-msi.yml – Build the mtkclient WinUSB driver MSI and upload as artifact
+#
+# Runs on Windows with WiX Toolset v3 to compile the .wxs source into
+# an MSI installer for the WinUSB driver package.
+
+name: Build MSI Installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Setup/Windows/**'
+  pull_request:
+    paths:
+      - 'Setup/Windows/**'
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    name: Build WinUSB Driver MSI
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install WiX Toolset v3
+        run: |
+          dotnet tool install --global wix --version 3.14.1
+          # Also install via choco as fallback for candle/light
+          choco install wixtoolset -y --no-progress
+          # Refresh PATH
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+          refreshenv
+        shell: pwsh
+
+      - name: Prepare driver files
+        run: |
+          $driverDir = "Setup\Windows\driver"
+          $outputDir = "Setup\Windows\output"
+
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+          # Create placeholder .cat catalog file (required by WXS)
+          if (-not (Test-Path "$driverDir\mtkclient.cat")) {
+            New-Item -ItemType File -Force -Path "$driverDir\mtkclient.cat" | Out-Null
+            Write-Host "Created placeholder mtkclient.cat"
+          }
+
+          # Create RTF version of LICENSE for WiX UI
+          $licenseText = Get-Content -Path "LICENSE" -Raw
+          $rtfContent = "{\rtf1\ansi\deff0{\fonttbl{\f0 Consolas;}}\f0\fs18 " + ($licenseText -replace '\\', '\\\\' -replace '\{', '\{' -replace '\}', '\}' -replace "`r`n", '\par ' -replace "`n", '\par ') + "}"
+          Set-Content -Path "Setup\Windows\LICENSE.rtf" -Value $rtfContent
+          Write-Host "Created LICENSE.rtf for WiX UI"
+        shell: pwsh
+
+      - name: Build MSI with WiX
+        run: |
+          $driverDir  = Resolve-Path "Setup\Windows\driver"
+          $wxsFile    = "Setup\Windows\installer\mtkclient_driver.wxs"
+          $outputDir  = "Setup\Windows\output"
+
+          # Find WiX tools
+          $wixDir = "${env:WIX}bin"
+          if (-not (Test-Path "$wixDir\candle.exe")) {
+            # Try common choco install path
+            $wixDir = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          }
+          if (-not (Test-Path "$wixDir\candle.exe")) {
+            $wixDir = (Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\bin" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          }
+
+          Write-Host "Using WiX from: $wixDir"
+
+          # Compile .wxs to .wixobj
+          Write-Host "Compiling WiX source..."
+          & "$wixDir\candle.exe" -arch x64 `
+            -dDriverDir="$driverDir" `
+            -ext WixUtilExtension `
+            -out "$outputDir\mtkclient_driver.wixobj" `
+            "$wxsFile"
+
+          if ($LASTEXITCODE -ne 0) { throw "WiX candle compilation failed" }
+
+          # Link .wixobj to .msi
+          Write-Host "Linking MSI..."
+          & "$wixDir\light.exe" `
+            -ext WixUIExtension `
+            -ext WixUtilExtension `
+            -out "$outputDir\mtkclient_driver.msi" `
+            "$outputDir\mtkclient_driver.wixobj"
+
+          if ($LASTEXITCODE -ne 0) { throw "WiX light linking failed" }
+
+          Write-Host "MSI built successfully at: $outputDir\mtkclient_driver.msi"
+          Get-Item "$outputDir\mtkclient_driver.msi" | Select-Object Name, Length
+        shell: pwsh
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-winusb-driver-msi
+          path: Setup/Windows/output/mtkclient_driver.msi
+          if-no-files-found: error

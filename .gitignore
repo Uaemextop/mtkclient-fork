@@ -17,3 +17,4 @@ dist
 
 # Windows driver build output
 Setup/Windows/output/
+Setup/Windows/LICENSE.rtf

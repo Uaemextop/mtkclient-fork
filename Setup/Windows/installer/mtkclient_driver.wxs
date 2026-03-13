@@ -103,7 +103,7 @@
 
     <!-- WiX default UI (minimal) -->
     <UIRef Id="WixUI_Minimal" />
-    <WixVariable Id="WixUILicenseRtf" Value="$(var.DriverDir)\..\..\..\..\LICENSE" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.DriverDir)\..\..\LICENSE.rtf" />
 
   </Product>
 </Wix>
