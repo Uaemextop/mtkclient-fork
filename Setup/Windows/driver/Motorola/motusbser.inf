@@ -1,0 +1,82 @@
+;-------------------------------------------------------------------------------
+;
+; Motorola USB COM Port Driver (motusbser.inf)
+;
+; Copyright (c) 2012-2017 Motorola Mobility
+;
+;-------------------------------------------------------------------------------;    
+
+[Version] 
+Signature               ="$Windows NT$" 
+Class                   =Ports 
+ClassGuid               ={4D36E978-E325-11CE-BFC1-08002BE10318} 
+Provider                =%Motorola% 
+DriverVer               =11/26/2012, 1.0.1.0
+CatalogFile             =motusbser.cat
+
+[Manufacturer] 
+%Motorola%              =Motorola, NT.5.1, NTamd64.6.0
+
+[Motorola]
+;do not support win2K
+
+;xp later version.
+[Motorola.NT.5.1]
+%GADGET%                =Reader, USB\VID_22B8&PID_64B5&MI_01
+%GADGET%                =Reader, USB\VID_22B8&PID_64B6&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64B7&MI_01
+%GADGET%                =Reader, USB\VID_22B8&PID_64B8&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64BA
+%GADGET%                =Reader, USB\VID_22B8&PID_64BB&MI_01
+
+%PRELOADER%             =Reader, USB\VID_22B8&PID_64B0
+%GADGET%                =Reader, USB\VID_22B8&PID_64B3&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64B4&MI_01
+
+; x64 xp not support
+[Motorola.NTamd64.6.0]
+%GADGET%                =Reader, USB\VID_22B8&PID_64B5&MI_01
+%GADGET%                =Reader, USB\VID_22B8&PID_64B6&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64B7&MI_01
+%GADGET%                =Reader, USB\VID_22B8&PID_64B8&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64BA
+%GADGET%                =Reader, USB\VID_22B8&PID_64BB&MI_01
+
+%PRELOADER%             =Reader, USB\VID_22B8&PID_64B0
+%GADGET%                =Reader, USB\VID_22B8&PID_64B3&MI_02
+%GADGET%                =Reader, USB\VID_22B8&PID_64B4&MI_01
+
+[Reader]
+Include                 =mdmcpq.inf
+AddReg                  =Reader.AddReg
+CopyFiles               =FakeModemCopyFileSection  
+
+[Reader.AddReg] 
+HKR,,DevLoader,,*ntkern 
+HKR,,NTMPDriver,,usbser.sys 
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider" 
+
+[Reader.Services] 
+AddService              =usbser, 0x00000002, Service_Inst 
+
+[Service_Inst] 
+DisplayName             =%Serial.SvcDesc% 
+ServiceType             =1;SERVICE_KERNEL_DRIVER 
+StartType               =3;SERVICE_DEMAND_START 
+ErrorControl            =1;SERVICE_ERROR_NORMAL 
+ServiceBinary           =%12%\usbser.sys 
+LoadOrderGroup          =Base 
+
+[SourceDisksNames]
+
+[SourceDisksFiles]
+
+[DestinationDirs] 
+DefaultDestDir          =12
+
+[Strings] 
+Motorola                ="Motorola"
+PRELOADER               ="PreLoader USB VCOM Port"
+Serial.SvcDesc          ="Motorola USB Serial Emulation Driver"
+GADGET                  ="Gadget CDC VCOM Port"
+

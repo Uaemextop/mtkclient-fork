@@ -16,7 +16,6 @@ import usb.backend.libusb1
 from struct import pack, calcsize
 from enum import Enum
 from binascii import hexlify
-from ctypes import c_void_p, c_int
 
 from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
@@ -100,7 +99,6 @@ class UsbClass(DeviceClass):
     def load_windows_dll():
         if os.name == 'nt':
             try:
-                # add pygame folder to Windows DLL search paths
                 windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
                 try:
                     os.add_dll_directory(windows_dir)
@@ -109,7 +107,6 @@ class UsbClass(DeviceClass):
                 os.environ['PATH'] = windows_dir + ';' + os.environ['PATH']
             except Exception:
                 pass
-            del windows_dir
 
     def __init__(self, loglevel=logging.INFO, portconfig=None, devclass=-1):
         super().__init__(loglevel, portconfig, devclass)
@@ -136,12 +133,6 @@ class UsbClass(DeviceClass):
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
             else:
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
@@ -302,14 +293,46 @@ class UsbClass(DeviceClass):
         self.device = None
         self.EP_OUT = None
         self.EP_IN = None
-        devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
-        for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
-            if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
-                self.device = dev
-                self.vid = dev.idVendor
-                self.pid = dev.idProduct
-                self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+
+        # Build VID list dynamically from portconfig
+        if isinstance(self.portconfig, dict):
+            known_vids = list(self.portconfig.keys())
+        else:
+            known_vids = [0x0E8D, 0x1004, 0x22d9, 0x0FCE]
+
+        # Try class-filtered search first (CDC = 0x2), then fall back to
+        # enumerating all devices.  On Windows with WinUSB, some devices
+        # report bDeviceClass=0x00 (composite) instead of 0x02 (CDC).
+        for use_class in [True, False]:
+            if use_class:
+                devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
+            else:
+                devices = usb.core.find(find_all=True, backend=self.backend)
+            if devices is None:
+                continue
+            for dev in devices:
+                if dev.idVendor not in known_vids:
+                    continue
+                if isinstance(self.portconfig, dict):
+                    if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
+                        self.device = dev
+                        self.vid = dev.idVendor
+                        self.pid = dev.idProduct
+                        self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+                        break
+                elif isinstance(self.portconfig, list):
+                    for entry in self.portconfig:
+                        if dev.idVendor == entry[0] and dev.idProduct == entry[1]:
+                            self.device = dev
+                            self.vid = dev.idVendor
+                            self.pid = dev.idProduct
+                            self.interface = entry[2] if len(entry) > 2 else -1
+                            break
+                    if self.device is not None:
+                        break
+            if self.device is not None:
                 break
+
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
             return False

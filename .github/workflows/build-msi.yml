@@ -1,0 +1,199 @@
+name: Build Driver MSI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Setup/Windows/**'
+      - '.github/workflows/build-msi.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'Setup/Windows/**'
+      - '.github/workflows/build-msi.yml'
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Generate LICENSE.rtf from plain-text LICENSE ──────────────
+      - name: Generate LICENSE.rtf
+        shell: pwsh
+        run: |
+          $licenseTxt = Get-Content -Path LICENSE -Raw -ErrorAction SilentlyContinue
+          if (-not $licenseTxt) {
+            $licenseTxt = "MIT License — see repository for full text."
+          }
+          $escaped = $licenseTxt -replace '\\', '\\\\' `
+                                -replace '\{', '\{' `
+                                -replace '\}', '\}' `
+                                -replace "`r`n", "\par`r`n" `
+                                -replace "`n", "\par`r`n"
+          $rtf = "{\rtf1\ansi\deff0{\fonttbl{\f0 Consolas;}}\f0\fs20 $escaped}"
+          Set-Content -Path "Setup\Windows\LICENSE.rtf" -Value $rtf -Encoding ASCII
+          Write-Host "LICENSE.rtf generated"
+
+      # ── Test-sign the driver INF files ───────────────────────────
+      - name: Create test-signing certificate
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=mtkclient Test Signing" `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -NotAfter (Get-Date).AddYears(5)
+          Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+
+      - name: Export certificate and sign catalog files
+        shell: pwsh
+        run: |
+          $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
+          $drvDir = "Setup\Windows\driver"
+
+          # Export the signing certificate as .cer for MSI embedding
+          Export-Certificate -Cert $cert -FilePath "$drvDir\mtkclient_test.cer" -Type CERT
+          Write-Host "Certificate exported: mtkclient_test.cer ($((Get-Item "$drvDir\mtkclient_test.cer").Length) bytes)"
+
+          # ADB/Bootloader/MTP catalog (Google r13 modified for MTK)
+          New-FileCatalog `
+            -Path "$drvDir\adb\android_winusb.inf" `
+            -CatalogFilePath "$drvDir\adb\android_winusb.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "$drvDir\adb\android_winusb.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "ADB catalog signed"
+
+          # Serial catalog (cdc-acm.inf, inbox usbser.sys)
+          New-FileCatalog `
+            -Path "$drvDir\CDC\cdc-acm.inf" `
+            -CatalogFilePath "$drvDir\CDC\cdc-acm.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "$drvDir\CDC\cdc-acm.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "Serial catalog signed"
+
+          # Preloader/BROM/DA catalog (mtk_preloader.inf)
+          New-FileCatalog `
+            -Path "$drvDir\preloader\mtk_preloader.inf" `
+            -CatalogFilePath "$drvDir\preloader\mtk_preloader.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "$drvDir\preloader\mtk_preloader.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "Preloader catalog signed"
+
+          # Motorola drivers already have their own catalogs from the official MSI,
+          # but we sign them with our test cert for consistency
+          $motoInfs = Get-ChildItem "$drvDir\Motorola\*.inf" -ErrorAction SilentlyContinue
+          foreach ($inf in $motoInfs) {
+            $catPath = $inf.FullName -replace '\.inf$', '.cat'
+            if (-not (Test-Path $catPath)) {
+              New-FileCatalog -Path $inf.FullName -CatalogFilePath $catPath -CatalogVersion 2.0
+            }
+            Set-AuthenticodeSignature -FilePath $catPath -Certificate $cert -TimestampServer "http://timestamp.digicert.com"
+            Write-Host "  Signed: $(Split-Path $catPath -Leaf)"
+          }
+          Write-Host "Motorola catalogs signed"
+
+          # Verify catalogs and cert exist
+          Get-ChildItem "$drvDir\adb\*.cat","$drvDir\CDC\*.cat","$drvDir\Motorola\*.cat","$drvDir\*.cer" | ForEach-Object {
+            Write-Host "  $($_.Name)  $($_.Length) bytes"
+          }
+
+      # ── Install WiX Toolset v3 ──────────────────────────────────
+      - name: Install WiX Toolset v3
+        shell: pwsh
+        run: |
+          choco install wixtoolset -y --no-progress
+          # Find WiX bin directory
+          $wixDir = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin" `
+                    -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $wixDir) {
+            $wixDir = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*\bin" `
+                      -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          Write-Host "WiX bin: $($wixDir.FullName)"
+          echo "$($wixDir.FullName)" >> $env:GITHUB_PATH
+
+      # ── Build the MSI ───────────────────────────────────────────
+      - name: Build MSI with candle + light
+        shell: pwsh
+        run: |
+          $wxsFile  = "Setup\Windows\installer\mtkclient_driver.wxs"
+          $objFile  = "Setup\Windows\installer\mtkclient_driver.wixobj"
+          $msiFile  = "Setup\Windows\installer\mtkclient-winusb-driver.msi"
+
+          Write-Host "=== candle (compile) ==="
+          candle.exe -nologo `
+            -arch x64 `
+            -ext WixUIExtension `
+            -ext WixUtilExtension `
+            -out $objFile `
+            $wxsFile
+          if ($LASTEXITCODE -ne 0) { throw "candle failed ($LASTEXITCODE)" }
+
+          Write-Host "=== light (link) ==="
+          light.exe -nologo `
+            -ext WixUIExtension `
+            -ext WixUtilExtension `
+            -sice:ICE61 -sice:ICE80 `
+            -out $msiFile `
+            $objFile
+          if ($LASTEXITCODE -ne 0) { throw "light failed ($LASTEXITCODE)" }
+
+          $msi = Get-Item $msiFile
+          Write-Host "MSI built: $($msi.Name) ($($msi.Length) bytes)"
+
+      # ── Sign the MSI ────────────────────────────────────────────
+      - name: Sign MSI
+        shell: pwsh
+        run: |
+          $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
+          Set-AuthenticodeSignature `
+            -FilePath "Setup\Windows\installer\mtkclient-winusb-driver.msi" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "MSI signed"
+
+      # ── Upload artifacts ────────────────────────────────────────
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-winusb-driver-msi
+          path: Setup/Windows/installer/mtkclient-winusb-driver.msi
+          if-no-files-found: error
+
+      - name: Upload signed driver files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-driver-files
+          path: |
+            Setup/Windows/driver/adb/android_winusb.inf
+            Setup/Windows/driver/adb/android_winusb.cat
+            Setup/Windows/driver/adb/amd64/WdfCoInstaller01009.dll
+            Setup/Windows/driver/adb/amd64/winusbcoinstaller2.dll
+            Setup/Windows/driver/adb/amd64/WUDFUpdate_01009.dll
+            Setup/Windows/driver/adb/i386/WdfCoInstaller01009.dll
+            Setup/Windows/driver/adb/i386/winusbcoinstaller2.dll
+            Setup/Windows/driver/adb/i386/WUDFUpdate_01009.dll
+            Setup/Windows/driver/CDC/cdc-acm.inf
+            Setup/Windows/driver/CDC/cdc-acm.cat
+            Setup/Windows/driver/Motorola/*
+            Setup/Windows/driver/mtkclient_test.cer
+            Setup/Windows/driver/cleanup_mtk_drivers.ps1
+            Setup/Windows/driver/install_drivers.bat
+            Setup/Windows/driver/README.md
+          if-no-files-found: error

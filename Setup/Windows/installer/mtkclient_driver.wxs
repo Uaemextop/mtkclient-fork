@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mtkclient_driver.wxs — WiX v3 source for the mtkclient USB driver MSI.
+
+  Drivers installed:
+    1. android_winusb.inf — Google USB Driver r13 modified for MTK ADB/MTP/Bootloader
+    2. mtk_preloader.inf — WinUSB driver for MTK BROM/Preloader/DA (MediaTek USB Devices class)
+    3. cdc-acm.inf — Serial COM port driver (inbox usbser.sys) for VCOM/Meta/ETS/ELT
+
+  The MSI:
+    1. Runs cleanup script to remove old MTK drivers and devices
+    2. Installs the test-signing certificate to Root + TrustedPublisher
+    3. Calls pnputil to register the new drivers in the Driver Store
+    4. On uninstall, removes the certificate from both stores
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <?define ProductVersion = "3.0.0.0" ?>
+  <?define Manufacturer   = "MediaTek Inc. / mtkclient" ?>
+  <?define ProductName    = "mtkclient USB Drivers for Windows 10/11" ?>
+  <?define UpgradeCode    = "7A3B5C1D-4E2F-6A8B-9C0D-1E2F3A4B5C6D" ?>
+  <?define DriverDir      = "..\driver" ?>
+  <?define CertCN         = "mtkclient Test Signing" ?>
+
+  <Product Id="*"
+           Name="$(var.ProductName)"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.Manufacturer)"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Description="Android USB (ADB/MTP/BROM/DA/Bootloader) and Serial (VCOM) drivers for MediaTek devices. Based on Google USB Driver r13."
+             Comments="Google USB Driver r13 modified for MTK + inbox usbser.sys for COM ports"
+             Platform="x64" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- License -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.DriverDir)\..\LICENSE.rtf" />
+
+    <!-- Minimal UI -->
+    <UIRef Id="WixUI_Minimal" />
+
+    <!-- ============================================================ -->
+    <!--  Directory layout                                             -->
+    <!-- ============================================================ -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="mtkclient Drivers">
+          <Directory Id="DIR_ADB" Name="adb">
+            <Directory Id="DIR_ADB_AMD64" Name="amd64" />
+            <Directory Id="DIR_ADB_I386"  Name="i386" />
+          </Directory>
+          <Directory Id="DIR_SERIAL" Name="serial" />
+          <Directory Id="DIR_PRELOADER" Name="preloader" />
+          <Directory Id="DIR_MOTO" Name="Motorola" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- ============================================================ -->
+    <!--  Components — ADB/Bootloader/MTP driver (android_winusb.inf)  -->
+    <!--  Google USB Driver r13, modified for MediaTek devices          -->
+    <!--  Includes amd64/ and i386/ CoInstaller DLLs from Google r13   -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_ADB">
+      <Component Id="CMP_ADB_INF" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABC" Win64="yes">
+        <File Id="FILE_ADB_INF"
+              Source="$(var.DriverDir)\adb\android_winusb.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_CAT" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABD" Win64="yes">
+        <File Id="FILE_ADB_CAT"
+              Source="$(var.DriverDir)\adb\android_winusb.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="DIR_ADB_AMD64">
+      <Component Id="CMP_ADB_AMD64_WdfCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000001" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WdfCoInst"
+              Source="$(var.DriverDir)\adb\amd64\WdfCoInstaller01009.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_AMD64_WinUsbCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000002" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WinUsbCoInst"
+              Source="$(var.DriverDir)\adb\amd64\winusbcoinstaller2.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_AMD64_WudfUpdate" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000003" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WudfUpdate"
+              Source="$(var.DriverDir)\adb\amd64\WUDFUpdate_01009.dll"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="DIR_ADB_I386">
+      <Component Id="CMP_ADB_I386_WdfCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000004" Win64="no">
+        <File Id="FILE_ADB_I386_WdfCoInst"
+              Source="$(var.DriverDir)\adb\i386\WdfCoInstaller01009.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_I386_WinUsbCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000005" Win64="no">
+        <File Id="FILE_ADB_I386_WinUsbCoInst"
+              Source="$(var.DriverDir)\adb\i386\winusbcoinstaller2.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_I386_WudfUpdate" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000006" Win64="no">
+        <File Id="FILE_ADB_I386_WudfUpdate"
+              Source="$(var.DriverDir)\adb\i386\WUDFUpdate_01009.dll"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — Serial driver (cdc-acm.inf + CAT)               -->
+    <!--  Uses inbox usbser.sys (replaces legacy usb2ser.sys)          -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_SERIAL">
+      <Component Id="CMP_Serial_INF" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901" Win64="yes">
+        <File Id="FILE_Serial_INF"
+              Source="$(var.DriverDir)\CDC\cdc-acm.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Serial_CAT" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678902" Win64="yes">
+        <File Id="FILE_Serial_CAT"
+              Source="$(var.DriverDir)\CDC\cdc-acm.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — Preloader driver (mtk_preloader.inf + CAT)      -->
+    <!--  BROM/Preloader/DA under "MediaTek USB Devices" class         -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_PRELOADER">
+      <Component Id="CMP_Preloader_INF" Guid="C3D4E5F6-A7B8-9012-CDEF-234567890123" Win64="yes">
+        <File Id="FILE_Preloader_INF"
+              Source="$(var.DriverDir)\preloader\mtk_preloader.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Preloader_CAT" Guid="C3D4E5F6-A7B8-9012-CDEF-234567890124" Win64="yes">
+        <File Id="FILE_Preloader_CAT"
+              Source="$(var.DriverDir)\preloader\mtk_preloader.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — Motorola drivers (from official MSI 6.4.0)      -->
+    <!--  ADB (motoandroid2.inf WinUSB), MTP, Serial, Composite       -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_MOTO">
+      <!-- ADB WinUSB driver (motoandroid2) — Win10/11 compatible -->
+      <Component Id="CMP_Moto_ADB2_INF" Guid="8F298D43-19F6-4B73-8934-A530F77192D6" Win64="yes">
+        <File Id="FILE_Moto_ADB2_INF" Source="$(var.DriverDir)\Motorola\motoandroid2.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB2_CAT" Guid="CA501A60-22F3-4D4A-BF3E-1592A92EDA3B" Win64="yes">
+        <File Id="FILE_Moto_ADB2_CAT" Source="$(var.DriverDir)\Motorola\motoandroid2.cat" KeyPath="yes" />
+      </Component>
+      <!-- ADB legacy driver (motoandroid) — broader device support -->
+      <Component Id="CMP_Moto_ADB_INF" Guid="68F33D18-FC83-43A4-869B-6DDE61590AA5" Win64="yes">
+        <File Id="FILE_Moto_ADB_INF" Source="$(var.DriverDir)\Motorola\motoandroid.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB_CAT" Guid="F864F6D6-4B9E-40EA-A5A0-A281E5834236" Win64="yes">
+        <File Id="FILE_Moto_ADB_CAT" Source="$(var.DriverDir)\Motorola\motoandroid.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB_SYS" Guid="DCDABFB4-3012-4259-8011-C5D5CA786AE8" Win64="yes">
+        <File Id="FILE_Moto_ADB_SYS" Source="$(var.DriverDir)\Motorola\motoandroid.sys" KeyPath="yes" />
+      </Component>
+      <!-- MTP / USB Device driver -->
+      <Component Id="CMP_Moto_MTP_INF" Guid="00AC7E7B-C4C4-4491-BA88-B7C3ACC7541F" Win64="yes">
+        <File Id="FILE_Moto_MTP_INF" Source="$(var.DriverDir)\Motorola\motusbdevice.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MTP_CAT" Guid="9DA58BBB-A9AC-4698-AA46-B00C83C0D62C" Win64="yes">
+        <File Id="FILE_Moto_MTP_CAT" Source="$(var.DriverDir)\Motorola\motusbdevice.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MTP_SYS" Guid="E4B31DC0-B69C-4CA8-9D5D-CAEB31FA8B5B" Win64="yes">
+        <File Id="FILE_Moto_MTP_SYS" Source="$(var.DriverDir)\Motorola\motusbdevice.sys" KeyPath="yes" />
+      </Component>
+      <!-- Composite device driver (motccgp) -->
+      <Component Id="CMP_Moto_CCGP_INF" Guid="C7AFD49C-B7FF-4B07-BC72-4BEB8C539369" Win64="yes">
+        <File Id="FILE_Moto_CCGP_INF" Source="$(var.DriverDir)\Motorola\motccgp.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CCGP_CAT" Guid="388B2A84-A571-4F17-B87A-81DE044D1489" Win64="yes">
+        <File Id="FILE_Moto_CCGP_CAT" Source="$(var.DriverDir)\Motorola\motccgp.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CCGP_SYS" Guid="1BB0C15D-B15D-4353-B2AD-2385C2721734" Win64="yes">
+        <File Id="FILE_Moto_CCGP_SYS" Source="$(var.DriverDir)\Motorola\motccgp.sys" KeyPath="yes" />
+      </Component>
+      <!-- Main USB driver (motodrv) -->
+      <Component Id="CMP_Moto_DRV_INF" Guid="C4FEA78A-B3F6-4CA6-8A2D-4A056A705C7C" Win64="yes">
+        <File Id="FILE_Moto_DRV_INF" Source="$(var.DriverDir)\Motorola\motodrv.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_DRV_CAT" Guid="921BCE05-CCEB-42AA-9AB3-B4BD1845262B" Win64="yes">
+        <File Id="FILE_Moto_DRV_CAT" Source="$(var.DriverDir)\Motorola\motodrv.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_DRV_SYS" Guid="362F26F4-5DB1-47E4-968B-DB5666B714B6" Win64="yes">
+        <File Id="FILE_Moto_DRV_SYS" Source="$(var.DriverDir)\Motorola\motodrv.sys" KeyPath="yes" />
+      </Component>
+      <!-- Serial port driver (motport) -->
+      <Component Id="CMP_Moto_PORT_INF" Guid="F460A27B-1DB2-4EC1-BBF0-916BCB38CB80" Win64="yes">
+        <File Id="FILE_Moto_PORT_INF" Source="$(var.DriverDir)\Motorola\motport.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_PORT_CAT" Guid="9F04670B-8689-45DA-95E7-3AAB7F9EA03F" Win64="yes">
+        <File Id="FILE_Moto_PORT_CAT" Source="$(var.DriverDir)\Motorola\motport.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_PORT_SYS" Guid="CE248780-E018-4727-B559-52715B87992E" Win64="yes">
+        <File Id="FILE_Moto_PORT_SYS" Source="$(var.DriverDir)\Motorola\motport.sys" KeyPath="yes" />
+      </Component>
+      <!-- Modem driver -->
+      <Component Id="CMP_Moto_MDM_INF" Guid="14A5712B-38C2-453E-8A83-4896C81430A8" Win64="yes">
+        <File Id="FILE_Moto_MDM_INF" Source="$(var.DriverDir)\Motorola\motmodem.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MDM_CAT" Guid="E61CC22C-D2EC-472E-995D-20CCE212B373" Win64="yes">
+        <File Id="FILE_Moto_MDM_CAT" Source="$(var.DriverDir)\Motorola\motmodem.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MDM_SYS" Guid="D8AD5DEA-934D-42BA-A69F-046B234527CA" Win64="yes">
+        <File Id="FILE_Moto_MDM_SYS" Source="$(var.DriverDir)\Motorola\motmodem.sys" KeyPath="yes" />
+      </Component>
+      <!-- Shared SYS/DLL files -->
+      <Component Id="CMP_Moto_SWCH_SYS" Guid="973BF48B-5D78-4119-9E6C-3931BC55E43A" Win64="yes">
+        <File Id="FILE_Moto_SWCH_SYS" Source="$(var.DriverDir)\Motorola\motswch.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CI_DLL" Guid="6DE2AB0E-3D19-42CD-8F71-BDC0919EC38F" Win64="yes">
+        <File Id="FILE_Moto_CI_DLL" Source="$(var.DriverDir)\Motorola\mot_ci.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_WDF_DLL" Guid="56427940-F6E0-42DB-99E7-91B7CF178CEE" Win64="yes">
+        <File Id="FILE_Moto_WDF_DLL" Source="$(var.DriverDir)\Motorola\WdfCoInstaller01009.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_WUSB_DLL" Guid="9333CD97-B82D-43AF-966D-A5E0A1144229" Win64="yes">
+        <File Id="FILE_Moto_WUSB_DLL" Source="$(var.DriverDir)\Motorola\winusbcoinstaller2.dll" KeyPath="yes" />
+      </Component>
+      <!-- USB serial drivers -->
+      <Component Id="CMP_Moto_USBSER_INF" Guid="C6EC7F1C-0C2A-4453-BA67-B2BBD84424DC" Win64="yes">
+        <File Id="FILE_Moto_USBSER_INF" Source="$(var.DriverDir)\Motorola\motusbser.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_USBSER_CAT" Guid="3DD5EC7D-C967-43C4-9E85-1B448075D960" Win64="yes">
+        <File Id="FILE_Moto_USBSER_CAT" Source="$(var.DriverDir)\Motorola\motusbser.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_SER_SYS" Guid="C57B1D7E-2393-4268-ACA3-DD890EB776D5" Win64="yes">
+        <File Id="FILE_Moto_SER_SYS" Source="$(var.DriverDir)\Motorola\Mousbser.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOSER_INF" Guid="DEA2D8BA-59B0-4B36-AF3E-E623F7C9A8AA" Win64="yes">
+        <File Id="FILE_Moto_MOSER_INF" Source="$(var.DriverDir)\Motorola\Moser.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOSER_CAT" Guid="8A14BBDA-A476-475E-ABCD-FFF81859F25A" Win64="yes">
+        <File Id="FILE_Moto_MOSER_CAT" Source="$(var.DriverDir)\Motorola\mousbser.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOMDM_INF" Guid="3E90CE0F-6AA2-49DE-AB6A-7E2B6F3F2205" Win64="yes">
+        <File Id="FILE_Moto_MOMDM_INF" Source="$(var.DriverDir)\Motorola\Momdm.inf" KeyPath="yes" />
+      </Component>
+      <!-- USB networking -->
+      <Component Id="CMP_Moto_NET_INF" Guid="965B6748-1CDA-4AD4-8D4A-56BA83146BB1" Win64="yes">
+        <File Id="FILE_Moto_NET_INF" Source="$(var.DriverDir)\Motorola\motousbnet.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_NET_CAT" Guid="0CDB71B0-1B9A-4836-BC19-31D3C399567B" Win64="yes">
+        <File Id="FILE_Moto_NET_CAT" Source="$(var.DriverDir)\Motorola\motousbnet.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_NET_SYS" Guid="B4920D59-0572-4845-BFCD-40F518E00772" Win64="yes">
+        <File Id="FILE_Moto_NET_SYS" Source="$(var.DriverDir)\Motorola\motousbnet.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_FILT_SYS" Guid="D02810EB-355B-4DD3-8846-FB7209176572" Win64="yes">
+        <File Id="FILE_Moto_FILT_SYS" Source="$(var.DriverDir)\Motorola\motfilt.sys" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — cleanup script, certificate, batch, readme      -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="CMP_CleanupScript" Guid="D4E5F6A7-B8C9-0123-DEF0-456789012345" Win64="yes">
+        <File Id="FILE_CleanupScript"
+              Source="$(var.DriverDir)\cleanup_mtk_drivers.ps1"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Certificate" Guid="E5F6A7B8-C9D0-1234-EF01-567890123456" Win64="yes">
+        <File Id="FILE_Certificate"
+              Source="$(var.DriverDir)\mtkclient_test.cer"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_InstallBat" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012" Win64="yes">
+        <File Id="FILE_InstallBat"
+              Source="$(var.DriverDir)\install_drivers.bat"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Readme" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789013" Win64="yes">
+        <File Id="FILE_Readme"
+              Source="$(var.DriverDir)\README.md"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Feature                                                      -->
+    <!-- ============================================================ -->
+    <Feature Id="DriverFeature"
+             Title="mtkclient USB Drivers"
+             Description="Android USB driver (ADB/MTP/BROM/DA/Bootloader) based on Google r13, plus serial COM port driver for VCOM. COM port: 115200 bps default, 921600 bps max, 8-N-1."
+             Level="1"
+             ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentRef Id="CMP_ADB_INF" />
+      <ComponentRef Id="CMP_ADB_CAT" />
+      <ComponentRef Id="CMP_ADB_AMD64_WdfCoInst" />
+      <ComponentRef Id="CMP_ADB_AMD64_WinUsbCoInst" />
+      <ComponentRef Id="CMP_ADB_AMD64_WudfUpdate" />
+      <ComponentRef Id="CMP_ADB_I386_WdfCoInst" />
+      <ComponentRef Id="CMP_ADB_I386_WinUsbCoInst" />
+      <ComponentRef Id="CMP_ADB_I386_WudfUpdate" />
+      <ComponentRef Id="CMP_Serial_INF" />
+      <ComponentRef Id="CMP_Serial_CAT" />
+      <!-- Preloader/BROM/DA driver -->
+      <ComponentRef Id="CMP_Preloader_INF" />
+      <ComponentRef Id="CMP_Preloader_CAT" />
+      <!-- Motorola drivers -->
+      <ComponentRef Id="CMP_Moto_ADB2_INF" />
+      <ComponentRef Id="CMP_Moto_ADB2_CAT" />
+      <ComponentRef Id="CMP_Moto_ADB_INF" />
+      <ComponentRef Id="CMP_Moto_ADB_CAT" />
+      <ComponentRef Id="CMP_Moto_ADB_SYS" />
+      <ComponentRef Id="CMP_Moto_MTP_INF" />
+      <ComponentRef Id="CMP_Moto_MTP_CAT" />
+      <ComponentRef Id="CMP_Moto_MTP_SYS" />
+      <ComponentRef Id="CMP_Moto_CCGP_INF" />
+      <ComponentRef Id="CMP_Moto_CCGP_CAT" />
+      <ComponentRef Id="CMP_Moto_CCGP_SYS" />
+      <ComponentRef Id="CMP_Moto_DRV_INF" />
+      <ComponentRef Id="CMP_Moto_DRV_CAT" />
+      <ComponentRef Id="CMP_Moto_DRV_SYS" />
+      <ComponentRef Id="CMP_Moto_PORT_INF" />
+      <ComponentRef Id="CMP_Moto_PORT_CAT" />
+      <ComponentRef Id="CMP_Moto_PORT_SYS" />
+      <ComponentRef Id="CMP_Moto_MDM_INF" />
+      <ComponentRef Id="CMP_Moto_MDM_CAT" />
+      <ComponentRef Id="CMP_Moto_MDM_SYS" />
+      <ComponentRef Id="CMP_Moto_SWCH_SYS" />
+      <ComponentRef Id="CMP_Moto_CI_DLL" />
+      <ComponentRef Id="CMP_Moto_WDF_DLL" />
+      <ComponentRef Id="CMP_Moto_WUSB_DLL" />
+      <ComponentRef Id="CMP_Moto_USBSER_INF" />
+      <ComponentRef Id="CMP_Moto_USBSER_CAT" />
+      <ComponentRef Id="CMP_Moto_SER_SYS" />
+      <ComponentRef Id="CMP_Moto_MOSER_INF" />
+      <ComponentRef Id="CMP_Moto_MOSER_CAT" />
+      <ComponentRef Id="CMP_Moto_MOMDM_INF" />
+      <ComponentRef Id="CMP_Moto_NET_INF" />
+      <ComponentRef Id="CMP_Moto_NET_CAT" />
+      <ComponentRef Id="CMP_Moto_NET_SYS" />
+      <ComponentRef Id="CMP_Moto_FILT_SYS" />
+      <ComponentRef Id="CMP_CleanupScript" />
+      <ComponentRef Id="CMP_Certificate" />
+      <ComponentRef Id="CMP_InstallBat" />
+      <ComponentRef Id="CMP_Readme" />
+    </Feature>
+
+    <!-- ============================================================ -->
+    <!--  Custom actions — INSTALL sequence                            -->
+    <!--                                                               -->
+    <!--  Order after InstallFiles:                                    -->
+    <!--    1. Run cleanup script (remove old drivers + devices)       -->
+    <!--    2. Install certificate to Root store                       -->
+    <!--    3. Install certificate to TrustedPublisher store           -->
+    <!--    4. pnputil install ADB driver (android_winusb.inf)         -->
+    <!--    5. pnputil install Serial driver (cdc-acm.inf)             -->
+    <!-- ============================================================ -->
+
+    <!-- ── 1. CLEANUP: Remove old MTK drivers and devices ── -->
+    <SetProperty Id="CA_CleanupDrivers"
+                 Before="CA_CleanupDrivers"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]cleanup_mtk_drivers.ps1&quot;" />
+    <CustomAction Id="CA_CleanupDrivers"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 2. CERT: Install to Root store ── -->
+    <SetProperty Id="CA_InstallCertRoot"
+                 Before="CA_InstallCertRoot"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore Root &quot;[INSTALLFOLDER]mtkclient_test.cer&quot;" />
+    <CustomAction Id="CA_InstallCertRoot"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 3. CERT: Install to TrustedPublisher store ── -->
+    <SetProperty Id="CA_InstallCertTP"
+                 Before="CA_InstallCertTP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore TrustedPublisher &quot;[INSTALLFOLDER]mtkclient_test.cer&quot;" />
+    <CustomAction Id="CA_InstallCertTP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 4. INSTALL: ADB / Bootloader / MTP driver ── -->
+    <SetProperty Id="CA_InstallADB"
+                 Before="CA_InstallADB"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_ADB]android_winusb.inf&quot; /install" />
+    <CustomAction Id="CA_InstallADB"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 5. INSTALL: Preloader / BROM / DA driver ── -->
+    <SetProperty Id="CA_InstallPreloader"
+                 Before="CA_InstallPreloader"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_PRELOADER]mtk_preloader.inf&quot; /install" />
+    <CustomAction Id="CA_InstallPreloader"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 6. INSTALL: Serial driver ── -->
+    <SetProperty Id="CA_InstallSerial"
+                 Before="CA_InstallSerial"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_SERIAL]cdc-acm.inf&quot; /install" />
+    <CustomAction Id="CA_InstallSerial"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 6. INSTALL: Motorola ADB driver (motoandroid2 — WinUSB) ── -->
+    <SetProperty Id="CA_InstallMotoADB"
+                 Before="CA_InstallMotoADB"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motoandroid2.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoADB"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 7. INSTALL: Motorola composite driver (motccgp) ── -->
+    <SetProperty Id="CA_InstallMotoCCGP"
+                 Before="CA_InstallMotoCCGP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motccgp.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoCCGP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 8. INSTALL: Motorola USB driver (motodrv) ── -->
+    <SetProperty Id="CA_InstallMotoDRV"
+                 Before="CA_InstallMotoDRV"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motodrv.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoDRV"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 9. INSTALL: Motorola serial port driver (motport) ── -->
+    <SetProperty Id="CA_InstallMotoPort"
+                 Before="CA_InstallMotoPort"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motport.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoPort"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ============================================================ -->
+    <!--  Custom actions — UNINSTALL sequence                          -->
+    <!--  1. Run cleanup script to remove devices + drivers from store -->
+    <!--  2. Remove the test-signing certificate from both stores      -->
+    <!-- ============================================================ -->
+
+    <SetProperty Id="CA_UninstallCleanup"
+                 Before="CA_UninstallCleanup"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]cleanup_mtk_drivers.ps1&quot;" />
+    <CustomAction Id="CA_UninstallCleanup"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <SetProperty Id="CA_RemoveCertRoot"
+                 Before="CA_RemoveCertRoot"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore Root &quot;$(var.CertCN)&quot;" />
+    <CustomAction Id="CA_RemoveCertRoot"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <SetProperty Id="CA_RemoveCertTP"
+                 Before="CA_RemoveCertTP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore TrustedPublisher &quot;$(var.CertCN)&quot;" />
+    <CustomAction Id="CA_RemoveCertTP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ============================================================ -->
+    <!--  Sequence scheduling                                          -->
+    <!-- ============================================================ -->
+    <InstallExecuteSequence>
+      <!-- INSTALL: cleanup → cert → ADB driver → Serial driver -->
+      <Custom Action="CA_CleanupDrivers"  After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallCertRoot" After="CA_CleanupDrivers">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallADB"      After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallPreloader" After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallSerial"   After="CA_InstallPreloader">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoADB"  After="CA_InstallSerial">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoCCGP" After="CA_InstallMotoADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoDRV"  After="CA_InstallMotoCCGP">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoPort" After="CA_InstallMotoDRV">NOT Installed AND NOT REMOVE</Custom>
+
+      <!-- UNINSTALL: cleanup devices+drivers → remove certificates -->
+      <Custom Action="CA_UninstallCleanup" Before="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
+      <Custom Action="CA_RemoveCertRoot"   Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="CA_RemoveCertTP"     After="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+  </Product>
+</Wix>
