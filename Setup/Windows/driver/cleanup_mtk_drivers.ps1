@@ -160,25 +160,13 @@ try {
     $patternRegex = ($infPatterns + $providerPatterns) -join '|'
     $driverOutput = & pnputil /enum-drivers 2>&1 | Out-String
 
-    # Split by "Published Name" lines (works regardless of locale field name)
     $lines = $driverOutput -split "`r?`n"
     $currentOem = $null
     $blockText = ''
 
     foreach ($line in $lines) {
-        if ($line -match '^\s*(oem\d+\.inf)') {
-            # Process previous block
-            if ($currentOem -and $blockText -match "(?i)($patternRegex)") {
-                $driverCount++
-                Write-Host "  Removing: $currentOem"
-                $result = & pnputil /delete-driver $currentOem /force /uninstall 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Host "    WARNING: exit code $LASTEXITCODE"
-                }
-            }
-            $currentOem = $Matches[1]
-            $blockText = $line
-        } elseif ($line -match '(oem\d+\.inf)') {
+        if ($line -match '(oem\d+\.inf)') {
+            # Process previous block before starting new one
             if ($currentOem -and $blockText -match "(?i)($patternRegex)") {
                 $driverCount++
                 Write-Host "  Removing: $currentOem"
@@ -211,13 +199,7 @@ if ($driverCount -eq 0) {
 Write-Host ""
 Write-Host "=== Step 3: Rescanning USB bus ==="
 try {
-    # Trigger a re-scan of all USB host controllers so Device Manager refreshes
-    $usbControllers = Get-PnpDevice -Class USB -ErrorAction SilentlyContinue |
-        Where-Object { $_.InstanceId -like 'PCI\*' -or $_.InstanceId -like 'ACPI\*' }
-    foreach ($hc in $usbControllers) {
-        & pnputil /scan-devices 2>&1 | Out-Null
-        break  # One scan is enough
-    }
+    & pnputil /scan-devices 2>&1 | Out-Null
     Write-Host "  USB bus re-scan triggered."
 } catch {
     Write-Host "  USB re-scan skipped: $($_.Exception.Message)"
