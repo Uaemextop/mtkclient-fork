@@ -62,7 +62,7 @@ jobs:
           Export-Certificate -Cert $cert -FilePath "$drvDir\mtkclient_test.cer" -Type CERT
           Write-Host "Certificate exported: mtkclient_test.cer ($((Get-Item "$drvDir\mtkclient_test.cer").Length) bytes)"
 
-          # WinUSB catalog — hash the INF
+          # WinUSB catalog (BROM/Preloader/DA)
           New-FileCatalog `
             -Path "$drvDir\mtkclient_winusb.inf" `
             -CatalogFilePath "$drvDir\mtkclient_winusb.cat" `
@@ -73,7 +73,18 @@ jobs:
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "WinUSB catalog signed"
 
-          # Serial catalog — hash the INF
+          # ADB/Bootloader/MTP catalog (android_winusb.inf — Google r13 modified)
+          New-FileCatalog `
+            -Path "$drvDir\android_winusb.inf" `
+            -CatalogFilePath "$drvDir\android_winusb.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "$drvDir\android_winusb.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "ADB catalog signed"
+
+          # Serial catalog (VCOM/Meta/ETS/ELT)
           New-FileCatalog `
             -Path "$drvDir\mtkclient_preloader.inf" `
             -CatalogFilePath "$drvDir\mtkclient_preloader.cat" `
@@ -159,6 +170,8 @@ jobs:
           path: |
             Setup/Windows/driver/mtkclient_winusb.inf
             Setup/Windows/driver/mtkclient_winusb.cat
+            Setup/Windows/driver/android_winusb.inf
+            Setup/Windows/driver/android_winusb.cat
             Setup/Windows/driver/mtkclient_preloader.inf
             Setup/Windows/driver/mtkclient_preloader.cat
             Setup/Windows/driver/mtkclient_test.cer

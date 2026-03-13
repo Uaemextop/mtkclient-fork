@@ -54,7 +54,7 @@ if exist "%DRIVER_DIR%mtkclient_test.cer" (
 )
 echo.
 
-echo [3/5] Installing WinUSB driver (BROM, Preloader, DA, ADB, Sony)...
+echo [3/6] Installing WinUSB driver (BROM, Preloader, DA)...
 pnputil /add-driver "%DRIVER_DIR%mtkclient_winusb.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: WinUSB driver installation returned error %errorlevel%
@@ -63,7 +63,17 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [4/5] Installing Serial driver (VCOM, Meta, ETS, ELT)...
+echo [4/6] Installing ADB / Bootloader / MTP driver (android_winusb.inf)...
+echo       Based on Google USB Driver r13, modified for MTK devices
+pnputil /add-driver "%DRIVER_DIR%android_winusb.inf" /install
+if %errorlevel% neq 0 (
+    echo WARNING: ADB driver installation returned error %errorlevel%
+) else (
+    echo       ADB driver installed successfully.
+)
+echo.
+
+echo [5/6] Installing Serial driver (VCOM, Meta, ETS, ELT)...
 echo       Configuring: 115200 bps default, 921600 bps max, 8-N-1
 pnputil /add-driver "%DRIVER_DIR%mtkclient_preloader.inf" /install
 if %errorlevel% neq 0 (
@@ -73,7 +83,7 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [5/5] Verifying installation...
+echo [6/6] Verifying installation...
 pnputil /enum-drivers | findstr /i "mtkclient" >nul 2>&1
 if %errorlevel% equ 0 (
     echo       Drivers are registered in the Driver Store.

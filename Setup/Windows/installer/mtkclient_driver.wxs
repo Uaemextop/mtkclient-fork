@@ -49,13 +49,14 @@
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="mtkclient Drivers">
           <Directory Id="DIR_WINUSB"  Name="winusb" />
+          <Directory Id="DIR_ADB"     Name="adb" />
           <Directory Id="DIR_SERIAL"  Name="serial" />
         </Directory>
       </Directory>
     </Directory>
 
     <!-- ============================================================ -->
-    <!--  Components — WinUSB driver (INF + CAT)                       -->
+    <!--  Components — WinUSB driver for BROM/Preloader/DA (INF+CAT)   -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_WINUSB">
       <Component Id="CMP_WinUSB_INF" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890" Win64="yes">
@@ -66,6 +67,23 @@
       <Component Id="CMP_WinUSB_CAT" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567891" Win64="yes">
         <File Id="FILE_WinUSB_CAT"
               Source="$(var.DriverDir)\mtkclient_winusb.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — ADB/Bootloader/MTP driver (android_winusb.inf)  -->
+    <!--  Based on Google USB Driver r13, modified for MTK devices     -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_ADB">
+      <Component Id="CMP_ADB_INF" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABC" Win64="yes">
+        <File Id="FILE_ADB_INF"
+              Source="$(var.DriverDir)\android_winusb.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_CAT" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABD" Win64="yes">
+        <File Id="FILE_ADB_CAT"
+              Source="$(var.DriverDir)\android_winusb.cat"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
@@ -122,6 +140,8 @@
              ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="CMP_WinUSB_INF" />
       <ComponentRef Id="CMP_WinUSB_CAT" />
+      <ComponentRef Id="CMP_ADB_INF" />
+      <ComponentRef Id="CMP_ADB_CAT" />
       <ComponentRef Id="CMP_Serial_INF" />
       <ComponentRef Id="CMP_Serial_CAT" />
       <ComponentRef Id="CMP_CleanupScript" />
@@ -189,7 +209,19 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── 5. INSTALL: Serial driver ── -->
+    <!-- ── 5. INSTALL: ADB / Bootloader / MTP driver (android_winusb.inf) ── -->
+    <SetProperty Id="CA_InstallADB"
+                 Before="CA_InstallADB"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_ADB]android_winusb.inf&quot; /install" />
+    <CustomAction Id="CA_InstallADB"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 6. INSTALL: Serial driver ── -->
     <SetProperty Id="CA_InstallSerial"
                  Before="CA_InstallSerial"
                  Sequence="execute"
@@ -242,7 +274,8 @@
       <Custom Action="CA_InstallCertRoot" After="CA_CleanupDrivers">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallWinUSB"   After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="CA_InstallSerial"   After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallADB"     After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallSerial"   After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
 
       <!-- UNINSTALL: remove certificate from stores (before RemoveFiles) -->
       <Custom Action="CA_RemoveCertRoot"  Before="RemoveFiles">REMOVE="ALL"</Custom>

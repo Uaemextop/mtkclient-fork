@@ -55,11 +55,14 @@ Write-Host "=== Scanning Driver Store for old MediaTek drivers ==="
 $oldDriverPatterns = @(
     'cdc-acm',
     'android_winusb',
+    'androidwinusb',
     'usb2ser',
     'MediaTek.*USB2SER',
     'MTK\s+USB',
     'mtkmbim',
-    'tetherxp'
+    'tetherxp',
+    'Android.*ADB',
+    'Android.*Bootloader'
 )
 $patternRegex = ($oldDriverPatterns -join '|')
 
