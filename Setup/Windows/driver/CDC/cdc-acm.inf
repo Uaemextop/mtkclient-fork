@@ -86,6 +86,18 @@ PnpLockdown = 1
 %VCOM%=DriverInstall, USB\VID_0E8D&PID_2062&MI_03
 %ETS%=DriverInstall, USB\VID_0E8D&PID_2062&MI_05
 
+; ==================== New entries from MTK SP Drivers 20240103 ==========
+%ETS%=DriverInstall, USB\VID_0E8D&PID_2065&MI_01
+%ELT%=DriverInstall, USB\VID_0E8D&PID_2065&MI_03
+%ETS%=DriverInstall, USB\VID_0E8D&PID_2066&MI_00
+%ELT%=DriverInstall, USB\VID_0E8D&PID_2066&MI_02
+%VCOM%=DriverInstall, USB\VID_0E8D&PID_2068&MI_02
+%ETS%=DriverInstall, USB\VID_0E8D&PID_2069&MI_02
+%ELT%=DriverInstall, USB\VID_0E8D&PID_2069&MI_04
+%VCOM%=DriverInstall, USB\VID_0E8D&PID_206B&MI_03
+%ETS%=DriverInstall, USB\VID_0E8D&PID_206C&MI_03
+%ELT%=DriverInstall, USB\VID_0E8D&PID_206C&MI_05
+
 ; ==================== C2K related ====================
 %MODEM%=DriverInstall, USB\VID_0E8D&PID_2031&MI_00
 %ETS%=DriverInstall, USB\VID_0E8D&PID_2031&MI_01

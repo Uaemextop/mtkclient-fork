@@ -22,7 +22,7 @@ param()
 $ErrorActionPreference = 'Continue'
 
 # VID patterns for all MTK-related USB devices
-$vidList = @('VID_0E8D', 'VID_0FCE', 'VID_1004', 'VID_22D9', 'VID_22B8')
+$vidList = @('VID_0E8D', 'VID_0FCE', 'VID_1004', 'VID_22D9', 'VID_22B8', 'VID_05C6', 'VID_17EF')
 
 # ── Step 1: Remove existing MTK USB device instances ──────────────────────
 Write-Host "=== Step 1: Removing MediaTek USB device instances ==="
