@@ -677,16 +677,14 @@ def main():
     win.show()
     # win.setFixedSize(746, 400 + addTopMargin)
 
-    # Device setup - connect signals BEFORE starting the thread
+    # Connect all signals and set handler BEFORE starting the thread
     devhandler.sendToLogSignal.connect(win.sendToLog)
-
-    # Connect thread signals before starting to avoid race conditions
     thread.sendToLogSignal.connect(win.sendToLog)
     thread.sendUpdateSignal.connect(win.updateGui)
     thread.sendToProgressSignal.connect(win.sendToProgress)
     win.setdevhandler(devhandler)
 
-    # Now start the thread after all signal connections are established
+    # Now start the thread after all setup is complete
     thread.start()
 
     # Run loop the app
