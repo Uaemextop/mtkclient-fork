@@ -1,0 +1,118 @@
+; mtkclient_preloader.inf
+; Windows 11 x64 USB driver for MediaTek Preloader/Bootrom/DA Agent
+; Uses Windows built-in usbser.sys (CDC-ACM) driver
+; Original work - (c) 2024-2026 GPLv3 License
+;
+; Device modes supported:
+;   - Bootrom mode (VID 0x0E8D, PID 0x0003)
+;   - Preloader mode (VID 0x0E8D, PID 0x2000/0x2001/0x20FF/0x3000/0x6000)
+;   - DA Agent mode (device re-enumerates during DA upload)
+;   - LG Preloader (VID 0x1004, PID 0x6000)
+;   - OPPO Preloader (VID 0x22D9, PID 0x0006)
+;
+; USB descriptor from device (from log analysis):
+;   Configuration: "USB CDC ACM for preloader"
+;   Interface 0: CDC Communication (class 0x02, subclass 0x02, protocol 0x01)
+;   Interface 1: CDC Data (class 0x0A) with Bulk IN (0x81) and Bulk OUT (0x01)
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = Ports
+ClassGuid   = {4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+DriverVer   = 03/13/2026,2.0.0.0
+CatalogFile = mtkclient_preloader.cat
+PnpLockdown = 0
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[SourceDisksNames]
+
+[SourceDisksFiles]
+
+[Manufacturer]
+%MfgName% = MTKDevices, NTamd64
+
+;---------------------------------------------------------------
+; Windows 11 x64
+;---------------------------------------------------------------
+[MTKDevices.NTamd64]
+; === MediaTek Bootrom ===
+%MTK_Bootrom%      = MTK_Install, USB\VID_0E8D&PID_0003
+%MTK_Bootrom%      = MTK_Install, USB\VID_0E8D&PID_0003&MI_00
+%MTK_Bootrom%      = MTK_Install, USB\VID_0E8D&PID_0003&MI_01
+
+; === MediaTek Preloader ===
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2000
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2000&MI_00
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2000&MI_01
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2001
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2001&MI_00
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_2001&MI_01
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_20FF
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_20FF&MI_00
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_20FF&MI_01
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_3000
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_3000&MI_00
+%MTK_Preloader%    = MTK_Install, USB\VID_0E8D&PID_3000&MI_01
+
+; === MediaTek Preloader (alternate PID) ===
+%MTK_Preloader6k%  = MTK_Install, USB\VID_0E8D&PID_6000
+%MTK_Preloader6k%  = MTK_Install, USB\VID_0E8D&PID_6000&MI_00
+%MTK_Preloader6k%  = MTK_Install, USB\VID_0E8D&PID_6000&MI_01
+
+; === LG MediaTek Preloader ===
+%LG_Preloader%     = MTK_Install, USB\VID_1004&PID_6000
+%LG_Preloader%     = MTK_Install, USB\VID_1004&PID_6000&MI_00
+%LG_Preloader%     = MTK_Install, USB\VID_1004&PID_6000&MI_01
+
+; === OPPO MediaTek Preloader ===
+%OPPO_Preloader%   = MTK_Install, USB\VID_22D9&PID_0006
+%OPPO_Preloader%   = MTK_Install, USB\VID_22D9&PID_0006&MI_00
+%OPPO_Preloader%   = MTK_Install, USB\VID_22D9&PID_0006&MI_01
+
+; === Sony MediaTek Bootrom ===
+%Sony_Brom%        = MTK_Install, USB\VID_0FCE&PID_F200
+%Sony_Brom%        = MTK_Install, USB\VID_0FCE&PID_D1E9
+%Sony_Brom%        = MTK_Install, USB\VID_0FCE&PID_D1E2
+%Sony_Brom%        = MTK_Install, USB\VID_0FCE&PID_D1EC
+%Sony_Brom%        = MTK_Install, USB\VID_0FCE&PID_D1DD
+
+;---------------------------------------------------------------
+; Install section - uses Windows built-in usbser.sys
+;---------------------------------------------------------------
+[MTK_Install.NT]
+Include   = mdmcpq.inf,usb.inf
+CopyFiles = FakeModemCopyFileSection
+AddReg    = MTK_Install_AddReg
+
+[MTK_Install_AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,usbser.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[MTK_Install.NT.Services]
+Include    = mdmcpq.inf
+AddService = usbser,0x00000002,MTK_Service
+
+[MTK_Service]
+DisplayName   = %ServiceDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\usbser.sys
+
+;---------------------------------------------------------------
+; Strings
+;---------------------------------------------------------------
+[Strings]
+ProviderName    = "mtkclient"
+MfgName         = "MediaTek Inc."
+MTK_Bootrom     = "MediaTek Bootrom USB VCOM Port"
+MTK_Preloader   = "MediaTek Preloader USB VCOM Port"
+MTK_Preloader6k = "MediaTek Preloader USB VCOM Port (0x6000)"
+LG_Preloader    = "LG MediaTek Preloader USB VCOM Port"
+OPPO_Preloader  = "OPPO MediaTek Preloader USB VCOM Port"
+Sony_Brom       = "Sony MediaTek Bootrom USB VCOM Port"
+ServiceDesc     = "MediaTek USB to Serial (usbser)"

@@ -22,6 +22,15 @@ from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
 from mtkclient.Library.Connection.devicehandler import DeviceClass
 
+# Native Windows USB driver (optional, used when DLL is available)
+_native_driver = None
+try:
+    if sys.platform.startswith('win32'):
+        from mtkclient.Library.Connection.native import get_native_driver
+        _native_driver = get_native_driver()
+except ImportError:
+    pass
+
 USB_DIR_OUT = 0  # to device
 USB_DIR_IN = 0x80  # to host
 
@@ -151,8 +160,16 @@ class UsbClass(DeviceClass):
         self.EP_OUT = None
         self.is_serial = False
         self._is_windows = sys.platform.startswith('win32')
+        self._native_driver = _native_driver
         self.queue = Queue()
         self.backend = self._init_backend()
+        # On Windows, try to disable selective suspend for known MTK devices
+        if self._is_windows and self._native_driver and self._native_driver.available:
+            try:
+                self._native_driver.disable_selective_suspend(0x0E8D, 0x2000)
+                self._native_driver.disable_selective_suspend(0x0E8D, 0x0003)
+            except Exception:
+                pass
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
@@ -460,6 +477,11 @@ class UsbClass(DeviceClass):
                         self.device.reset()
                     except Exception as err:
                         self.debug(f"Device reset error: {str(err)}")
+                        # Fallback: use native driver for reset on Windows
+                        if (self._is_windows and self._native_driver
+                                and self._native_driver.available
+                                and self.vid and self.pid):
+                            self._native_driver.reset_device(self.vid, self.pid)
                 try:
                     if not self.device.is_kernel_driver_active(self.interface):
                         # self.device.attach_kernel_driver(self.interface) #Do NOT uncomment
@@ -489,6 +511,15 @@ class UsbClass(DeviceClass):
                 # On Windows, give a short delay for USB stack cleanup
                 time.sleep(0.2)
             self.connected = False
+
+    def reset_device_native(self):
+        """Reset the USB device using native Windows driver (no physical disconnect needed)."""
+        if (self._is_windows and self._native_driver
+                and self._native_driver.available
+                and self.vid and self.pid):
+            self.info(f"Resetting USB device VID={self.vid:#06x} PID={self.pid:#06x} via native driver")
+            return self._native_driver.reset_device(self.vid, self.pid)
+        return False
 
     def write(self, command, pktsize=None):
         if pktsize is None:
