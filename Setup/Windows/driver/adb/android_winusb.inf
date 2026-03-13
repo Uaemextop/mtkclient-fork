@@ -8,7 +8,7 @@
 ; Changes from Google original:
 ;   - Added [MediaTek.NTamd64] section with all MTK VID_0E8D entries
 ;     from MTK SP Drivers 20160804 android_winusb.inf
-;   - Added [Sony.NTamd64], [LG.NTamd64], [OPPO.NTamd64] sections
+;   - Added [Sony.NTamd64], [LG.NTamd64], [OPPO.NTamd64], [Motorola.NTamd64] sections
 ;   - Added MTK MTP entries from original wpdmtp.inf
 ;   - Added MTK BROM/Preloader/DA whole-device entries
 ;   - Removed legacy CoInstallers (not needed on Windows 10+)
@@ -43,6 +43,7 @@ HKR,,Icon,,-1
 %SonyName%     = Sony, NTamd64
 %LGName%       = LG, NTamd64
 %OPPOName%     = OPPO, NTamd64
+%MotoName%     = Motorola, NTamd64
 
 ; =====================================================================
 ;  Google devices (original entries from android_winusb.inf r13)
@@ -221,6 +222,24 @@ HKR,,Icon,,-1
 %CompositeAdbInterface%     = USB_Install, USB\VID_22D9&PID_2769&MI_01
 
 ; =====================================================================
+;  Motorola devices (VID 0x22B8)
+; =====================================================================
+[Motorola.NTamd64]
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_2E76
+%CompositeAdbInterface%     = USB_Install, USB\VID_22B8&PID_2E76&MI_01
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_2E80
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_2E81
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_2E82
+%CompositeAdbInterface%     = USB_Install, USB\VID_22B8&PID_2E82&MI_01
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_2E83
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_41DB
+%CompositeAdbInterface%     = USB_Install, USB\VID_22B8&PID_41DB&MI_01
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_41D9
+%SingleAdbInterface%        = USB_Install, USB\VID_22B8&PID_42D9
+%CompositeAdbInterface%     = USB_Install, USB\VID_22B8&PID_42D9&MI_01
+%SingleBootLoaderInterface% = USB_Install, USB\VID_22B8&PID_0001
+
+; =====================================================================
 ;  Install sections — inbox WinUSB, no CoInstallers needed on Win10+
 ;
 ;  Architecture-decorated (.NTamd64) DDInstall sections required for
@@ -304,6 +323,7 @@ MTKName                     = "MediaTek Inc."
 SonyName                    = "Sony Mobile Communications"
 LGName                      = "LG Electronics"
 OPPOName                    = "OPPO Mobile"
+MotoName                    = "Motorola Mobility"
 SingleAdbInterface          = "Android ADB Interface"
 CompositeAdbInterface       = "Android Composite ADB Interface"
 SingleBootLoaderInterface   = "Android Bootloader Interface"
