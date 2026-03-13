@@ -125,9 +125,18 @@ class DaHandler(metaclass=LogBase):
             if directory:
                 self.mtk.config.hwparam_path = directory
             if mtk.port.cdc.connected and os.path.exists(os.path.join(mtk.config.hwparam_path, ".state")):
-                mtk.daloader.reinit()
-                mtk.reinited = True
-                return mtk
+                try:
+                    mtk.daloader.reinit()
+                    mtk.reinited = True
+                    return mtk
+                except Exception as e:
+                    self.warning(f"Reinit from saved state failed ({e}), falling back to full init...")
+                    try:
+                        os.remove(os.path.join(mtk.config.hwparam_path, ".state"))
+                    except OSError:
+                        pass
+                    mtk.port.close()
+                    mtk.preloader.init(directory=directory)
         if mtk.config.target_config is None:
             self.info("Please disconnect, start mtkclient and reconnect.")
             return None

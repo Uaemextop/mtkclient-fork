@@ -911,7 +911,7 @@ class DAXML(metaclass=LogBase):
             return False
         else:
             self.error("Read flash isn't supported")
-            sys.exit(1)
+            return False
 
     def writeflash(self, addr, length, filename, offset=0, parttype=None, wdata=None, display=True):
         fh = None

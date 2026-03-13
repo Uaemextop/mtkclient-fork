@@ -137,6 +137,9 @@ class DAXFlash(metaclass=LogBase):
 
     def status(self):
         hdr = self.usbread(4 + 4 + 4)
+        if len(hdr) < 12:
+            self.error(f"Status error: Received only {len(hdr)} of 12 bytes")
+            return -1
         magic, _, length = unpack("<III", hdr)
         if magic != 0xFEEEEEEF:
             self.error("Status error: Wrong magic")
@@ -181,7 +184,8 @@ class DAXFlash(metaclass=LogBase):
             self.error(f"Error on sending parameter: {self.eh.status(status)}")
             if status == 0xc0020053:
                 # Anti roll back DA error
-                sys.exit(1)
+                self.error("Anti roll back DA error - device rejected the DA")
+                return False
         return False
 
     def send_devctrl(self, cmd, param=None, status=None):
@@ -992,7 +996,11 @@ class DAXFlash(metaclass=LogBase):
         return False
 
     def reinit(self, display=False):
-        self.config.sram, self.config.dram = self.get_ram_info()
+        try:
+            self.config.sram, self.config.dram = self.get_ram_info()
+        except Exception as e:
+            self.error(f"Error getting RAM info during reinit: {e}")
+            self.config.sram, self.config.dram = None, None
         self.emmc = self.get_emmc_info(display)
         self.nand = self.get_nand_info(display)
         self.nor = self.get_nor_info(display)

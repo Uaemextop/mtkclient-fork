@@ -21,6 +21,7 @@ from ctypes import c_void_p, c_int
 from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
 from mtkclient.Library.Connection.devicehandler import DeviceClass
+from mtkclient.Library.Connection.win32_utils import reenumerate_and_wait, is_windows
 
 USB_DIR_OUT = 0  # to device
 USB_DIR_IN = 0x80  # to host
@@ -314,6 +315,23 @@ class UsbClass(DeviceClass):
                 self.pid = dev.idProduct
                 self.interface = self.portconfig[dev.idVendor][dev.idProduct]
                 break
+        if self.device is None:
+            # On Windows, trigger USB bus re-enumeration and retry once
+            if is_windows():
+                for vid_candidate in [0x0E8D, 0x1004, 0x22d9, 0x0FCE]:
+                    if vid_candidate in self.portconfig:
+                        for pid_candidate in self.portconfig[vid_candidate]:
+                            if reenumerate_and_wait(vid_candidate, pid_candidate, timeout=5):
+                                dev = usb.core.find(idVendor=vid_candidate, idProduct=pid_candidate,
+                                                    backend=self.backend)
+                                if dev is not None:
+                                    self.device = dev
+                                    self.vid = vid_candidate
+                                    self.pid = pid_candidate
+                                    self.interface = self.portconfig[vid_candidate][pid_candidate]
+                                    break
+                    if self.device is not None:
+                        break
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
             return False
