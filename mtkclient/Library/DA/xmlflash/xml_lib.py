@@ -983,8 +983,7 @@ class DAXML(metaclass=LogBase):
         self.ufs = self.get_ufs_info(display)
         """
         if not self.get_hw_info():
-            self.error("Error: Cannot Reinit daconfig")
-            return
+            raise RuntimeError("DA communication failed during reinit: cannot get hardware info")
 
     def formatflash(self, addr, length, storage=None,
                     parttype=None, display=False):

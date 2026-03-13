@@ -999,8 +999,9 @@ class DAXFlash(metaclass=LogBase):
         try:
             self.config.sram, self.config.dram = self.get_ram_info()
         except Exception as e:
-            self.error(f"Error getting RAM info during reinit: {e}")
-            self.config.sram, self.config.dram = None, None
+            raise RuntimeError(f"DA communication failed during reinit (RAM info): {e}")
+        if self.config.sram is None and self.config.dram is None:
+            raise RuntimeError("DA communication failed during reinit: no RAM info received")
         self.emmc = self.get_emmc_info(display)
         self.nand = self.get_nand_info(display)
         self.nor = self.get_nor_info(display)
@@ -1017,6 +1018,8 @@ class DAXFlash(metaclass=LogBase):
         elif self.ufs is not None and self.ufs.type != 0:
             self.daconfig.storage.flashtype = "ufs"
             self.daconfig.storage.ufs = self.ufs
+        else:
+            raise RuntimeError("DA communication failed during reinit: no storage device detected")
         self.chipid = self.get_chip_id(display=False)
         self.daversion = self.get_da_version(display=False)
         self.randomid = self.get_random_id()
