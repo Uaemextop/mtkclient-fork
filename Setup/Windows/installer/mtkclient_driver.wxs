@@ -3,10 +3,12 @@
   mtkclient_driver.wxs — WiX v3 source for the mtkclient WinUSB / Serial
   driver MSI installer.
 
-  The MSI ships the two repackaged INF files and runs pnputil at install
-  time so the drivers are registered in the Driver Store.
+  The MSI ships the repackaged INF + CAT files and calls pnputil at
+  install / uninstall time so the drivers are registered in (or removed
+  from) the Windows Driver Store.
 -->
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 
   <?define ProductVersion = "2.0.0.0" ?>
   <?define Manufacturer   = "MediaTek Inc. / mtkclient" ?>
@@ -24,7 +26,7 @@
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perMachine"
-             Description="mtkclient WinUSB and Serial drivers for MediaTek devices"
+             Description="mtkclient WinUSB and Serial drivers for MediaTek devices (BROM, Preloader, DA). Configures COM port at 115200/921600 bps 8-N-1."
              Comments="Derived from MTK SP Drivers 20160804, repackaged for Win10/11 x64"
              Platform="x64" />
 
@@ -50,7 +52,7 @@
     </Directory>
 
     <!-- ============================================================ -->
-    <!--  Components — WinUSB INF                                      -->
+    <!--  Components — WinUSB driver (INF + CAT)                       -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_WINUSB">
       <Component Id="CMP_WinUSB_INF" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890" Win64="yes">
@@ -58,10 +60,15 @@
               Source="$(var.DriverDir)\mtkclient_winusb.inf"
               KeyPath="yes" />
       </Component>
+      <Component Id="CMP_WinUSB_CAT" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567891" Win64="yes">
+        <File Id="FILE_WinUSB_CAT"
+              Source="$(var.DriverDir)\mtkclient_winusb.cat"
+              KeyPath="yes" />
+      </Component>
     </DirectoryRef>
 
     <!-- ============================================================ -->
-    <!--  Components — Serial / Preloader INF                          -->
+    <!--  Components — Serial / Preloader driver (INF + CAT)           -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_SERIAL">
       <Component Id="CMP_Serial_INF" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901" Win64="yes">
@@ -69,15 +76,25 @@
               Source="$(var.DriverDir)\mtkclient_preloader.inf"
               KeyPath="yes" />
       </Component>
+      <Component Id="CMP_Serial_CAT" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678902" Win64="yes">
+        <File Id="FILE_Serial_CAT"
+              Source="$(var.DriverDir)\mtkclient_preloader.cat"
+              KeyPath="yes" />
+      </Component>
     </DirectoryRef>
 
     <!-- ============================================================ -->
-    <!--  Components — install_drivers.bat (convenience)               -->
+    <!--  Components — convenience batch script + README               -->
     <!-- ============================================================ -->
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="CMP_InstallBat" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012" Win64="yes">
         <File Id="FILE_InstallBat"
               Source="$(var.DriverDir)\install_drivers.bat"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Readme" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789013" Win64="yes">
+        <File Id="FILE_Readme"
+              Source="$(var.DriverDir)\README.md"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
@@ -87,34 +104,63 @@
     <!-- ============================================================ -->
     <Feature Id="DriverFeature"
              Title="mtkclient USB Drivers"
+             Description="WinUSB driver for BROM/Preloader/DA and serial driver for VCOM ports. COM port configured at 115200 bps (handshake) / 921600 bps (DA transfer), 8-N-1, no flow control."
              Level="1"
              ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="CMP_WinUSB_INF" />
+      <ComponentRef Id="CMP_WinUSB_CAT" />
       <ComponentRef Id="CMP_Serial_INF" />
+      <ComponentRef Id="CMP_Serial_CAT" />
       <ComponentRef Id="CMP_InstallBat" />
+      <ComponentRef Id="CMP_Readme" />
     </Feature>
 
     <!-- ============================================================ -->
-    <!--  Custom actions — pnputil driver registration                 -->
+    <!--  Custom actions — pnputil driver install / uninstall          -->
     <!-- ============================================================ -->
-    <SetProperty Id="InstallWinUSBDriver"
-                 Before="InstallWinUSBDriver"
+
+    <!-- ── INSTALL: WinUSB ── -->
+    <SetProperty Id="CA_InstallWinUSB"
+                 Before="CA_InstallWinUSB"
                  Sequence="execute"
                  Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_WINUSB]mtkclient_winusb.inf&quot; /install" />
-
-    <CustomAction Id="InstallWinUSBDriver"
+    <CustomAction Id="CA_InstallWinUSB"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec64"
                   Execute="deferred"
                   Return="ignore"
                   Impersonate="no" />
 
-    <SetProperty Id="InstallSerialDriver"
-                 Before="InstallSerialDriver"
+    <!-- ── INSTALL: Serial ── -->
+    <SetProperty Id="CA_InstallSerial"
+                 Before="CA_InstallSerial"
                  Sequence="execute"
                  Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_SERIAL]mtkclient_preloader.inf&quot; /install" />
+    <CustomAction Id="CA_InstallSerial"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
 
-    <CustomAction Id="InstallSerialDriver"
+    <!-- ── UNINSTALL: WinUSB ── -->
+    <SetProperty Id="CA_UninstallWinUSB"
+                 Before="CA_UninstallWinUSB"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /delete-driver &quot;[DIR_WINUSB]mtkclient_winusb.inf&quot; /uninstall /force" />
+    <CustomAction Id="CA_UninstallWinUSB"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── UNINSTALL: Serial ── -->
+    <SetProperty Id="CA_UninstallSerial"
+                 Before="CA_UninstallSerial"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /delete-driver &quot;[DIR_SERIAL]mtkclient_preloader.inf&quot; /uninstall /force" />
+    <CustomAction Id="CA_UninstallSerial"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec64"
                   Execute="deferred"
@@ -122,8 +168,12 @@
                   Impersonate="no" />
 
     <InstallExecuteSequence>
-      <Custom Action="InstallWinUSBDriver"  After="InstallFiles">NOT Installed</Custom>
-      <Custom Action="InstallSerialDriver"  After="InstallWinUSBDriver">NOT Installed</Custom>
+      <!-- Install drivers after files are laid down (first install only) -->
+      <Custom Action="CA_InstallWinUSB"   After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallSerial"   After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
+      <!-- Remove drivers before files are removed (uninstall only) -->
+      <Custom Action="CA_UninstallWinUSB" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="CA_UninstallSerial" After="CA_UninstallWinUSB">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
   </Product>

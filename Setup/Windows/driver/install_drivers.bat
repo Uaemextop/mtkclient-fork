@@ -1,6 +1,12 @@
 @echo off
 :: install_drivers.bat — Install mtkclient WinUSB + Serial drivers
 :: Derived from MTK SP Drivers 20160804, repackaged for Windows 10/11 x64
+::
+:: Port speeds configured by the serial driver:
+::   BROM/Preloader handshake : 115200 bps  8-N-1
+::   DA high-speed transfer   : 921600 bps  8-N-1
+::   No flow control (RTS/CTS and XON/XOFF disabled)
+::
 :: Run this script as Administrator.
 
 net session >nul 2>&1
@@ -14,12 +20,17 @@ if %errorlevel% neq 0 (
 echo ============================================================
 echo   mtkclient Driver Installer — Windows 10/11 x64
 echo   Derived from MTK SP Drivers 20160804
+echo.
+echo   Serial port config:
+echo     Default baud : 115200 bps (BROM handshake)
+echo     Max baud     : 921600 bps (DA transfer)
+echo     Format       : 8-N-1, no flow control
 echo ============================================================
 echo.
 
 set "DRIVER_DIR=%~dp0"
 
-echo [1/2] Installing WinUSB driver (BROM, Preloader, DA, ADB)...
+echo [1/2] Installing WinUSB driver (BROM, Preloader, DA, ADB, Sony)...
 pnputil /add-driver "%DRIVER_DIR%mtkclient_winusb.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: WinUSB driver installation returned error %errorlevel%
@@ -29,6 +40,7 @@ if %errorlevel% neq 0 (
 echo.
 
 echo [2/2] Installing Serial driver (VCOM, Meta, ETS, ELT)...
+echo       Configuring: 115200 bps default, 921600 bps max, 8-N-1
 pnputil /add-driver "%DRIVER_DIR%mtkclient_preloader.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: Serial driver installation returned error %errorlevel%
@@ -39,7 +51,15 @@ echo.
 
 echo ============================================================
 echo   Installation complete.
+echo.
 echo   Connect your MediaTek device in BROM or Preloader mode
 echo   and check Device Manager for proper detection.
+echo.
+echo   Supported modes (VID 0x0E8D):
+echo     BROM       : PID 0x0003
+echo     Preloader  : PID 0x2000, 0x20FF, 0x3000, 0x6000
+echo     DA         : PID 0x2001
+echo     Fastboot   : PID 0x2024
+echo     Meta/VCOM  : PID 0x2007
 echo ============================================================
 pause

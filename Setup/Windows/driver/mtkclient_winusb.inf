@@ -94,6 +94,12 @@ PnpLockdown = 1
 %LGPreloader%   = USB_Install, USB\VID_1004&PID_6000
 ; OPPO Preloader
 %OPPOPreloader% = USB_Install, USB\VID_22D9&PID_0006
+; Sony BROM modes
+%SonyBrom%      = USB_Install, USB\VID_0FCE&PID_F200
+%SonyBromXA1%   = USB_Install, USB\VID_0FCE&PID_D1E9
+%SonyBrom2%     = USB_Install, USB\VID_0FCE&PID_D1E2
+%SonyBromL1%    = USB_Install, USB\VID_0FCE&PID_D1EC
+%SonyF3111%     = USB_Install, USB\VID_0FCE&PID_D1DD
 
 ; -------------------------------------------------------------------
 ;  Install sections — inbox WinUSB, no CoInstallers needed on Win10+
@@ -120,6 +126,11 @@ AddReg = Dev_AddReg
 [Dev_AddReg]
 ; GUID used by mtkclient / libusb to claim the interface
 HKR,,DeviceInterfaceGUIDs,0x10000,"{1D0C3B4F-2E1A-4A32-9C3F-5D6B7E8F9A0B}"
+; Selective suspend — disable to prevent device disconnects during flash
+HKR,,DeviceSelectiveSuspended,0x00010001,0
+HKR,,SelectiveSuspendEnabled,0x00010001,0
+; Allow user-mode access for libusb / WinUSB
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
 
 [DestinationDirs]
 DefaultDestDir = 13   ; Driver Store (DCH compliant)
@@ -141,3 +152,8 @@ Fastboot         = "MediaTek Fastboot Interface"
 ADB              = "MediaTek ADB Interface"
 LGPreloader      = "LG USB Preloader Mode"
 OPPOPreloader    = "OPPO USB Preloader Mode"
+SonyBrom         = "Sony USB BROM Mode"
+SonyBromXA1      = "Sony USB BROM Mode (XA1)"
+SonyBrom2        = "Sony USB BROM Mode (Alt)"
+SonyBromL1       = "Sony USB BROM Mode (L1)"
+SonyF3111        = "Sony USB BROM Mode (F3111)"

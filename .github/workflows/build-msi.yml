@@ -29,7 +29,6 @@ jobs:
           if (-not $licenseTxt) {
             $licenseTxt = "MIT License — see repository for full text."
           }
-          # Escape RTF special characters
           $escaped = $licenseTxt -replace '\\', '\\\\' `
                                 -replace '\{', '\{' `
                                 -replace '\}', '\}' `
@@ -37,9 +36,9 @@ jobs:
                                 -replace "`n", "\par`r`n"
           $rtf = "{\rtf1\ansi\deff0{\fonttbl{\f0 Consolas;}}\f0\fs20 $escaped}"
           Set-Content -Path "Setup\Windows\LICENSE.rtf" -Value $rtf -Encoding ASCII
-          Write-Host "LICENSE.rtf generated at Setup\Windows\LICENSE.rtf"
+          Write-Host "LICENSE.rtf generated"
 
-      # ── Test-sign the INF files (self-signed cert) ───────────────
+      # ── Test-sign the driver INF files ───────────────────────────
       - name: Create test-signing certificate
         shell: pwsh
         run: |
@@ -55,40 +54,49 @@ jobs:
         shell: pwsh
         run: |
           $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
+          $drvDir = "Setup\Windows\driver"
 
-          # WinUSB catalog
-          $catW = New-FileCatalog `
-            -Path "Setup\Windows\driver\mtkclient_winusb.inf" `
-            -CatalogFilePath "Setup\Windows\driver\mtkclient_winusb.cat" `
+          # WinUSB catalog — hash the INF
+          New-FileCatalog `
+            -Path "$drvDir\mtkclient_winusb.inf" `
+            -CatalogFilePath "$drvDir\mtkclient_winusb.cat" `
             -CatalogVersion 2.0
           Set-AuthenticodeSignature `
-            -FilePath "Setup\Windows\driver\mtkclient_winusb.cat" `
+            -FilePath "$drvDir\mtkclient_winusb.cat" `
             -Certificate $cert `
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "WinUSB catalog signed"
 
-          # Serial catalog
-          $catS = New-FileCatalog `
-            -Path "Setup\Windows\driver\mtkclient_preloader.inf" `
-            -CatalogFilePath "Setup\Windows\driver\mtkclient_preloader.cat" `
+          # Serial catalog — hash the INF
+          New-FileCatalog `
+            -Path "$drvDir\mtkclient_preloader.inf" `
+            -CatalogFilePath "$drvDir\mtkclient_preloader.cat" `
             -CatalogVersion 2.0
           Set-AuthenticodeSignature `
-            -FilePath "Setup\Windows\driver\mtkclient_preloader.cat" `
+            -FilePath "$drvDir\mtkclient_preloader.cat" `
             -Certificate $cert `
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "Serial catalog signed"
+
+          # Verify catalogs exist
+          Get-ChildItem "$drvDir\*.cat" | ForEach-Object {
+            Write-Host "  $($_.Name)  $($_.Length) bytes"
+          }
 
       # ── Install WiX Toolset v3 ──────────────────────────────────
       - name: Install WiX Toolset v3
         shell: pwsh
         run: |
           choco install wixtoolset -y --version=3.14.1 --no-progress
-          $wixDir = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin"
-          if (-not (Test-Path $wixDir)) {
-            $wixDir = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          # Find WiX bin directory
+          $wixDir = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin" `
+                    -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $wixDir) {
+            $wixDir = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*\bin" `
+                      -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
           }
-          Write-Host "WiX bin dir: $wixDir"
-          echo "$wixDir" >> $env:GITHUB_PATH
+          Write-Host "WiX bin: $($wixDir.FullName)"
+          echo "$($wixDir.FullName)" >> $env:GITHUB_PATH
 
       # ── Build the MSI ───────────────────────────────────────────
       - name: Build MSI with candle + light
@@ -105,19 +113,19 @@ jobs:
             -ext WixUtilExtension `
             -out $objFile `
             $wxsFile
-          if ($LASTEXITCODE -ne 0) { throw "candle failed with exit code $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "candle failed ($LASTEXITCODE)" }
 
           Write-Host "=== light (link) ==="
           light.exe -nologo `
             -ext WixUIExtension `
             -ext WixUtilExtension `
-            -sice:ICE61 `
+            -sice:ICE61 -sice:ICE80 `
             -out $msiFile `
             $objFile
-          if ($LASTEXITCODE -ne 0) { throw "light failed with exit code $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "light failed ($LASTEXITCODE)" }
 
-          Write-Host "MSI built: $msiFile"
-          Get-Item $msiFile | Select-Object Name, Length
+          $msi = Get-Item $msiFile
+          Write-Host "MSI built: $($msi.Name) ($($msi.Length) bytes)"
 
       # ── Sign the MSI ────────────────────────────────────────────
       - name: Sign MSI
@@ -130,7 +138,7 @@ jobs:
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "MSI signed"
 
-      # ── Upload artifact ─────────────────────────────────────────
+      # ── Upload artifacts ────────────────────────────────────────
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
@@ -138,7 +146,6 @@ jobs:
           path: Setup/Windows/installer/mtkclient-winusb-driver.msi
           if-no-files-found: error
 
-      # ── Upload driver files artifact ────────────────────────────
       - name: Upload signed driver files
         uses: actions/upload-artifact@v4
         with:
@@ -149,4 +156,5 @@ jobs:
             Setup/Windows/driver/mtkclient_preloader.inf
             Setup/Windows/driver/mtkclient_preloader.cat
             Setup/Windows/driver/install_drivers.bat
+            Setup/Windows/driver/README.md
           if-no-files-found: error

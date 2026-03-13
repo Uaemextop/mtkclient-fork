@@ -141,11 +141,17 @@ PnpLockdown = 1
 
 ; -------------------------------------------------------------------
 ;  Install sections — inbox usbser.sys (replaces legacy usb2ser.sys)
+;
+;  Port speed configuration for mtkclient-fork:
+;    BROM handshake : 115200 bps  (8-N-1, no flow control)
+;    DA high-speed  : 921600 bps  (negotiated at runtime)
+;    Supported range: 300 – 921600 bps
 ; -------------------------------------------------------------------
 
 [SerialInstall]
 Include   = mdmcpq.inf, msports.inf
 CopyFiles = FakeModemCopyFileSection
+AddReg    = SerialPort_AddReg
 
 [SerialInstall.Services]
 Include    = mdmcpq.inf
@@ -163,6 +169,38 @@ AddReg = SerialHw_AddReg
 
 [SerialHw_AddReg]
 HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
+; Selective suspend — keep device awake during flash operations
+HKR,,IdleInWorkingState,0x00010001,0
+HKR,,DeviceSelectiveSuspended,0x00010001,0
+
+; -------------------------------------------------------------------
+;  COM port default settings (mtkclient-fork optimal values)
+;  These are the registry defaults that Windows applies when the
+;  port is first opened.  mtkclient overrides them at runtime but
+;  these ensure Device Manager and third-party tools also work.
+; -------------------------------------------------------------------
+[SerialPort_AddReg]
+HKR,,PortSubClass,1,01
+; Default baud rate: 115200 (BROM/Preloader handshake speed)
+HKR,,BaudRate,0x00010001,0x0001C200
+; Maximum baud rate: 921600 (DA high-speed transfer)
+HKR,,MaxBaudRate,0x00010001,0x000E1000
+; 8 data bits
+HKR,,DataBits,0x00010001,8
+; No parity (0 = None)
+HKR,,Parity,0x00010001,0
+; 1 stop bit (0 = 1 stop bit in Windows encoding)
+HKR,,StopBits,0x00010001,0
+; No flow control
+HKR,,FlowControl,0x00010001,0
+; Latency timer: 2 ms (low latency for mtkclient handshake)
+HKR,,LatencyTimer,0x00010001,2
+; COM port property page
+HKR,,Installer32,,"MsPorts.Dll,PortsClassInstaller"
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+; Idle settings — disable idle to avoid disconnects during flash
+HKR,,IdleTime,0x00010001,0
+HKR,,IdleEnable,0x00010001,0
 
 [DestinationDirs]
 DefaultDestDir          = 13   ; Driver Store (DCH compliant)
@@ -174,7 +212,7 @@ FakeModemCopyFileSection = 12
 
 [Strings]
 ManufacturerName = "MediaTek Inc."
-SerialDriverDesc = "MediaTek USB Serial Port"
+SerialDriverDesc = "MediaTek USB Serial Port (mtkclient)"
 VCOM_BOOTROM     = "MediaTek USB Port (BROM)"
 VCOM_PRELOADER   = "MediaTek PreLoader USB VCOM Port"
 VCOM_DA          = "MediaTek DA USB VCOM Port"
