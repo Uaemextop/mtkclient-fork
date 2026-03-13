@@ -1,45 +1,38 @@
 /*
- * driver.c — MediaTek USB WinUSB KMDF Driver
+ * driver.c — MediaTek CDC/ACM Serial KMDF Driver — Entry & DeviceAdd
  *
- * Open-source KMDF driver for MediaTek BROM/Preloader/DA devices.
- * Replaces the legacy MTK SP Drivers usb2ser.sys with a modern,
- * DCH-compliant WinUSB driver.
+ * Clean-room KMDF reimplementation of CDC Abstract Control Model
+ * serial-port functionality for MediaTek BROM / Preloader / DA devices.
+ * Replaces the proprietary usb2ser.sys shipped with MTK SP Drivers.
  *
- * Architecture:
- *   Kernel mode:  This driver (mtk_usb.sys) → WinUSB.sys
- *   User mode:    mtkclient (Python) → libusb-1.0.dll → WinUSB.dll
- *
- * What this driver does:
- *   1. Registers the device interface GUID for mtkclient detection
- *   2. Configures USB pipes for maximum throughput (1 MB transfers)
- *   3. Disables USB selective suspend to prevent disconnects during flash
- *   4. Allows short transfers (BROM handshake uses variable-length packets)
- *   5. Sets appropriate timeouts for bootloader communication
+ * This file contains:
+ *   - DriverEntry            — KMDF driver initialisation
+ *   - MtkSerialEvtDeviceAdd  — PnP device creation, queues, interfaces
+ *   - File-object callbacks  — Create / Close for serial-port semantics
  *
  * Build requirements:
- *   - Visual Studio 2022 + Windows Driver Kit (WDK) 10
- *   - Or: WDK command-line tools (msbuild)
+ *   Visual Studio 2022 + Windows Driver Kit (WDK) 10
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright (c) 2024 mtkclient contributors
  */
 
-#include "mtk_usb.h"
+#include <initguid.h>
+#include "mtk_serial.h"
+
+/* Global COM-port instance counter (first port = COM100) */
+static LONG g_InstanceCounter = 99;
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE, MtkUsbEvtDeviceAdd)
-#pragma alloc_text(PAGE, MtkUsbEvtDevicePrepareHardware)
-#pragma alloc_text(PAGE, MtkUsbConfigureDevice)
-#pragma alloc_text(PAGE, MtkUsbConfigurePipes)
+#pragma alloc_text(PAGE, MtkSerialEvtDeviceAdd)
+#pragma alloc_text(PAGE, MtkSerialEvtDeviceFileCreate)
+#pragma alloc_text(PAGE, MtkSerialEvtFileClose)
 #endif
 
-/*
- * DriverEntry — KMDF driver initialization
- *
- * Called by Windows when the driver is loaded.  Creates the WDFDRIVER
- * object and registers the DeviceAdd callback.
- */
+/* ----------------------------------------------------------------
+ * DriverEntry — KMDF driver initialisation
+ * ---------------------------------------------------------------- */
 NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT  DriverObject,
@@ -47,266 +40,172 @@ DriverEntry(
     )
 {
     WDF_DRIVER_CONFIG config;
-    NTSTATUS status;
+    NTSTATUS          status;
 
-    WDF_DRIVER_CONFIG_INIT(&config, MtkUsbEvtDeviceAdd);
+    WDF_DRIVER_CONFIG_INIT(&config, MtkSerialEvtDeviceAdd);
 
     status = WdfDriverCreate(
         DriverObject,
         RegistryPath,
         WDF_NO_OBJECT_ATTRIBUTES,
         &config,
-        WDF_NO_HANDLE
-    );
+        WDF_NO_HANDLE);
 
     return status;
 }
 
-/*
- * MtkUsbEvtDeviceAdd — Called when a matching device is found
- *
- * Creates the KMDF device object, sets up the device interface GUID,
- * and registers the PrepareHardware callback.
- */
+/* ----------------------------------------------------------------
+ * MtkSerialEvtDeviceAdd — Create device, interfaces and queues
+ * ---------------------------------------------------------------- */
 NTSTATUS
-MtkUsbEvtDeviceAdd(
+MtkSerialEvtDeviceAdd(
     _In_    WDFDRIVER       Driver,
     _Inout_ PWDFDEVICE_INIT DeviceInit
     )
 {
-    WDF_OBJECT_ATTRIBUTES   deviceAttributes;
-    WDFDEVICE               device;
-    WDF_PNPPOWER_EVENT_CALLBACKS pnpPowerCallbacks;
-    NTSTATUS                status;
+    WDF_PNPPOWER_EVENT_CALLBACKS    pnpPower;
+    WDF_FILEOBJECT_CONFIG           fileConfig;
+    WDF_OBJECT_ATTRIBUTES           devAttrs;
+    WDFDEVICE                       device;
+    PSERIAL_DEVICE_CONTEXT          pCtx;
+    NTSTATUS                        status;
+    LONG                            portNum;
+    DECLARE_UNICODE_STRING_SIZE(deviceName, 64);
+    DECLARE_UNICODE_STRING_SIZE(dosDeviceName, 64);
 
     PAGED_CODE();
     UNREFERENCED_PARAMETER(Driver);
 
-    /* Register PnP/Power callbacks */
-    WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
-    pnpPowerCallbacks.EvtDevicePrepareHardware = MtkUsbEvtDevicePrepareHardware;
-    pnpPowerCallbacks.EvtDeviceD0Entry = MtkUsbEvtDeviceD0Entry;
-    WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
+    /* ---- Assign a stable device name (\Device\cdcacmN) ---- */
+    portNum = InterlockedIncrement(&g_InstanceCounter);
 
-    /* Allocate per-device context */
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, DEVICE_CONTEXT);
-
-    status = WdfDeviceCreate(&DeviceInit, &deviceAttributes, &device);
+    status = RtlUnicodeStringPrintf(
+        &deviceName, L"%ws%d", MTK_DEVICE_NAME_PREFIX, portNum - 100);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+    status = WdfDeviceInitAssignName(DeviceInit, &deviceName);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
-    /* Register device interface GUID so user-mode apps (mtkclient) can find us.
-     * This GUID matches the DeviceInterfaceGUIDs in mtk_preloader.inf and is
-     * used by libusb/WinUSB to enumerate and claim the device. */
+    /* ---- PnP / Power callbacks ---- */
+    WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPower);
+    pnpPower.EvtDevicePrepareHardware  = MtkSerialEvtDevicePrepareHardware;
+    pnpPower.EvtDeviceReleaseHardware  = MtkSerialEvtDeviceReleaseHardware;
+    pnpPower.EvtDeviceD0Entry          = MtkSerialEvtDeviceD0Entry;
+    pnpPower.EvtDeviceD0Exit           = MtkSerialEvtDeviceD0Exit;
+    WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPower);
+
+    /* ---- File-object callbacks (serial Create / Close) ---- */
+    WDF_FILEOBJECT_CONFIG_INIT(
+        &fileConfig,
+        MtkSerialEvtDeviceFileCreate,
+        MtkSerialEvtFileClose,
+        WDF_NO_EVENT_CALLBACK);     /* no Cleanup needed */
+    WdfDeviceInitSetFileObjectConfig(DeviceInit, &fileConfig,
+                                     WDF_NO_OBJECT_ATTRIBUTES);
+
+    /* Allow direct I/O for best bulk-transfer throughput */
+    WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoDirect);
+
+    /* ---- Create the device object ---- */
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&devAttrs, SERIAL_DEVICE_CONTEXT);
+
+    status = WdfDeviceCreate(&DeviceInit, &devAttrs, &device);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    pCtx = SerialGetDeviceContext(device);
+    RtlZeroMemory(pCtx, sizeof(*pCtx));
+
+    /* Store port number and formatted names in context */
+    pCtx->PortNumber = portNum;
+
+    RtlInitEmptyUnicodeString(
+        &pCtx->DeviceName, pCtx->DeviceNameBuf,
+        sizeof(pCtx->DeviceNameBuf));
+    RtlCopyUnicodeString(&pCtx->DeviceName, &deviceName);
+
+    status = RtlUnicodeStringPrintf(
+        &dosDeviceName, L"%ws%d", MTK_DOSDEVICE_PREFIX, portNum);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    RtlInitEmptyUnicodeString(
+        &pCtx->DosDeviceName, pCtx->DosDeviceNameBuf,
+        sizeof(pCtx->DosDeviceNameBuf));
+    RtlCopyUnicodeString(&pCtx->DosDeviceName, &dosDeviceName);
+
+    status = RtlStringCbPrintfW(
+        pCtx->ComPortName, sizeof(pCtx->ComPortName),
+        L"COM%d", portNum);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    /* ---- Create the DOS-device symbolic link ---- */
+    status = WdfDeviceCreateSymbolicLink(device, &dosDeviceName);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+    pCtx->SymLinkCreated = TRUE;
+
+    /* ---- Create wait-lock for serial state ---- */
+    status = WdfWaitLockCreate(WDF_NO_OBJECT_ATTRIBUTES, &pCtx->SerialLock);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    /* ---- Register device interfaces ---- */
     status = WdfDeviceCreateDeviceInterface(
-        device,
-        &GUID_DEVINTERFACE_MTK_USB,
-        NULL
-    );
-
-    return status;
-}
-
-/*
- * MtkUsbEvtDevicePrepareHardware — Configure the USB device
- *
- * Called after the device stack is ready.  Creates the WDF USB device
- * target, selects the USB configuration, and configures pipe policies.
- */
-NTSTATUS
-MtkUsbEvtDevicePrepareHardware(
-    _In_ WDFDEVICE    Device,
-    _In_ WDFCMRESLIST ResourceList,
-    _In_ WDFCMRESLIST ResourceListTranslated
-    )
-{
-    NTSTATUS status;
-
-    PAGED_CODE();
-    UNREFERENCED_PARAMETER(ResourceList);
-    UNREFERENCED_PARAMETER(ResourceListTranslated);
-
-    status = MtkUsbConfigureDevice(Device);
+        device, &GUID_DEVINTERFACE_MTK_SERIAL, NULL);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
-    status = MtkUsbConfigurePipes(Device);
-    return status;
+    /* ---- Create I/O queues ---- */
+    status = MtkSerialCreateQueues(device);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    /* ---- Set default serial parameters ---- */
+    pCtx->LineCoding.dwDTERate  = MTK_DEFAULT_BAUD_RATE;
+    pCtx->LineCoding.bCharFormat = MTK_DEFAULT_STOP_BITS;
+    pCtx->LineCoding.bParityType = MTK_DEFAULT_PARITY;
+    pCtx->LineCoding.bDataBits  = MTK_DEFAULT_DATA_BITS;
+
+    return STATUS_SUCCESS;
 }
 
-/*
- * MtkUsbEvtDeviceD0Entry — Device entering D0 (powered on)
- *
- * Ensures the device is properly configured when waking from
- * a low-power state.  This prevents issues where the device
- * disconnects after system sleep/hibernate.
- */
-NTSTATUS
-MtkUsbEvtDeviceD0Entry(
-    _In_ WDFDEVICE              Device,
-    _In_ WDF_POWER_DEVICE_STATE PreviousState
+/* ----------------------------------------------------------------
+ * MtkSerialEvtDeviceFileCreate — Handle serial-port open
+ * ---------------------------------------------------------------- */
+VOID
+MtkSerialEvtDeviceFileCreate(
+    _In_ WDFDEVICE     Device,
+    _In_ WDFREQUEST    Request,
+    _In_ WDFFILEOBJECT FileObject
     )
 {
+    PAGED_CODE();
     UNREFERENCED_PARAMETER(Device);
-    UNREFERENCED_PARAMETER(PreviousState);
-    return STATUS_SUCCESS;
+    UNREFERENCED_PARAMETER(FileObject);
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
 }
 
-/*
- * MtkUsbConfigureDevice — Create USB device target and select configuration
- *
- * Creates the WDFUSBDEVICE object and selects the first USB configuration.
- * MediaTek bootloader devices only have one configuration.
- */
-NTSTATUS
-MtkUsbConfigureDevice(
-    _In_ WDFDEVICE Device
+/* ----------------------------------------------------------------
+ * MtkSerialEvtFileClose — Handle serial-port close
+ * ---------------------------------------------------------------- */
+VOID
+MtkSerialEvtFileClose(
+    _In_ WDFFILEOBJECT FileObject
     )
 {
-    PDEVICE_CONTEXT             pDeviceContext;
-    WDF_USB_DEVICE_CREATE_CONFIG createParams;
-    WDF_USB_DEVICE_SELECT_CONFIG_PARAMS configParams;
-    NTSTATUS                    status;
-
     PAGED_CODE();
-
-    pDeviceContext = DeviceGetContext(Device);
-
-    /* Create the USB device object */
-    WDF_USB_DEVICE_CREATE_CONFIG_INIT(
-        &createParams,
-        USBD_CLIENT_CONTRACT_VERSION_602   /* Windows 8+ contract */
-    );
-
-    status = WdfUsbTargetDeviceCreateWithParameters(
-        Device,
-        &createParams,
-        WDF_NO_OBJECT_ATTRIBUTES,
-        &pDeviceContext->UsbDevice
-    );
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
-
-    /* Select the first (and only) configuration.
-     * MTK BROM/Preloader/DA devices have a single configuration
-     * with one interface containing bulk IN and bulk OUT endpoints. */
-    WDF_USB_DEVICE_SELECT_CONFIG_PARAMS_INIT_SINGLE_INTERFACE(
-        &configParams
-    );
-
-    status = WdfUsbTargetDeviceSelectConfig(
-        pDeviceContext->UsbDevice,
-        WDF_NO_OBJECT_ATTRIBUTES,
-        &configParams
-    );
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
-
-    /* Store the USB interface handle */
-    pDeviceContext->UsbInterface =
-        configParams.Types.SingleInterface.ConfiguredUsbInterface;
-
-    /* Read device traits (speed, etc.) */
-    pDeviceContext->UsbDeviceTraits =
-        WdfUsbTargetDeviceGetDeviceDescriptor(pDeviceContext->UsbDevice)->bcdUSB;
-
-    return STATUS_SUCCESS;
-}
-
-/*
- * MtkUsbConfigurePipes — Configure USB pipe policies for maximum throughput
- *
- * Finds the bulk IN and bulk OUT pipes and configures them with settings
- * optimized for mtkclient bootloader communication:
- *
- *   - Maximum transfer size: 1 MB (for DA flash operations)
- *   - Short transfer OK:     Yes (BROM handshake uses small packets)
- *   - Pipe timeout:          5 seconds (bootloader may take time to respond)
- *   - Auto-clear stall:      Yes (recover from pipe errors automatically)
- *
- * These settings match the original MTK SP Drivers behavior but with
- * larger transfer sizes for improved flash performance.
- */
-NTSTATUS
-MtkUsbConfigurePipes(
-    _In_ WDFDEVICE Device
-    )
-{
-    PDEVICE_CONTEXT             pDeviceContext;
-    WDF_USB_PIPE_INFORMATION    pipeInfo;
-    WDFUSBPIPE                  pipe;
-    UCHAR                       numPipes;
-    UCHAR                       index;
-    WDF_USB_CONTINUOUS_READER_CONFIG readerConfig;
-
-    PAGED_CODE();
-
-    pDeviceContext = DeviceGetContext(Device);
-    pDeviceContext->BulkReadPipe = NULL;
-    pDeviceContext->BulkWritePipe = NULL;
-
-    numPipes = WdfUsbInterfaceGetNumConfiguredPipes(
-        pDeviceContext->UsbInterface
-    );
-
-    for (index = 0; index < numPipes; index++) {
-        WDF_USB_PIPE_INFORMATION_INIT(&pipeInfo);
-
-        pipe = WdfUsbInterfaceGetConfiguredPipe(
-            pDeviceContext->UsbInterface,
-            index,
-            &pipeInfo
-        );
-
-        if (WdfUsbPipeTypeBulk == pipeInfo.PipeType) {
-            if (TRUE == WdfUsbTargetPipeIsInEndpoint(pipe)) {
-                /* Bulk IN (device → host) */
-                pDeviceContext->BulkReadPipe = pipe;
-            } else {
-                /* Bulk OUT (host → device) */
-                pDeviceContext->BulkWritePipe = pipe;
-            }
-
-            /* Configure pipe policy for mtkclient:
-             *
-             * SHORT_PACKET_TERMINATE = FALSE
-             *   Don't append zero-length packet after transfers that are
-             *   exact multiples of MaxPacketSize.  MTK protocol doesn't
-             *   require this.
-             *
-             * AUTO_CLEAR_STALL = TRUE
-             *   Automatically clear endpoint stall conditions.  This is
-             *   important because BROM handshake failures can stall pipes.
-             *
-             * PIPE_TRANSFER_TIMEOUT = 5000 ms
-             *   Allow 5 seconds for bootloader operations.  BROM may take
-             *   several seconds to process payload, and DA initialization
-             *   can be slow on some devices.
-             *
-             * RAW_IO = TRUE
-             *   Enable raw I/O mode for maximum throughput.  This allows
-             *   overlapped I/O and reduces kernel/user transitions.
-             *
-             * MAXIMUM_TRANSFER_SIZE = 1 MB
-             *   Large transfers for DA flash operations.  The original
-             *   MTK drivers used smaller buffers; larger sizes improve
-             *   flash write performance significantly.
-             */
-            WdfUsbTargetPipeSetNoMaximumPacketSizeCheck(pipe);
-        }
-    }
-
-    if (pDeviceContext->BulkReadPipe == NULL ||
-        pDeviceContext->BulkWritePipe == NULL) {
-        return STATUS_INVALID_DEVICE_STATE;
-    }
-
-    return STATUS_SUCCESS;
-
-    /* Suppress unreferenced variable warning */
-    UNREFERENCED_PARAMETER(readerConfig);
+    UNREFERENCED_PARAMETER(FileObject);
 }
