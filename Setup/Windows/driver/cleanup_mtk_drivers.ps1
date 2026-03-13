@@ -26,7 +26,10 @@ foreach ($pattern in $vidPatterns) {
     if ($devices) {
         foreach ($dev in $devices) {
             Write-Host "  Removing: $($dev.InstanceId) [$($dev.FriendlyName)]"
-            & pnputil /remove-device $dev.InstanceId /subtree 2>$null | Out-Null
+            $result = & pnputil /remove-device $dev.InstanceId /subtree 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "    WARNING: removal returned exit code $LASTEXITCODE (device may be in use)"
+            }
         }
     }
 }
@@ -37,7 +40,10 @@ $comDevices = Get-PnpDevice -Class Ports -ErrorAction SilentlyContinue |
 if ($comDevices) {
     foreach ($dev in $comDevices) {
         Write-Host "  Removing COM: $($dev.InstanceId) [$($dev.FriendlyName)]"
-        & pnputil /remove-device $dev.InstanceId /subtree 2>$null | Out-Null
+        $result = & pnputil /remove-device $dev.InstanceId /subtree 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "    WARNING: removal returned exit code $LASTEXITCODE"
+        }
     }
 }
 
@@ -66,7 +72,10 @@ foreach ($block in $blocks) {
         $block -match 'Published Name\s*:\s*(oem\d+\.inf)') {
         $oemInf = $Matches[1]
         Write-Host "  Removing old driver: $oemInf"
-        & pnputil /delete-driver $oemInf /force /uninstall 2>$null | Out-Null
+        $result = & pnputil /delete-driver $oemInf /force /uninstall 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "    WARNING: delete-driver returned exit code $LASTEXITCODE (driver may be in use)"
+        }
     }
 }
 

@@ -17,6 +17,7 @@
   <?define ProductName    = "mtkclient USB Drivers for Windows 10/11" ?>
   <?define UpgradeCode    = "7A3B5C1D-4E2F-6A8B-9C0D-1E2F3A4B5C6D" ?>
   <?define DriverDir      = "..\driver" ?>
+  <?define CertCN         = "mtkclient Test Signing" ?>
 
   <Product Id="*"
            Name="$(var.ProductName)"
@@ -212,7 +213,7 @@
     <SetProperty Id="CA_RemoveCertRoot"
                  Before="CA_RemoveCertRoot"
                  Sequence="execute"
-                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore Root &quot;mtkclient Test Signing&quot;" />
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore Root &quot;$(var.CertCN)&quot;" />
     <CustomAction Id="CA_RemoveCertRoot"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec64"
@@ -224,7 +225,7 @@
     <SetProperty Id="CA_RemoveCertTP"
                  Before="CA_RemoveCertTP"
                  Sequence="execute"
-                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore TrustedPublisher &quot;mtkclient Test Signing&quot;" />
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore TrustedPublisher &quot;$(var.CertCN)&quot;" />
     <CustomAction Id="CA_RemoveCertTP"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec64"
