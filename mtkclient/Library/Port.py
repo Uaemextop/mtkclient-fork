@@ -176,17 +176,16 @@ class Port(metaclass=LogBase):
                         sys.stdout.write('\n')
                         loop = 0
                     loop += 1
-                    time.sleep(retry_delay)
-                    # Increase delay up to 2s for Windows USB re-enumeration
-                    if retry_delay < 2.0:
-                        retry_delay = min(retry_delay * 1.5, 2.0)
                     sys.stdout.flush()
 
             except Exception as serr:
                 if "access denied" in str(serr):
                     self.warning(str(serr))
                 self.debug(str(serr))
-                time.sleep(retry_delay)
+            time.sleep(retry_delay)
+            # Increase delay up to 2s for Windows USB re-enumeration
+            if retry_delay < 2.0:
+                retry_delay = min(retry_delay * 1.5, 2.0)
         return False
 
     def mtk_cmd(self, value, bytestoread=0, nocmd=False):
