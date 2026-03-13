@@ -135,7 +135,10 @@ class DaHandler(metaclass=LogBase):
                         os.remove(os.path.join(mtk.config.hwparam_path, ".state"))
                     except OSError:
                         pass
-                    mtk.port.close()
+                    # Use reset=True to trigger USB device reset, which causes the
+                    # MTK device to reboot back to preloader/BROM mode so that
+                    # preloader.init() can catch it without manual reconnection.
+                    mtk.port.close(reset=True)
                     mtk.preloader.init(directory=directory)
         if mtk.config.target_config is None:
             self.info("Please disconnect, start mtkclient and reconnect.")
