@@ -2,21 +2,20 @@
  * mtk_usb_driver.cpp - Native Windows USB driver for MediaTek preloader devices
  * (c) 2024-2026 GPLv3 License
  *
- * Implements low-level USB device management using Windows SetupAPI and
- * direct device I/O control for reliable preloader/DA detection and
- * recovery on Windows 11 x64.
+ * Implements low-level USB device management and I/O using Windows SetupAPI
+ * and WinUSB API for reliable preloader/DA detection, recovery, and
+ * direct USB communication on Windows 10/11 x64.
  *
- * Key issues addressed (from log analysis):
- *   - parte1.log: 175 failed device detections before USB I/O error crash
- *   - USBError(5, 'Input/Output Error') during DA reinit
- *   - struct.error: unpack requires buffer of 12 bytes (incomplete read)
- *   - Device requires physical disconnect between commands
- *
- * This native driver provides:
+ * Key features:
  *   1. SetupAPI-based device enumeration (bypasses libusb scan issues)
- *   2. USB port reset without physical disconnect
- *   3. Endpoint stall/halt recovery
- *   4. USB selective suspend management
+ *   2. WinUSB-based bulk read/write (no UsbDk/libusb required)
+ *   3. USB port reset without physical disconnect (CfgMgr32)
+ *   4. Endpoint stall/halt recovery (WinUSB ResetPipe)
+ *   5. USB selective suspend management
+ *   6. Control transfers for CDC device setup
+ *
+ * WinUSB is loaded dynamically via LoadLibrary to avoid hard link dependency.
+ * If WinUSB is not available, I/O functions return MTK_ERROR_NOT_SUPPORTED.
  */
 
 #ifdef _WIN32
@@ -29,14 +28,129 @@
 #include <devguid.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <initguid.h>
 
 /* Define GUID_DEVINTERFACE_USB_DEVICE inline to avoid usbiodef.h dependency */
 DEFINE_GUID(GUID_DEVINTERFACE_USB_DEVICE,
     0xA5DCBF10, 0x6530, 0x11D2, 0x90, 0x1F, 0x00, 0xC0, 0x4F, 0xB9, 0x51, 0xED);
 
+/* mtkclient WinUSB device interface GUID (matches INF) */
+DEFINE_GUID(GUID_MTKCLIENT_WINUSB,
+    0x1D0C3B4F, 0x2E1A, 0x4A32, 0x9C, 0x3F, 0x5D, 0x6B, 0x7E, 0x8F, 0x9A, 0x0B);
+
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "cfgmgr32.lib")
+
+/* ── WinUSB types (defined here to avoid winusb.h dependency) ── */
+
+typedef PVOID WINUSB_INTERFACE_HANDLE;
+
+typedef struct {
+    UCHAR  RequestType;
+    UCHAR  Request;
+    USHORT Value;
+    USHORT Index;
+    USHORT Length;
+} WINUSB_SETUP_PACKET;
+
+typedef struct {
+    ULONG  PipeType;
+    UCHAR  PipeId;
+    USHORT MaximumPacketSize;
+    UCHAR  Interval;
+} WINUSB_PIPE_INFORMATION;
+
+typedef struct {
+    UCHAR bLength;
+    UCHAR bDescriptorType;
+    UCHAR bInterfaceNumber;
+    UCHAR bAlternateSetting;
+    UCHAR bNumEndpoints;
+    UCHAR bInterfaceClass;
+    UCHAR bInterfaceSubClass;
+    UCHAR bInterfaceProtocol;
+    UCHAR iInterface;
+} USB_INTERFACE_DESCRIPTOR_COMPAT;
+
+/* WinUSB pipe policy types */
+#define WINUSB_PIPE_TRANSFER_TIMEOUT  3
+#define WINUSB_AUTO_CLEAR_STALL       2
+#define WINUSB_RAW_IO                 7
+
+/* WinUSB function pointer types */
+typedef BOOL (WINAPI *PFN_WinUsb_Initialize)(HANDLE, WINUSB_INTERFACE_HANDLE*);
+typedef BOOL (WINAPI *PFN_WinUsb_Free)(WINUSB_INTERFACE_HANDLE);
+typedef BOOL (WINAPI *PFN_WinUsb_GetAssociatedInterface)(WINUSB_INTERFACE_HANDLE, UCHAR, WINUSB_INTERFACE_HANDLE*);
+typedef BOOL (WINAPI *PFN_WinUsb_QueryInterfaceSettings)(WINUSB_INTERFACE_HANDLE, UCHAR, USB_INTERFACE_DESCRIPTOR_COMPAT*);
+typedef BOOL (WINAPI *PFN_WinUsb_QueryPipe)(WINUSB_INTERFACE_HANDLE, UCHAR, UCHAR, WINUSB_PIPE_INFORMATION*);
+typedef BOOL (WINAPI *PFN_WinUsb_ReadPipe)(WINUSB_INTERFACE_HANDLE, UCHAR, PUCHAR, ULONG, PULONG, LPOVERLAPPED);
+typedef BOOL (WINAPI *PFN_WinUsb_WritePipe)(WINUSB_INTERFACE_HANDLE, UCHAR, PUCHAR, ULONG, PULONG, LPOVERLAPPED);
+typedef BOOL (WINAPI *PFN_WinUsb_ControlTransfer)(WINUSB_INTERFACE_HANDLE, WINUSB_SETUP_PACKET, PUCHAR, ULONG, PULONG, LPOVERLAPPED);
+typedef BOOL (WINAPI *PFN_WinUsb_ResetPipe)(WINUSB_INTERFACE_HANDLE, UCHAR);
+typedef BOOL (WINAPI *PFN_WinUsb_FlushPipe)(WINUSB_INTERFACE_HANDLE, UCHAR);
+typedef BOOL (WINAPI *PFN_WinUsb_AbortPipe)(WINUSB_INTERFACE_HANDLE, UCHAR);
+typedef BOOL (WINAPI *PFN_WinUsb_SetPipePolicy)(WINUSB_INTERFACE_HANDLE, UCHAR, ULONG, ULONG, PVOID);
+
+/* ── WinUSB dynamic loader ────────────────────────────────── */
+
+static HMODULE g_winusb_module = NULL;
+static PFN_WinUsb_Initialize       pfn_Initialize = NULL;
+static PFN_WinUsb_Free             pfn_Free = NULL;
+static PFN_WinUsb_GetAssociatedInterface pfn_GetAssociated = NULL;
+static PFN_WinUsb_QueryInterfaceSettings pfn_QueryInterface = NULL;
+static PFN_WinUsb_QueryPipe        pfn_QueryPipe = NULL;
+static PFN_WinUsb_ReadPipe         pfn_ReadPipe = NULL;
+static PFN_WinUsb_WritePipe        pfn_WritePipe = NULL;
+static PFN_WinUsb_ControlTransfer  pfn_ControlTransfer = NULL;
+static PFN_WinUsb_ResetPipe        pfn_ResetPipe = NULL;
+static PFN_WinUsb_FlushPipe        pfn_FlushPipe = NULL;
+static PFN_WinUsb_AbortPipe        pfn_AbortPipe = NULL;
+static PFN_WinUsb_SetPipePolicy    pfn_SetPipePolicy = NULL;
+
+static int g_winusb_loaded = 0;
+
+static int load_winusb(void) {
+    if (g_winusb_loaded) return 1;
+    if (g_winusb_module) return (pfn_Initialize != NULL);
+
+    g_winusb_module = LoadLibraryA("winusb.dll");
+    if (!g_winusb_module) return 0;
+
+    pfn_Initialize      = (PFN_WinUsb_Initialize)GetProcAddress(g_winusb_module, "WinUsb_Initialize");
+    pfn_Free            = (PFN_WinUsb_Free)GetProcAddress(g_winusb_module, "WinUsb_Free");
+    pfn_GetAssociated   = (PFN_WinUsb_GetAssociatedInterface)GetProcAddress(g_winusb_module, "WinUsb_GetAssociatedInterface");
+    pfn_QueryInterface  = (PFN_WinUsb_QueryInterfaceSettings)GetProcAddress(g_winusb_module, "WinUsb_QueryInterfaceSettings");
+    pfn_QueryPipe       = (PFN_WinUsb_QueryPipe)GetProcAddress(g_winusb_module, "WinUsb_QueryPipe");
+    pfn_ReadPipe        = (PFN_WinUsb_ReadPipe)GetProcAddress(g_winusb_module, "WinUsb_ReadPipe");
+    pfn_WritePipe       = (PFN_WinUsb_WritePipe)GetProcAddress(g_winusb_module, "WinUsb_WritePipe");
+    pfn_ControlTransfer = (PFN_WinUsb_ControlTransfer)GetProcAddress(g_winusb_module, "WinUsb_ControlTransfer");
+    pfn_ResetPipe       = (PFN_WinUsb_ResetPipe)GetProcAddress(g_winusb_module, "WinUsb_ResetPipe");
+    pfn_FlushPipe       = (PFN_WinUsb_FlushPipe)GetProcAddress(g_winusb_module, "WinUsb_FlushPipe");
+    pfn_AbortPipe       = (PFN_WinUsb_AbortPipe)GetProcAddress(g_winusb_module, "WinUsb_AbortPipe");
+    pfn_SetPipePolicy   = (PFN_WinUsb_SetPipePolicy)GetProcAddress(g_winusb_module, "WinUsb_SetPipePolicy");
+
+    if (pfn_Initialize && pfn_Free && pfn_ReadPipe && pfn_WritePipe) {
+        g_winusb_loaded = 1;
+        return 1;
+    }
+
+    FreeLibrary(g_winusb_module);
+    g_winusb_module = NULL;
+    return 0;
+}
+
+/* ── Internal WinUSB handle structure ────────────────────── */
+
+typedef struct {
+    HANDLE         file_handle;
+    WINUSB_INTERFACE_HANDLE winusb_handle;
+    uint8_t        ep_in;
+    uint8_t        ep_out;
+    uint16_t       max_packet_in;
+    uint16_t       max_packet_out;
+    int            interface_num;
+} mtk_usb_handle_internal;
 
 /* --- Logging --- */
 
@@ -168,11 +282,26 @@ static void get_driver_service(HDEVINFO dev_info, SP_DEVINFO_DATA *dev_info_data
 
 MTK_USB_API int mtk_usb_init(void) {
     log_msg("mtk_usb_init: Initializing MTK USB driver v%s", mtk_usb_version());
+
+    /* Try to load WinUSB dynamically */
+    if (load_winusb()) {
+        log_msg("mtk_usb_init: WinUSB loaded successfully - direct USB I/O available");
+    } else {
+        log_msg("mtk_usb_init: WinUSB not available - I/O functions will return NOT_SUPPORTED");
+    }
+
     return MTK_SUCCESS;
 }
 
 MTK_USB_API void mtk_usb_cleanup(void) {
     log_msg("mtk_usb_cleanup: Cleaning up");
+
+    if (g_winusb_module) {
+        FreeLibrary(g_winusb_module);
+        g_winusb_module = NULL;
+        g_winusb_loaded = 0;
+    }
+
     if (g_log_file && g_log_file != stdout && g_log_file != stderr) {
         fclose(g_log_file);
         g_log_file = NULL;
@@ -566,6 +695,315 @@ MTK_USB_API int mtk_usb_check_driver_installed(uint16_t vid, uint16_t pid) {
     return 0;
 }
 
+/* ── WinUSB I/O functions ─────────────────────────────────── */
+
+/*
+ * Find device path via SetupAPI device interface enumeration.
+ * Tries mtkclient GUID first, then standard USB device GUID.
+ */
+static int find_device_path_for_winusb(uint16_t vid, uint16_t pid,
+                                        char *path, int path_size) {
+    const GUID *guids[] = { &GUID_MTKCLIENT_WINUSB, &GUID_DEVINTERFACE_USB_DEVICE };
+    char vid_pid[32];
+    snprintf(vid_pid, sizeof(vid_pid), "vid_%04x&pid_%04x", vid, pid);
+
+    for (int g = 0; g < 2; g++) {
+        HDEVINFO dev_info = SetupDiGetClassDevsA(
+            guids[g], NULL, NULL,
+            DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+        );
+        if (dev_info == INVALID_HANDLE_VALUE) continue;
+
+        SP_DEVICE_INTERFACE_DATA iface_data;
+        iface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+        for (DWORD i = 0; SetupDiEnumDeviceInterfaces(dev_info, NULL, guids[g], i, &iface_data); i++) {
+            DWORD required = 0;
+            SetupDiGetDeviceInterfaceDetailA(dev_info, &iface_data, NULL, 0, &required, NULL);
+
+            if (required > 0 && required < 2048) {
+                char *buf = (char *)malloc(required);
+                if (!buf) continue;
+
+                SP_DEVICE_INTERFACE_DETAIL_DATA_A *detail = (SP_DEVICE_INTERFACE_DETAIL_DATA_A *)buf;
+                detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
+
+                if (SetupDiGetDeviceInterfaceDetailA(dev_info, &iface_data, detail, required, NULL, NULL)) {
+                    /* Case-insensitive match for VID/PID in device path */
+                    char lower_path[1024] = {0};
+                    strncpy(lower_path, detail->DevicePath, sizeof(lower_path) - 1);
+                    for (char *p = lower_path; *p; p++) *p = (char)tolower(*p);
+
+                    if (strstr(lower_path, vid_pid)) {
+                        strncpy(path, detail->DevicePath, path_size - 1);
+                        path[path_size - 1] = '\0';
+                        free(buf);
+                        SetupDiDestroyDeviceInfoList(dev_info);
+                        return MTK_SUCCESS;
+                    }
+                }
+                free(buf);
+            }
+        }
+
+        SetupDiDestroyDeviceInfoList(dev_info);
+    }
+
+    return MTK_ERROR_NOT_FOUND;
+}
+
+MTK_USB_API int mtk_usb_open(uint16_t vid, uint16_t pid, mtk_usb_handle *handle) {
+    if (!handle) return MTK_ERROR_INVALID_PARAM;
+    *handle = NULL;
+
+    char device_path[512] = {0};
+    int rc = find_device_path_for_winusb(vid, pid, device_path, sizeof(device_path));
+    if (rc != MTK_SUCCESS) {
+        log_msg("mtk_usb_open: Device VID=%04X PID=%04X not found", vid, pid);
+        return rc;
+    }
+
+    return mtk_usb_open_by_path(device_path, handle);
+}
+
+MTK_USB_API int mtk_usb_open_by_path(const char *device_path, mtk_usb_handle *handle) {
+    if (!device_path || !handle) return MTK_ERROR_INVALID_PARAM;
+    *handle = NULL;
+
+    if (!g_winusb_loaded) {
+        if (!load_winusb()) {
+            log_msg("mtk_usb_open_by_path: WinUSB not available");
+            return MTK_ERROR_NOT_SUPPORTED;
+        }
+    }
+
+    log_msg("mtk_usb_open_by_path: Opening %s", device_path);
+
+    /* Open device file handle */
+    HANDLE file_handle = CreateFileA(
+        device_path,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+        NULL
+    );
+
+    if (file_handle == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        log_msg("mtk_usb_open_by_path: CreateFile failed: error %lu", err);
+        if (err == ERROR_ACCESS_DENIED) return MTK_ERROR_ACCESS;
+        return MTK_ERROR_NOT_FOUND;
+    }
+
+    /* Initialize WinUSB */
+    WINUSB_INTERFACE_HANDLE winusb_handle = NULL;
+    if (!pfn_Initialize(file_handle, &winusb_handle)) {
+        DWORD err = GetLastError();
+        log_msg("mtk_usb_open_by_path: WinUsb_Initialize failed: error %lu", err);
+        CloseHandle(file_handle);
+        return MTK_ERROR_NO_DRIVER;
+    }
+
+    /* Allocate internal handle */
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)calloc(1, sizeof(mtk_usb_handle_internal));
+    if (!h) {
+        pfn_Free(winusb_handle);
+        CloseHandle(file_handle);
+        return MTK_ERROR_NO_MEMORY;
+    }
+
+    h->file_handle = file_handle;
+    h->winusb_handle = winusb_handle;
+
+    /* Query interface and endpoints */
+    USB_INTERFACE_DESCRIPTOR_COMPAT iface_desc;
+    if (pfn_QueryInterface && pfn_QueryInterface(winusb_handle, 0, &iface_desc)) {
+        log_debug("Interface %d: class=0x%02X endpoints=%d",
+                  iface_desc.bInterfaceNumber, iface_desc.bInterfaceClass,
+                  iface_desc.bNumEndpoints);
+
+        for (UCHAR i = 0; i < iface_desc.bNumEndpoints && pfn_QueryPipe; i++) {
+            WINUSB_PIPE_INFORMATION pipe_info;
+            if (pfn_QueryPipe(winusb_handle, 0, i, &pipe_info)) {
+                if (pipe_info.PipeId & 0x80) {
+                    h->ep_in = pipe_info.PipeId;
+                    h->max_packet_in = pipe_info.MaximumPacketSize;
+                } else {
+                    h->ep_out = pipe_info.PipeId;
+                    h->max_packet_out = pipe_info.MaximumPacketSize;
+                }
+            }
+        }
+    }
+
+    /* Set pipe policies */
+    if (pfn_SetPipePolicy) {
+        ULONG timeout = 5000;
+        UCHAR auto_clear = 1;
+
+        if (h->ep_in) {
+            pfn_SetPipePolicy(winusb_handle, h->ep_in, WINUSB_PIPE_TRANSFER_TIMEOUT, sizeof(timeout), &timeout);
+            pfn_SetPipePolicy(winusb_handle, h->ep_in, WINUSB_AUTO_CLEAR_STALL, sizeof(auto_clear), &auto_clear);
+        }
+        if (h->ep_out) {
+            pfn_SetPipePolicy(winusb_handle, h->ep_out, WINUSB_PIPE_TRANSFER_TIMEOUT, sizeof(timeout), &timeout);
+            pfn_SetPipePolicy(winusb_handle, h->ep_out, WINUSB_AUTO_CLEAR_STALL, sizeof(auto_clear), &auto_clear);
+        }
+    }
+
+    log_msg("mtk_usb_open_by_path: Opened EP_IN=0x%02X(%dB) EP_OUT=0x%02X(%dB)",
+            h->ep_in, h->max_packet_in, h->ep_out, h->max_packet_out);
+
+    *handle = (mtk_usb_handle)h;
+    return MTK_SUCCESS;
+}
+
+MTK_USB_API void mtk_usb_close(mtk_usb_handle handle) {
+    if (!handle) return;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+    log_msg("mtk_usb_close: Closing device");
+
+    if (h->winusb_handle && pfn_Free) {
+        pfn_Free(h->winusb_handle);
+    }
+    if (h->file_handle && h->file_handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(h->file_handle);
+    }
+
+    free(h);
+}
+
+MTK_USB_API int mtk_usb_get_endpoints(mtk_usb_handle handle, mtk_endpoint_info_t *ep_info) {
+    if (!handle || !ep_info) return MTK_ERROR_INVALID_PARAM;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+    ep_info->ep_in = h->ep_in;
+    ep_info->ep_out = h->ep_out;
+    ep_info->max_packet_in = h->max_packet_in;
+    ep_info->max_packet_out = h->max_packet_out;
+    ep_info->interface_num = h->interface_num;
+
+    return MTK_SUCCESS;
+}
+
+MTK_USB_API int mtk_usb_bulk_write(mtk_usb_handle handle, uint8_t endpoint,
+                                    const uint8_t *buffer, int length,
+                                    int *actual, int timeout_ms) {
+    if (!handle || !buffer || length < 0) return MTK_ERROR_INVALID_PARAM;
+    if (!g_winusb_loaded || !pfn_WritePipe) return MTK_ERROR_NOT_SUPPORTED;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+    uint8_t ep = endpoint ? endpoint : h->ep_out;
+
+    /* Set timeout if specified */
+    if (timeout_ms > 0 && pfn_SetPipePolicy) {
+        ULONG to = (ULONG)timeout_ms;
+        pfn_SetPipePolicy(h->winusb_handle, ep, WINUSB_PIPE_TRANSFER_TIMEOUT, sizeof(to), &to);
+    }
+
+    ULONG transferred = 0;
+    BOOL ok = pfn_WritePipe(h->winusb_handle, ep, (PUCHAR)buffer, (ULONG)length, &transferred, NULL);
+
+    if (actual) *actual = (int)transferred;
+
+    if (!ok) {
+        DWORD err = GetLastError();
+        log_debug("mtk_usb_bulk_write: failed error=%lu transferred=%lu", err, transferred);
+        if (err == ERROR_SEM_TIMEOUT) return MTK_ERROR_TIMEOUT;
+        return MTK_ERROR_IO;
+    }
+
+    return MTK_SUCCESS;
+}
+
+MTK_USB_API int mtk_usb_bulk_read(mtk_usb_handle handle, uint8_t endpoint,
+                                   uint8_t *buffer, int length,
+                                   int *actual, int timeout_ms) {
+    if (!handle || !buffer || length < 0) return MTK_ERROR_INVALID_PARAM;
+    if (!g_winusb_loaded || !pfn_ReadPipe) return MTK_ERROR_NOT_SUPPORTED;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+    uint8_t ep = endpoint ? endpoint : h->ep_in;
+
+    /* Set timeout if specified */
+    if (timeout_ms > 0 && pfn_SetPipePolicy) {
+        ULONG to = (ULONG)timeout_ms;
+        pfn_SetPipePolicy(h->winusb_handle, ep, WINUSB_PIPE_TRANSFER_TIMEOUT, sizeof(to), &to);
+    }
+
+    ULONG transferred = 0;
+    BOOL ok = pfn_ReadPipe(h->winusb_handle, ep, buffer, (ULONG)length, &transferred, NULL);
+
+    if (actual) *actual = (int)transferred;
+
+    if (!ok) {
+        DWORD err = GetLastError();
+        log_debug("mtk_usb_bulk_read: failed error=%lu transferred=%lu", err, transferred);
+        if (err == ERROR_SEM_TIMEOUT) return MTK_ERROR_TIMEOUT;
+        return MTK_ERROR_IO;
+    }
+
+    return MTK_SUCCESS;
+}
+
+MTK_USB_API int mtk_usb_control_transfer(mtk_usb_handle handle,
+                                          uint8_t request_type, uint8_t request,
+                                          uint16_t value, uint16_t index,
+                                          uint8_t *data, uint16_t length,
+                                          int *actual) {
+    if (!handle) return MTK_ERROR_INVALID_PARAM;
+    if (!g_winusb_loaded || !pfn_ControlTransfer) return MTK_ERROR_NOT_SUPPORTED;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+
+    WINUSB_SETUP_PACKET setup;
+    setup.RequestType = request_type;
+    setup.Request = request;
+    setup.Value = value;
+    setup.Index = index;
+    setup.Length = length;
+
+    ULONG transferred = 0;
+    BOOL ok = pfn_ControlTransfer(h->winusb_handle, setup, data, length, &transferred, NULL);
+
+    if (actual) *actual = (int)transferred;
+
+    if (!ok) {
+        DWORD err = GetLastError();
+        log_debug("mtk_usb_control_transfer: failed error=%lu", err);
+        return MTK_ERROR_IO;
+    }
+
+    return MTK_SUCCESS;
+}
+
+MTK_USB_API int mtk_usb_reset_pipe(mtk_usb_handle handle, uint8_t endpoint) {
+    if (!handle) return MTK_ERROR_INVALID_PARAM;
+    if (!g_winusb_loaded || !pfn_ResetPipe) return MTK_ERROR_NOT_SUPPORTED;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+
+    if (pfn_ResetPipe(h->winusb_handle, endpoint)) {
+        log_debug("mtk_usb_reset_pipe: endpoint 0x%02X reset", endpoint);
+        return MTK_SUCCESS;
+    }
+
+    log_debug("mtk_usb_reset_pipe: failed error=%lu", GetLastError());
+    return MTK_ERROR_PIPE;
+}
+
+MTK_USB_API int mtk_usb_flush_pipe(mtk_usb_handle handle, uint8_t endpoint) {
+    if (!handle) return MTK_ERROR_INVALID_PARAM;
+    if (!g_winusb_loaded || !pfn_FlushPipe) return MTK_ERROR_NOT_SUPPORTED;
+
+    mtk_usb_handle_internal *h = (mtk_usb_handle_internal *)handle;
+    pfn_FlushPipe(h->winusb_handle, endpoint);
+    return MTK_SUCCESS;
+}
+
 MTK_USB_API const char* mtk_usb_error_string(int error_code) {
     switch (error_code) {
         case MTK_SUCCESS:             return "Success";
@@ -584,7 +1022,7 @@ MTK_USB_API const char* mtk_usb_error_string(int error_code) {
 }
 
 MTK_USB_API const char* mtk_usb_version(void) {
-    return "1.0.0";
+    return "2.0.0";
 }
 
 MTK_USB_API int mtk_usb_set_log(const char *log_file, int verbose) {
@@ -644,6 +1082,31 @@ MTK_USB_API int mtk_usb_find_devices(mtk_device_info_t *d, int m) {
 MTK_USB_API int mtk_usb_wait_for_device(mtk_device_info_t *d, int t, int p) {
     (void)d; (void)t; (void)p; return MTK_ERROR_NOT_SUPPORTED;
 }
+MTK_USB_API int mtk_usb_open(uint16_t v, uint16_t p, mtk_usb_handle *h) {
+    (void)v; (void)p; (void)h; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_open_by_path(const char *p, mtk_usb_handle *h) {
+    (void)p; (void)h; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API void mtk_usb_close(mtk_usb_handle h) { (void)h; }
+MTK_USB_API int mtk_usb_get_endpoints(mtk_usb_handle h, mtk_endpoint_info_t *e) {
+    (void)h; (void)e; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_bulk_write(mtk_usb_handle h, uint8_t e, const uint8_t *b, int l, int *a, int t) {
+    (void)h; (void)e; (void)b; (void)l; (void)a; (void)t; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_bulk_read(mtk_usb_handle h, uint8_t e, uint8_t *b, int l, int *a, int t) {
+    (void)h; (void)e; (void)b; (void)l; (void)a; (void)t; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_control_transfer(mtk_usb_handle h, uint8_t rt, uint8_t r, uint16_t v, uint16_t i, uint8_t *d, uint16_t l, int *a) {
+    (void)h; (void)rt; (void)r; (void)v; (void)i; (void)d; (void)l; (void)a; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_reset_pipe(mtk_usb_handle h, uint8_t e) {
+    (void)h; (void)e; return MTK_ERROR_NOT_SUPPORTED;
+}
+MTK_USB_API int mtk_usb_flush_pipe(mtk_usb_handle h, uint8_t e) {
+    (void)h; (void)e; return MTK_ERROR_NOT_SUPPORTED;
+}
 MTK_USB_API int mtk_usb_reset_device(uint16_t v, uint16_t p) {
     (void)v; (void)p; return MTK_ERROR_NOT_SUPPORTED;
 }
@@ -666,7 +1129,7 @@ MTK_USB_API const char* mtk_usb_error_string(int e) {
     if (e == MTK_ERROR_NOT_SUPPORTED) return "Not supported on this platform";
     return "Unknown error";
 }
-MTK_USB_API const char* mtk_usb_version(void) { return "1.0.0"; }
+MTK_USB_API const char* mtk_usb_version(void) { return "2.0.0"; }
 MTK_USB_API int mtk_usb_set_log(const char *f, int v) {
     (void)f; (void)v; return MTK_ERROR_NOT_SUPPORTED;
 }

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mtkclient WiX MSI Installer Source
+  Builds an MSI package that installs mtkclient executables, drivers, and DLLs
+  
+  Build with: candle.exe mtkclient.wxs && light.exe -ext WixUIExtension mtkclient.wixobj
+  Or use build_msi.bat
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="mtkclient - MediaTek Flash Tool"
+           Language="1033"
+           Version="2.1.3.0"
+           Manufacturer="mtkclient"
+           UpgradeCode="E7A1C3B5-4D2F-4A8E-9B6C-1D3F5E7A9B0D">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="mtkclient - MediaTek Flash Tool for Windows"
+             Comments="Open source MediaTek device flash tool with WinUSB driver support" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of mtkclient is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Installation directory structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="mtkclient">
+          <Directory Id="DRIVERFOLDER" Name="driver" />
+        </Directory>
+      </Directory>
+
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="mtkclient" />
+      </Directory>
+    </Directory>
+
+    <!-- Main executables and DLLs -->
+    <ComponentGroup Id="MainComponents" Directory="INSTALLFOLDER">
+      <Component Id="CLI_EXE" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890" Win64="yes">
+        <File Id="mtk_exe" Name="mtk.exe" Source="$(var.DistDir)\mtk_console.exe" KeyPath="yes" />
+      </Component>
+
+      <Component Id="GUI_EXE" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901" Win64="yes">
+        <File Id="mtk_gui_exe" Name="mtk_gui.exe" Source="$(var.DistDir)\mtk_standalone.exe" KeyPath="yes" />
+      </Component>
+
+      <Component Id="NativeDLL" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012" Win64="yes">
+        <File Id="mtk_usb_driver_dll" Name="mtk_usb_driver.dll" Source="$(var.DllDir)\mtk_usb_driver.dll" KeyPath="yes" />
+      </Component>
+
+      <Component Id="LibUSB_DLL" Guid="D4E5F6A7-B8C9-0123-DEF0-234567890123" Win64="yes">
+        <File Id="libusb_dll" Name="libusb-1.0.dll" Source="$(var.WindowsDir)\libusb-1.0.dll" KeyPath="yes" />
+      </Component>
+
+      <!-- System PATH entry -->
+      <Component Id="PathEntry" Guid="E5F6A7B8-C9D0-1234-EF01-345678901234" Win64="yes" KeyPath="yes">
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]"
+                     Permanent="no" Part="last" Action="set" System="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Driver files -->
+    <ComponentGroup Id="DriverComponents" Directory="DRIVERFOLDER">
+      <Component Id="WinUSB_INF" Guid="F6A7B8C9-D0E1-2345-F012-456789012345" Win64="yes">
+        <File Id="winusb_inf" Name="mtkclient_winusb.inf" Source="$(var.DriverDir)\mtkclient_winusb.inf" KeyPath="yes" />
+      </Component>
+
+      <Component Id="Serial_INF" Guid="A7B8C9D0-E1F2-3456-0123-567890123456" Win64="yes">
+        <File Id="serial_inf" Name="mtkclient_preloader.inf" Source="$(var.DriverDir)\mtkclient_preloader.inf" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu shortcuts -->
+    <ComponentGroup Id="ShortcutComponents" Directory="ApplicationProgramsFolder">
+      <Component Id="GUIShortcut" Guid="B8C9D0E1-F2A3-4567-1234-678901234567">
+        <Shortcut Id="GUIDesktopShortcut"
+                  Name="mtkclient GUI"
+                  Target="[INSTALLFOLDER]mtk_gui.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="CleanUpShortcutFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\mtkclient" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="CLIShortcut" Guid="C9D0E1F2-A3B4-5678-2345-789012345678">
+        <Shortcut Id="CLIDesktopShortcut"
+                  Name="mtkclient CLI"
+                  Target="[INSTALLFOLDER]mtk.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\mtkclient" Name="cli_installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Custom action: Install WinUSB driver after file install -->
+    <CustomAction Id="InstallWinUSBDriver"
+                  Directory="DRIVERFOLDER"
+                  ExeCommand="[SystemFolder]pnputil.exe /add-driver &quot;[DRIVERFOLDER]mtkclient_winusb.inf&quot; /install"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallWinUSBDriver" After="InstallFiles">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+    <!-- Features -->
+    <Feature Id="MainFeature" Title="mtkclient" Level="1">
+      <ComponentGroupRef Id="MainComponents" />
+      <ComponentGroupRef Id="ShortcutComponents" />
+    </Feature>
+
+    <Feature Id="DriverFeature" Title="WinUSB Driver" Description="Install WinUSB driver for MediaTek devices (eliminates need for UsbDk)" Level="1">
+      <ComponentGroupRef Id="DriverComponents" />
+    </Feature>
+
+    <!-- WiX UI -->
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+  </Product>
+</Wix>

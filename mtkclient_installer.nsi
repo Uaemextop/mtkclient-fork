@@ -95,6 +95,8 @@ Section "mtkclient (required)" SecMain
     File "mtkclient\Windows\driver\mtkclient_preloader.inf"
     File /nonfatal "mtkclient\Windows\driver\mtkclient_preloader.cat"
     File /nonfatal "mtkclient\Windows\driver\mtkclient_cert.cer"
+    ; WinUSB driver (recommended - no UsbDk/libusb required)
+    File /nonfatal "Setup\Windows\driver\mtkclient_winusb.inf"
 
     ; Uninstaller
     SetOutPath "$INSTDIR"
@@ -133,12 +135,18 @@ Section "Install USB Driver" SecDriver
     nsExec::ExecToLog 'certutil -addstore "Root" "$INSTDIR\driver\mtkclient_cert.cer"'
     skip_cert:
 
-    ; Install driver INF using pnputil
+    ; Install WinUSB driver (preferred - enables direct USB access)
+    IfFileExists "$INSTDIR\driver\mtkclient_winusb.inf" 0 skip_winusb
+    nsExec::ExecToLog 'pnputil /add-driver "$INSTDIR\driver\mtkclient_winusb.inf" /install'
+    skip_winusb:
+
+    ; Install serial port driver (fallback)
     nsExec::ExecToLog 'pnputil /add-driver "$INSTDIR\driver\mtkclient_preloader.inf" /install'
 SectionEnd
 
 Section "Uninstall"
-    ; Try to remove driver
+    ; Try to remove drivers
+    nsExec::ExecToLog 'pnputil /delete-driver "$INSTDIR\driver\mtkclient_winusb.inf" /uninstall'
     nsExec::ExecToLog 'pnputil /delete-driver "$INSTDIR\driver\mtkclient_preloader.inf" /uninstall'
 
     ; Remove from PATH
@@ -153,6 +161,7 @@ Section "Uninstall"
     Delete "$INSTDIR\driver\mtkclient_preloader.inf"
     Delete "$INSTDIR\driver\mtkclient_preloader.cat"
     Delete "$INSTDIR\driver\mtkclient_cert.cer"
+    Delete "$INSTDIR\driver\mtkclient_winusb.inf"
     RMDir "$INSTDIR\driver"
     Delete "$INSTDIR\uninstall.exe"
     RMDir "$INSTDIR"

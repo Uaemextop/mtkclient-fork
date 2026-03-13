@@ -224,6 +224,7 @@ jobs:
             mtkclient/Windows/driver/mtkclient_preloader.inf
             mtkclient/Windows/driver/mtkclient_preloader.cat
             mtkclient/Windows/driver/mtkclient_cert.cer
+            Setup/Windows/driver/mtkclient_winusb.inf
           if-no-files-found: warn
 
       - name: Upload NSIS installer

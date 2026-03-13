@@ -1,0 +1,117 @@
+; mtkclient_winusb.inf
+; WinUSB driver for MediaTek Preloader/Bootrom devices
+; Maps all MTK VID/PIDs to Microsoft WinUSB driver for direct USB access
+; This eliminates the need for UsbDk or libusb on Windows
+;
+; (c) 2024-2026 GPLv3 License
+;
+; Device modes supported:
+;   - Bootrom mode (VID 0x0E8D, PID 0x0003)
+;   - Preloader mode (VID 0x0E8D, PID 0x2000/0x2001/0x20FF/0x3000/0x6000)
+;   - LG Preloader (VID 0x1004, PID 0x6000)
+;   - OPPO Preloader (VID 0x22D9, PID 0x0006)
+;   - Sony Bootrom variants
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = USBDevice
+ClassGuid   = {88BAE032-5A81-49f0-BC3D-A4FF138216D6}
+Provider    = %ProviderName%
+DriverVer   = 03/13/2026,2.0.0.0
+CatalogFile = mtkclient_winusb.cat
+PnpLockdown = 0
+
+[ClassInstall32]
+AddReg = ClassInstall_AddReg
+
+[ClassInstall_AddReg]
+HKR,,,,%ClassName%
+HKR,,NoInstallClass,,1
+HKR,,SilentInstall,,1
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[SourceDisksNames]
+
+[SourceDisksFiles]
+
+[Manufacturer]
+%MfgName% = MTKDevices, NTamd64
+
+;---------------------------------------------------------------
+; Windows 10/11 x64
+;---------------------------------------------------------------
+[MTKDevices.NTamd64]
+; === MediaTek Bootrom ===
+%MTK_Bootrom%      = MTK_WinUSB, USB\VID_0E8D&PID_0003
+%MTK_Bootrom%      = MTK_WinUSB, USB\VID_0E8D&PID_0003&MI_00
+%MTK_Bootrom%      = MTK_WinUSB, USB\VID_0E8D&PID_0003&MI_01
+
+; === MediaTek Preloader ===
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2000
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2000&MI_00
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2000&MI_01
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2001
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2001&MI_00
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_2001&MI_01
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_20FF
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_20FF&MI_00
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_20FF&MI_01
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_3000
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_3000&MI_00
+%MTK_Preloader%    = MTK_WinUSB, USB\VID_0E8D&PID_3000&MI_01
+
+; === MediaTek Preloader (alternate PID) ===
+%MTK_Preloader6k%  = MTK_WinUSB, USB\VID_0E8D&PID_6000
+%MTK_Preloader6k%  = MTK_WinUSB, USB\VID_0E8D&PID_6000&MI_00
+%MTK_Preloader6k%  = MTK_WinUSB, USB\VID_0E8D&PID_6000&MI_01
+
+; === LG MediaTek Preloader ===
+%LG_Preloader%     = MTK_WinUSB, USB\VID_1004&PID_6000
+%LG_Preloader%     = MTK_WinUSB, USB\VID_1004&PID_6000&MI_00
+%LG_Preloader%     = MTK_WinUSB, USB\VID_1004&PID_6000&MI_01
+
+; === OPPO MediaTek Preloader ===
+%OPPO_Preloader%   = MTK_WinUSB, USB\VID_22D9&PID_0006
+%OPPO_Preloader%   = MTK_WinUSB, USB\VID_22D9&PID_0006&MI_00
+%OPPO_Preloader%   = MTK_WinUSB, USB\VID_22D9&PID_0006&MI_01
+
+; === Sony MediaTek Bootrom ===
+%Sony_Brom%        = MTK_WinUSB, USB\VID_0FCE&PID_F200
+%Sony_Brom%        = MTK_WinUSB, USB\VID_0FCE&PID_D1E9
+%Sony_Brom%        = MTK_WinUSB, USB\VID_0FCE&PID_D1E2
+%Sony_Brom%        = MTK_WinUSB, USB\VID_0FCE&PID_D1EC
+%Sony_Brom%        = MTK_WinUSB, USB\VID_0FCE&PID_D1DD
+
+;---------------------------------------------------------------
+; WinUSB install section
+;---------------------------------------------------------------
+[MTK_WinUSB.NT]
+Include   = winusb.inf
+Needs     = WINUSB.NT
+
+[MTK_WinUSB.NT.Services]
+Include   = winusb.inf
+Needs     = WINUSB.NT.Services
+
+[MTK_WinUSB.NT.HW]
+AddReg    = MTK_WinUSB_AddReg
+
+[MTK_WinUSB_AddReg]
+; DeviceInterfaceGUID used by application to find the device via SetupAPI
+HKR,,DeviceInterfaceGUIDs,0x10000,"{1D0C3B4F-2E1A-4A32-9C3F-5D6B7E8F9A0B}"
+
+;---------------------------------------------------------------
+; Strings
+;---------------------------------------------------------------
+[Strings]
+ProviderName    = "mtkclient"
+MfgName         = "MediaTek Inc."
+ClassName       = "Universal Serial Bus devices"
+MTK_Bootrom     = "MediaTek Bootrom (WinUSB)"
+MTK_Preloader   = "MediaTek Preloader (WinUSB)"
+MTK_Preloader6k = "MediaTek Preloader (WinUSB) (0x6000)"
+LG_Preloader    = "LG MediaTek Preloader (WinUSB)"
+OPPO_Preloader  = "OPPO MediaTek Preloader (WinUSB)"
+Sony_Brom       = "Sony MediaTek Bootrom (WinUSB)"
