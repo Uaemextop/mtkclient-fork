@@ -1,0 +1,71 @@
+; Windows Virtual Serial Port Setup File
+; Copyright (c) 2009 Motorola Incorporated
+; Manufacturer: Motorola Incorporated
+;
+
+[Version]
+signature  = "$WINDOWS NT$"
+Class      = Ports
+Provider   = %Motorola%
+ClassGuid  = {4D36E978-E325-11CE-BFC1-08002BE10318}
+DriverVer=02/24/2009,1.1.0.0
+Catalogfile= Mousbser.cat
+
+[ControlFlags]
+ExcludeFromSelect = *
+
+[Manufacturer]
+%Motorola% = QcomSerialPort, NTia64, NTamd64
+
+[SourceDisksNames]
+  1000 = %QcomSrcDisk%,"",,
+
+[SourceDisksFiles]
+  Mousbser.sys = 1000
+
+[QcomSerialPort]
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d09&MI_01
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d01&MI_01
+
+[QcomSerialPort.NTia64]
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d09&MI_01
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d01&MI_01
+
+[QcomSerialPort.NTamd64]
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d09&MI_01
+%MotorolaPRODUCT% = QportInstall00, USB\Vid_22b8&Pid_2d01&MI_01
+
+[QportInstall00.NT]
+CopyFiles=QCUsbDriverFiles
+AddReg = All00, AddReg
+
+[QCUsbDriverFiles]
+Mousbser.sys
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[QportInstall00.NT.Services]
+AddService=bqusbser,  0x00000002, QC_USBSerialService
+
+[QC_USBSerialService]
+DisplayName   = %bqusbser%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\Mousbser.sys
+
+[All00]
+HKR,,NTMPDriver,,Mousbser.sys
+
+[AddReg]
+HKR,,PortSubClass,1,01
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[Strings]
+Motorola = "Motorola"
+MotorolaPRODUCT = "WCDMA Diagnostics Interface"
+
+bqusbser = "WCDMA USB Device for Legacy Serial Communication"
+QcomSrcDisk = "WCDMA USB Driver Disk"
+

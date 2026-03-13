@@ -1,0 +1,2301 @@
+;-------------------------------------------------------------------------------
+;
+; Motorola Composite Class/Flash Driver (motodrv.inf)
+;
+; Copyright (c) 2006-2011 Motorola
+;
+;-------------------------------------------------------------------------------
+
+[Version]
+Signature   = $Chicago$
+Class       = MOTUSB
+ClassGUID   = {FEB8D079-0681-11D4-9531-0060089ABC08}
+Provider    = %MotDev.Provider%
+DriverVer   = 11/08/2011, 3.2.12.0
+CatalogFile = motodrv.cat
+
+; Class Installation -----------------------------------------------------------
+
+[ClassInstall32]
+AddReg      = MotDev.AddClassReg
+CopyFiles   = MotDev.MotCICopyFiles
+
+[SourceDisksNames]
+1           = %MotDev.DriverDiskName%,"",1
+
+[SourceDisksFiles]
+motodrv.sys = 1
+mot_ci.dll  = 1
+
+[DestinationDirs]
+MotDev.CopyFiles      = 10,system32\drivers
+MotDev.MotCICopyFiles = 10,system32
+
+[MotDev.AddClassReg]
+HKR,,,,%MotDev.ClassName%
+HKR,,Icon,,100
+HKR,,SilentInstall,,1
+HKR,,Installer32,,"mot_ci.dll,MotorolaCI"
+HKR,,TroubleShooter-0,,"hcp://help/tshoot/tsUSB.htm"
+
+[MotDev.CopyFiles]
+motodrv.sys
+
+[MotDev.MotCICopyFiles]
+mot_ci.dll
+
+; Models (x86) ------------------------------------------------------------------
+
+[Manufacturer]
+%MotDev.Manufacturer% = MotDev,NTamd64
+
+[MotDev]
+
+; t qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E14
+
+; h qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E10
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_02
+; a qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DEC
+
+; dq+
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DE4
+
+; t o4 rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_42F0
+; s o4 rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_42D0
+; d nV rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_70C0
+
+; w
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_426D
+
+; d,s
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DB4
+; test
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41EE&MI_05
+
+; o/e,e
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7084
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_70A4
+; c
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DD6
+; o3 bp
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4281
+
+; TI OMAP 3630 Blank flash ;Shadow
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D00E
+; TI OMAP 3630 Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4280
+
+;BeiHai
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4270
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4275&REV_0001&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4275&REV_0001&MI_01
+
+;Calgary flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D77
+
+;SnapperTD
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6494
+
+; Grant Bootloader 
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4086
+
+; Android OMAP3430 Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41D0
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41E0
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_41E1&REV_0001&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_41E1&REV_0001&MI_01
+
+; CAM flash 
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D43
+; CAM config8
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_08
+; Lucky Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_419F
+; MSM6246 flash (Rhodes)
+%MotDevF.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D33
+
+; MSM6246 config-8 (Rhodes)
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D31&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D31&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0001&MI_08
+
+;Ivory MTP + TCMD + DL
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D38&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D38&REV_0002&MI_01
+
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D3B&REV_0002&MI_02
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D3B&REV_0002&MI_03
+; Morrison flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D60
+; MSM6575 flash (Vegas_SKT)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE3
+
+; MSM6575 config-8 (Vegas_SKT)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_08
+
+; MSM6290 flash (Aura SKT)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C53
+
+; MSM6290 config-8 (Aura SKT)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_08
+
+; Texel  Config 11 (modem + tcmd + dl + accy)
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_03
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_04
+
+; P2k TI Neptune
+; boot PID
+%MotDevF.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B3
+
+; Config-8 HCT compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B1&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B1&REV_0002&MI_01
+
+; Config-11 HCT Compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B5&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B5&REV_0002&MI_03
+
+; Mass storage + MCU + TC + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B7&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B7&REV_0002&MI_02
+
+; Motorola MTP Datalogging Dual Mode Driver
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B9&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B9&REV_0002&MI_02
+
+
+; MSM6575 flash (Pau)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC3
+
+; MSM6575 config-8 (Pau)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_08
+
+; MSM6800 flash (Athens,Watertown)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C63
+
+; MSM6800 config-8 (Athens,Watertown)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_08
+
+; QSC6055 flash (Dover)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C83
+
+; QSC6055 config-8 (Dover)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_08
+
+; QSC6075 flash (Frost)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA3
+
+; QSC6075 config-8 (Frost)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_08
+
+; QSC6055 flash (Millau)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C43
+
+; QSC6055 config-8 (Millau)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_08
+
+; QSC6085 flash (Fairbanks)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D82
+
+; QSC6085 config-8 (Fainbanks)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_08
+
+; MSM6280 flash (KJ)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC3
+
+; MSM6280 config-8 (KJ)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_08
+
+; Maximus+ (Srikanth)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4101
+
+; Greatwall (Jinsu)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA3
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_08
+
+; Silverstone/Sebring (Fusen)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4163
+
+; Argon A9 flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_15A2&PID_001A
+
+; TI Boot ROM -- NoSetConfiguration = 1 in Device Parameters
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D000
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D002
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D003
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D006
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D009
+
+; Nelson M boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7042
+
+; Nelson Q9c boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7063
+
+; J-Volans Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_08 
+
+; New LTE2 DSP logging only
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4908
+
+; AMP'd V3m with broken descriptors
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_08
+
+; RAZR1X (6100) with HCT changes
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_02
+
+; 6100 HCT with alternate PID
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_02
+
+; Ajar Bootloader
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4082
+
+; Ischia Bootloader
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41A2
+
+; Freescale Flash
+%MotDevFF.DeviceDesc% = MotDev.INSTALL, USB\VID_15A2&PID_0027
+
+; J-Volans Bootloader and config-8 non-HCT / HCT
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6463
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_09
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0002&MI_01
+
+; Espoo "Factory Software" and "TCMD in CSW" Configurations (#1/#2)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_02
+
+; Espoo "AP only" flash (#3)
+%MotDev16.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_405E
+
+; Espoo "AP+BP flash" (#4)
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_405F&REV_0002&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_405F&REV_0002&MI_01
+
+
+; Bulverde USB BOOT PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_8086&PID_F001
+
+; Norman boot PID
+%MotDevf.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4222
+
+; Q-GSM boot PID
+%MotDevf.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7022
+
+; iDEN boot PID
+%MotDev18.DeviceDesc% = MotDev.INSTALL, USB\VID_0C44&PID_0022
+
+; Wally 2.2 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_09
+
+; Wally config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_08
+
+; Wally 2.4 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_09
+
+;Patriot 1.0 PID (GSM)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_09
+
+;Patriot 1.0 PID (TDMA)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_08
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_08
+
+;Patriot 1.2 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_09
+
+
+;CDMA 1X (Qualcomm5100)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2823&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_08
+
+
+;Rainbow chipsets and products
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1801&REV_0001
+;Rainbow Revision 3
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1801&REV_0003
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_09
+
+; Talon Integrated 8/26/03 USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_09
+
+; Talon config-11
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_09
+
+; Talon config-11 + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0002&MI_03
+
+
+;Argon and SCM-A11
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6403
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_09
+;espoo pid entries
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6403&REV_0001&MI_10
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6403&REV_0001&MI_11
+
+; HCT compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0002&MI_01
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_08
+
+; Mass storage + MCU + TC + non-WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0001&MI_06
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0001&MI_08
+
+; Mass storage + MCU + TC + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0002&MI_02
+
+; Other stuff
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_08
+
+; IZAR MCCI support
+
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_08 
+
+; Electra II MCCI support
+
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_08
+
+
+; Neptune LT  1.0 PID
+
+; boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3803&REV_0001
+
+; USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_09
+
+; Neptune LT config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_09
+
+
+; Neptune LTS PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4803&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_08
+
+
+; Neptune ULS PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5803&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_08
+
+
+; Neptune LTE PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4903
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_07
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_09
+
+; HCT compliant
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_02
+
+
+; Neptune LTE (non-WHQL)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_08
+
+; Neptune LTE (WHQL)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_02
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_03
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_04
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_05
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_06
+
+; Neptune LTX PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A03&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_09
+
+; Neptune VLT PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5903&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_08
+
+
+;OMAP 1.0 PIDs
+
+;boot PID
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4003&REV_0001
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_08
+
+;RDL PID
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_00
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_01
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_02
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_09
+
+;Dalhart (EZX)
+
+
+; EZX Intel Bootstrap for Dalhart:
+
+; EZX Motorola Bootloader for Dalhart.
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6003&REV_0001
+
+;EZX RDL
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6008&REV_0001&MI_00
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6008&REV_0001&MI_01
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_09
+
+;EZX config 11
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0E
+
+;EZX Config 16
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0E
+
+;EZX config 17
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0E
+
+;EZX config 18
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0E
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_08
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_08
+
+
+;MSM6050 (Qualcomm 6050)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A03&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_09
+
+;MSM6100 (Qualcomm 6100)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC3&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_09
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A23
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_08
+
+
+;MSM6300 (Qualcomm 6300)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A43
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_08
+
+
+;MSM6500 (Qualcomm 6500)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A63
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_02
+
+
+;MSM6025 (Qualcomm 6025)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A83&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_09
+
+;JUIX (Bulverde)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6023
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_08
+
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6423
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_09
+
+;MSM6550 Kenai
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B23
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_02
+
+;MSM65XX  DUN speed changes
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C03
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_02
+
+
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_01
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_02
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_03
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_04
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_06
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_08
+;Motorola MTP Datalogging Dual Mode Driver
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0002&MI_02
+
+;MSM6125 Jefferson
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B43
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B63
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_02
+
+
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6461	;Izar Bootloader
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_09
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6460  	;V2000 Bootloader
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_09
+
+
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6462
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_09
+
+;RAM Downloader/miniOS
+;Motorola AP Flash
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6026&REV_0001&MI_09
+;Motorola BP flash
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6026&REV_0001&MI_0A
+
+;DoCoMo temp PIDs
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3021&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3021&REV_0002&MI_01
+
+; Models (x64) ------------------------------------------------------------------
+
+[MotDev.NTamd64]
+
+; t qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E14
+
+; h qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E10
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2E11&MI_02
+; a qc
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DEC
+
+; dq+
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DE4
+
+; t o4 rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_42F0
+; s o4 rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_42D0
+; d nV rf
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_70C0
+
+; w
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_426D
+
+; d,s
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DB4
+; test
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41EE&MI_05
+
+; o/e,e
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7084
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_70A4
+; c
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2DD6
+; o3 bp
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4281
+
+
+; TI OMAP 3630 Blank flash ;Shadow
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D00E
+; TI OMAP 3630 Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4280
+
+;BeiHai
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4270
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4275&REV_0001&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4275&REV_0001&MI_01
+
+;Clagary Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D77
+
+;SnapperTD
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6494
+
+; Grant Bootloader 
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4086
+
+; Android OMAP3430 Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41D0
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41E0
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_41E1&REV_0001&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_41E1&REV_0001&MI_01
+
+; CAM flash 
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D43
+
+; CAM config8
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D41&REV_0001&MI_08
+; Lucky Flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_419F
+; MSM6246 flash (Rhodes)
+%MotDevF.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D33
+
+; MSM6246 config-8 (Rhodes)
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D31&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D31&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D31&REV_0001&MI_08
+
+;Ivory MTP + TCMD + DL
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D38&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D38&REV_0002&MI_01
+
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL,  USB\VID_22B8&PID_2D3B&REV_0002&MI_02
+%MotDev6.DeviceDesc%  = MotDev.INSTALL,       USB\VID_22B8&PID_2D3B&REV_0002&MI_03
+
+; Morrison flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D60
+; MSM6575 flash (Vegas_SKT)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE3
+
+; MSM6575 config-8 (Vegas_SKT)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CE1&REV_0001&MI_08
+
+; MSM6290 flash (Aura SKT)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C53
+
+; MSM6290 config-8 (Aura SKT)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C51&REV_0001&MI_08
+
+; Texel  Config 11 (modem + tcmd + dl + accy)
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_03
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_404C&REV_0002&MI_04
+
+; P2k TI Neptune
+; boot PID
+%MotDevF.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B3
+
+; Config-8 HCT compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B1&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B1&REV_0002&MI_01
+
+; Config-11 HCT Compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B5&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B5&REV_0002&MI_03
+
+; Mass storage + MCU + TC + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B7&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B7&REV_0002&MI_02
+
+; Motorola MTP Datalogging Dual Mode Driver
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41B9&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.Cfg1.INSTALL, USB\VID_22B8&PID_41B9&REV_0002&MI_02
+; MSM6575 flash (Pau)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC3
+
+; MSM6575 config-8 (Pau)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CC1&REV_0001&MI_08
+
+; MSM6800 flash (Athens,Watertown)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C63
+
+; MSM6800 config-8 (Athens,Watertown)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C61&REV_0001&MI_08
+
+; QSC6055 flash (Dover)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C83
+
+; QSC6055 config-8 (Dover)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C81&REV_0001&MI_08
+
+; QSC6075 flash (Frost)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA3
+
+; QSC6075 config-8 (Frost)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2CA1&REV_0001&MI_08
+
+; QSC6055 flash (Millau)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C43
+
+; QSC6055 config-8 (Millau)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C41&REV_0001&MI_08
+
+; QSC6085 flash (Fairbanks)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D82
+
+; QSC6085 config-8 (Fainbanks)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2D81&REV_0001&MI_08
+
+; MSM6280 flash (KJ)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC3
+
+; MSM6280 config-8 (KJ)
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BC1&REV_0001&MI_08
+
+; Maximus+ (Srikanth)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4101
+
+; Greatwall (Jinsu)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA3
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2BA1&REV_0001&MI_08
+
+; Silverstone/Sebring (Fusen)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4163
+
+; Argon A9 flash
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_15A2&PID_001A
+
+; TI Boot ROM -- NoSetConfiguration = 1 in Device Parameters
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D000
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D002
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D003
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D006
+%MotDevF.DeviceDesc%  = MotDev.NoCfg.INSTALL, USB\VID_0451&PID_D009
+
+; Nelson M boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7042
+
+; Nelson Q9c boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7063
+
+; J-Volans Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640B&REV_0001&MI_08 
+
+; New LTE2 DSP logging only
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4908
+
+; AMP'd V3m with broken descriptors
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_06
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_08
+
+; RAZR1X (6100) with HCT changes
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0002&MI_02
+
+; 6100 HCT with alternate PID
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0002&MI_02
+
+; Ajar Bootloader
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4082
+
+; Ischia Bootloader
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_41A2
+
+; Freescale Flash
+%MotDevFF.DeviceDesc% = MotDev.INSTALL, USB\VID_15A2&PID_0027
+
+; J-Volans Bootloader and config-8 non-HCT / HCT
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6463
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0001&MI_09
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6473&REV_0002&MI_01
+
+; Espoo "Factory Software" and "TCMD in CSW" Configurations (#1/#2)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4044&REV_0306&MI_02
+
+; Espoo "AP only" flash (#3)
+%MotDev16.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_405E
+
+; Espoo "AP+BP flash" (#4)
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_405F&REV_0002&MI_00
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_405F&REV_0002&MI_01
+
+; Bulverde USB BOOT PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_8086&PID_F001
+
+; Norman boot PID
+%MotDevf.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4222
+
+; Q-GSM boot PID
+%MotDevf.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_7022
+
+; iDEN boot PID
+%MotDev18.DeviceDesc% = MotDev.INSTALL, USB\VID_0C44&PID_0022
+
+; Wally 2.2 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0001&REV_0001&MI_09
+
+; Wally config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0007&REV_0001&MI_08
+
+; Wally 2.4 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_0002&REV_0001&MI_09
+
+;Patriot 1.0 PID (GSM)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1001&REV_0001&MI_09
+
+;Patriot 1.0 PID (TDMA)
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1101&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1107&REV_0001&MI_08
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1c09&REV_0001&MI_08
+
+;Patriot 1.2 PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1002&REV_0001&MI_09
+
+
+;CDMA 1X (Qualcomm5100)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2823&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2821&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2844&REV_0001&MI_08
+
+
+;Rainbow chipsets and products
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1801&REV_0001
+;Rainbow Revision 3
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_1801&REV_0003
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3001&REV_0001&MI_09
+
+; Talon Integrated 8/26/03 USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6101&REV_0001&MI_09
+
+; Talon config-11
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0001&MI_09
+
+; Talon config-11 + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0002&MI_02
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3009&REV_0002&MI_03
+
+
+;Argon and SCM-A11
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6403
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0001&MI_09
+;espoo pid entries
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6403&REV_0001&MI_10
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6403&REV_0001&MI_11
+
+; HCT compliant
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6401&REV_0002&MI_01
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6406&REV_0001&MI_08
+
+; Mass storage + MCU + TC + non-WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0001&MI_06
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0001&MI_08
+
+; Mass storage + MCU + TC + WHQL
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6414&REV_0002&MI_02
+
+; Other stuff
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6408&REV_0001&MI_08
+
+; IZAR MCCI support
+
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6409&REV_0001&MI_08 
+
+; Electra II MCCI support
+
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_640A&REV_0001&MI_08
+
+
+; Neptune LT  1.0 PID
+
+; boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3803&REV_0001
+
+; USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3801&REV_0001&MI_09
+
+; Neptune LT config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3804&REV_0001&MI_09
+
+
+; Neptune LTS PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4803&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4801&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4805&REV_0001&MI_08
+
+
+; Neptune ULS PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5803&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5801&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5804&REV_0001&MI_08
+
+
+; Neptune LTE PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4903
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_07
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0001&MI_09
+
+; HCT compliant
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4901&REV_0002&MI_02
+
+
+; Neptune LTE (non-WHQL)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0001&MI_08
+
+; Neptune LTE (WHQL)
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_02
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_03
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_04
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_05
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4905&REV_0002&MI_06
+
+; Neptune LTX PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A03&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4A01&REV_0001&MI_09
+
+; Neptune VLT PIDs
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5903&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5901&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_5904&REV_0001&MI_08
+
+
+;OMAP 1.0 PIDs
+
+;boot PID
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4003&REV_0001
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4007&REV_0001&MI_08
+
+;RDL PID
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_00
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_01
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_4008&REV_0001&MI_02
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_4001&REV_0001&MI_09
+
+;Dalhart (EZX)
+
+
+; EZX Intel Bootstrap for Dalhart:
+
+; EZX Motorola Bootloader for Dalhart.
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6003&REV_0001
+
+;EZX RDL
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6008&REV_0001&MI_00
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6008&REV_0001&MI_01
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6001&REV_0001&MI_09
+
+;EZX config 11
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6004&REV_0001&MI_0E
+
+;EZX Config 16
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6009&REV_0001&MI_0E
+
+;EZX config 17
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600A&REV_0001&MI_0E
+
+;EZX config 18
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_09
+%MotDev10.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0A
+%MotDev11.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0B
+%MotDev12.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0C
+%MotDev14.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0D
+%MotDev15.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_600B&REV_0001&MI_0E
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6109&REV_0001&MI_08
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6139&REV_0001&MI_08
+
+
+;MSM6050 (Qualcomm 6050)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A03&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A01&REV_0001&MI_09
+
+;MSM6100 (Qualcomm 6100)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC3&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2AC1&REV_0001&MI_09
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A23
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A21&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A24&REV_0001&MI_08
+
+
+;MSM6300 (Qualcomm 6300)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A43
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A41&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A44&REV_0001&MI_08
+
+
+;MSM6500 (Qualcomm 6500)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A63
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A61&REV_0002&MI_02
+
+
+;MSM6025 (Qualcomm 6025)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A83&REV_0001
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2A81&REV_0001&MI_09
+
+;JUIX (Bulverde)
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6023
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6021&REV_0001&MI_09
+
+; Config-11
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6024&REV_0001&MI_08
+
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6423
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6421&REV_0001&MI_09
+
+;MSM6550 Kenai
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B23
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B21&REV_0002&MI_02
+
+;MSM65XX  DUN speed changes
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C03
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2C01&REV_0002&MI_02
+
+
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_01
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_02
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_03
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_04
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_06
+%MotDevD.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0001&MI_08
+;Motorola MTP Datalogging Dual Mode Driver
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0002&MI_01
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6413&REV_0002&MI_02
+
+;MSM6125 Jefferson
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B43
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B63
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0001&MI_09
+
+; HCT compliant
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_00
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_01
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_2B41&REV_0002&MI_02
+
+
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6461	;Izar Bootloader
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6471&REV_0001&MI_09
+
+;boot PID
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6460  	;V2000 Bootloader
+
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6470&REV_0001&MI_09
+
+
+%MotDevF.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6462
+;USB
+%MotDev0.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_00
+%MotDev1.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_01
+%MotDev2.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_02
+%MotDev3.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_03
+%MotDev4.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_04
+%MotDev5.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_05
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_06
+%MotDev7.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_07
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_08
+%MotDev9.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_6472&REV_0001&MI_09
+
+;RAM Downloader/miniOS
+;Motorola AP Flash
+%MotDev16.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6026&REV_0001&MI_09
+;Motorola BP flash
+%MotDev17.DeviceDesc% = MotDev.INSTALL, USB\VID_22B8&PID_6026&REV_0001&MI_0A
+
+;DoCoMo temp PIDs
+%MotDev6.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3021&REV_0002&MI_00
+%MotDev8.DeviceDesc%  = MotDev.INSTALL, USB\VID_22B8&PID_3021&REV_0002&MI_01
+
+; Model sections ---------------------------------------------------------------
+
+[MotDev.INSTALL.NT]
+CopyFiles = MotDev.CopyFiles
+
+[MotDev.NoCfg.INSTALL.NT]
+CopyFiles = MotDev.CopyFiles
+
+[MotDev.Cfg1.INSTALL.NT]
+CopyFiles = MotDev.CopyFiles
+
+; Services ---------------------------------------------------------------------
+
+[MotDev.INSTALL.NT.Services]
+AddService = MotDev,0x00000002,MotDev_Service_Inst
+
+[MotDev.NoCfg.INSTALL.NT.Services]
+AddService = MotDev,0x00000002,MotDev_Service_Inst
+
+[MotDev.Cfg1.INSTALL.NT.Services]
+AddService = MotDev,0x00000002,MotDev_Service_Inst
+; Service installation ---------------------------------------------------------
+
+[MotDev_Service_Inst]
+ServiceType     = 1 ;%SERVICE_KERNEL_DRIVER%
+StartType       = 3 ;%SERVICE_AUTO_START%
+ErrorControl    = 1 ;%SERVICE_ERROR_NORMAL%
+ServiceBinary   = %12%\motodrv.sys
+DisplayName     = %MotDev.DeviceDesc%
+
+; Device Parameters ------------------------------------------------------------
+
+[MotDev.NoCfg.INSTALL.NT.HW]
+AddReg = MotDev_HW_NoSetConfig
+
+[MotDev.Cfg1.INSTALL.NT.HW]
+AddReg = MotDev_HW_Config1
+
+; Device Parameters Entries ----------------------------------------------------
+
+[MotDev_HW_NoSetConfig]
+HKR, , NoSetConfiguration, 0x00010001, 1
+
+[MotDev_HW_Config1]
+HKR, , MotConfigFlag, 0x00010001, 1
+
+; Strings ----------------------------------------------------------------------
+
+[Strings]
+MotDev.Provider       = "Motorola Inc"
+MotDev.Manufacturer   = "Motorola Inc"
+MotDev.DeviceDesc     = "Motorola Inc. USB Device"
+MotDevD.DeviceDesc    = "Motorola Unused Interface"
+MotDevF.DeviceDesc    = "Motorola Flash Interface"
+MotDevFF.DeviceDesc   = "Freescale Flash Interface"
+MotDev0.DeviceDesc    = "Communications Class - Control Interface"
+MotDev1.DeviceDesc    = "Communications Class - Data Interface"
+MotDev2.DeviceDesc    = "Audio Control Interface"
+MotDev3.DeviceDesc    = "Audio Streaming OUT Interface"
+MotDev4.DeviceDesc    = "Audio Streaming IN Interface"
+MotDev5.DeviceDesc    = "Accessories Interface"
+MotDev6.DeviceDesc    = "Data Logging MCU Interface"
+MotDev7.DeviceDesc    = "Data Logging DSP Interface"
+MotDev8.DeviceDesc    = "Test Command Interface"
+MotDev9.DeviceDesc    = "DSP Debugging Interface"
+MotDev10.DeviceDesc   = "Flash Operating System Interface"
+MotDev11.DeviceDesc   = "Flash File System Interface"
+MotDev12.DeviceDesc   = "Flash Baseband Interface"
+MotDev13.DeviceDesc   = "Flash Test Command Interface"
+MotDev14.DeviceDesc   = "Motorola AP Data Logger"
+MotDev15.DeviceDesc   = "Motorola EZX PTF"
+MotDev16.DeviceDesc   = "Motorola AP Flash"
+MotDev17.DeviceDesc   = "Motorola BP Flash"
+MotDev18.DeviceDesc   = "Motorola iDEN Interface"
+MotDev.ClassName      = "Motorola USB Device"
+MotDev.DriverDiskName = "MotDev Installation Directory"

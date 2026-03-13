@@ -1,0 +1,703 @@
+;-------------------------------------------------------------------------------
+;
+; Motorola USB Networking Driver (motousbnet.inf)
+;
+; Copyright (c) Motorola Mobility Inc
+;
+;-------------------------------------------------------------------------------
+
+[version]
+Signature   = "$Windows NT$"
+Class       = Net
+ClassGUID   = {4d36e972-e325-11ce-bfc1-08002be10318}
+Provider    = %Motorola%
+DriverVer   = 03/01/2013, 2.7.0.0
+CatalogFile = motousbnet.cat
+
+[ControlFlags]
+ExcludeFromSelect=*
+
+[DestinationDirs]
+Motousbnet.CopyFiles = 12
+
+[Motousbnet.CopyFiles]
+Motousbnet.sys,,,2
+motfilt.sys,,,2
+motswch.sys,,,2
+
+[SourceDisksNames]
+1 = %DiskId1%,,,""
+
+[SourceDisksFiles]
+Motousbnet.sys = 1,,
+motswch.sys = 1,,
+motfilt.sys = 1,,
+wdfcoinstaller01009.dll = 1,,
+
+; Models -----------------------------------------------------------------------
+
+[Manufacturer]
+%Motorola% = Motorola,NTamd64
+
+[Motorola]
+
+; q xs
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E72&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E73&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E74&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E75&MI_06
+
+; test
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_41EE&MI_02
+
+; q sm
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E50&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E51&MI_01
+
+; q dva
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E34&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E35&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E37&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E38&MI_02
+
+; i
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7101
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7102&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7103&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7104&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7105&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7106&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7109&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710D&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710E&MI_01
+
+; ics qc d
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E28&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E29&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2A&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2B&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2C
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2D&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E32&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E33&MI_01
+
+; ics o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4355&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4356&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435D&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435E&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4361&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4362&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4363&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4364&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4353&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4354&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435B&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435C&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433C&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433D&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433E&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433F&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4305&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4306&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4307&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4308&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4357&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4358&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435F&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4360&MI_01
+
+; g2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41C6&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41C7&MI_00
+
+; p qc
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DFE&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DFF&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2E01&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2E02&MI_00
+; o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4310&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4311&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_433A&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_433B&MI_00
+
+; o4-1
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4312
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4313&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4314&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4315&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_431F&MI_04
+; o4-2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4330&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4331&MI_02
+
+; h nV
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70AA&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70AB&MI_02
+; et
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7093&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7094&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7095&MI_0A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7096&MI_0A
+;ev 
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B0&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B1&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B2&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B3&MI_08
+; t o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42F2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42F3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42F4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42F5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4301&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4302&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4303&MI_0A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4304&MI_0A
+; s o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42D2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42D3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42D4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42D5&MI_02
+; d nV
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C5&MI_02
+
+; e
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70A2&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70A3
+
+; g,o3
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41D5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E6&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E7&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E8&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E9&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41EA&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41ED&MI_02
+; c
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD0&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD3&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD8&MI_01
+; o/e
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7080&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7081&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7082&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7083
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_708A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_708B&MI_02
+; s
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_4283&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_4284&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_428A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_428B&MI_00
+; d2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A9&MI_00
+; dp
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B9&MI_00
+; v2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C9&MI_00
+; calgary
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7B&MI_02
+
+; Morrison/Motus/Zepplin
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D68&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D69&MI_01
+;Beihai
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_4272
+
+;Calgary
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D71&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D74&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D79&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7B&MI_02
+
+;Sholes CDMA
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_41E2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_41E3&MI_02
+
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2C69&MI_03
+;morrison
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D61&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D63&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D64&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D65&MI_01
+
+%Motousbnet.DeviceDesc% = Motousbnet.ndi2, USB\VID_22b8&PID_4192
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6027
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41D4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41D8&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41DA&MI_02
+
+
+[Motorola.NTamd64]
+
+; q xs
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E72&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E73&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E74&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E75&MI_06
+
+; test
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_41EE&MI_02
+
+; q sm
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E50&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E51&MI_01
+
+; q dva
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E34&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E35&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E37&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E38&MI_02
+
+; i
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7101
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7102&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7103&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7104&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7105&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7106&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_7109&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710D&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_710E&MI_01
+
+; ics qc d
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E28&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E29&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2A&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2B&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2C
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E2D&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E32&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_2E33&MI_01
+
+; ics o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4355&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4356&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435D&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435E&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4361&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4362&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4363&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4364&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4353&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4354&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435B&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435C&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433C&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433D&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433E&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_433F&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4305&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4306&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4307&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4308&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4357&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4358&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_435F&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_4360&MI_01
+
+; g2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41C6&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41C7&MI_00
+
+; p qc
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DF5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DFE&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DFF&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2E01&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2E02&MI_00
+; o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4310&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4311&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_433A&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_433B&MI_00
+
+; o4-1
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4312
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4313&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4314&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4315&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_431F&MI_04
+; o4-2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4330&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_4331&MI_02
+
+; h nV
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70AA&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70AB&MI_02
+; et
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7093&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7094&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7095&MI_0A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7096&MI_0A
+;ev 
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B0&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B1&MI_06
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B2&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70B3&MI_08
+; t o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42F2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42F3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42F4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42F5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4301&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4302&MI_08
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4303&MI_0A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi4, USB\VID_22b8&PID_4304&MI_0A
+; s o4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42D2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi5, USB\VID_22b8&PID_42D3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42D4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_42D5&MI_02
+; d nV
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C3&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C4&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70C5&MI_02
+
+; e
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70A2&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_70A3
+
+; g,o3
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41D5&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E6&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E7&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E8&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41E9&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41EA&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_41ED&MI_02
+; c
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD0&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD3&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2DD8&MI_01
+; o/e
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7080&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7081&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7082&MI_00
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_7083
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_708A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_708B&MI_02
+; s
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_4283&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_4284&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_428A
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_428B&MI_00
+; d2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42A9&MI_00
+; dp
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42B9&MI_00
+; v2
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C1&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C8
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22B8&PID_42C9&MI_00
+; calgary
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7B&MI_02
+
+; Morrison/Motus/Zepplin
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D68&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D69&MI_01
+;Beihai
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_4272
+
+;Calgary
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D71&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D74&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D79&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7A&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D7B&MI_02
+
+;Sholes CDMA
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_41E2&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_41E3&MI_02
+
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2C69&MI_03
+;morrison
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D61&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D63&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D64&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi0, USB\VID_22b8&PID_2D65&MI_01
+
+%Motousbnet.DeviceDesc% = Motousbnet.ndi2, USB\VID_22b8&PID_4192
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6027
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6424&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6425&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_01
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_03
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_6427&MI_04
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41D4
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41D8&MI_02
+%Motousbnet.DeviceDesc% = Motousbnet.ndi1, USB\VID_22b8&PID_41DA&MI_02
+
+; Model sections ---------------------------------------------------------------
+
+[Motousbnet.ndi0]
+Characteristics = 0x84 ; NCF_PHYSICAL + NCF_HAS_UI
+BusType         = 15 ; if you specify NCF_PHYSICAL, you must specify bustype
+AddReg          = Motousbnet.Reg, ParamsPromiscuous, Motousbnet.ndi.AddReg
+CopyFiles       = Motousbnet.CopyFiles
+
+[Motousbnet.ndi0.HW]
+AddReg          = Motousbnet.ndi.AddReg, Motousbnet_HW_Cfg0
+
+[Motousbnet.ndi1]
+Characteristics = 0x84 ; NCF_PHYSICAL
+BusType         = 15 ; if you specify NCF_PHYSICAL, you must specify bustype
+AddReg          = Motousbnet.Reg, ParamsPromiscuous, Motousbnet.ndi.AddReg
+CopyFiles       = Motousbnet.CopyFiles
+
+[Motousbnet.ndi1.HW]
+AddReg          = Motousbnet.ndi.AddReg, Motousbnet_HW_Cfg1
+
+[Motousbnet.ndi2]
+Characteristics = 0x84 ; NCF_PHYSICAL
+BusType         = 15 ; if you specify NCF_PHYSICAL, you must specify bustype
+AddReg          = Motousbnet.Reg, ParamsPromiscuous, Motousbnet.ndi.AddReg
+CopyFiles       = Motousbnet.CopyFiles
+
+[Motousbnet.ndi2.HW]
+AddReg          = Motousbnet.ndi.AddReg, Motousbnet_HW_Cfg2
+
+[Motousbnet.ndi4]
+Characteristics = 0x84 ; NCF_PHYSICAL  + NCF_HAS_UI
+BusType         = 15 ; if you specify NCF_PHYSICAL, you must specify bustype
+AddReg          = Motousbnet.Reg, ParamsPromiscuous, Motousbnet.ndi.AddReg
+CopyFiles       = Motousbnet.CopyFiles
+
+[Motousbnet.ndi4.HW]
+AddReg          = Motousbnet.ndi.AddReg, Motousbnet_HW_Cfg4
+
+[Motousbnet.ndi5]
+Characteristics = 0x84 ; NCF_PHYSICAL  + NCF_HAS_UI
+BusType         = 15 ; if you specify NCF_PHYSICAL, you must specify bustype
+AddReg          = Motousbnet.Reg, ParamsPromiscuous, Motousbnet.ndi.AddReg
+CopyFiles       = Motousbnet.CopyFiles
+
+[Motousbnet.ndi5.HW]
+AddReg          = Motousbnet.ndi.AddReg, Motousbnet_HW_Cfg5
+
+; Services ---------------------------------------------------------------------
+
+[Motousbnet.ndi0.Services]
+AddService      = Motousbnet, 2, Motousbnet.Service, Motousbnet.EventLog
+AddService      = MotoSwitchService,,MotoSwitch_Service_Inst
+AddService      = BTCFilterService,,BTC_Filter_Service_Inst
+
+[Motousbnet.ndi1.Services]
+AddService      = Motousbnet, 2, Motousbnet.Service, Motousbnet.EventLog
+AddService      = MotoSwitchService,,MotoSwitch_Service_Inst
+AddService      = BTCFilterService,,BTC_Filter_Service_Inst
+
+[Motousbnet.ndi2.Services]
+AddService      = Motousbnet, 2, Motousbnet.Service, Motousbnet.EventLog
+AddService      = MotoSwitchService,,MotoSwitch_Service_Inst
+AddService      = BTCFilterService,,BTC_Filter_Service_Inst
+
+[Motousbnet.ndi4.Services]
+AddService      = Motousbnet, 2, Motousbnet.Service, Motousbnet.EventLog
+AddService      = MotoSwitchService,,MotoSwitch_Service_Inst
+AddService      = BTCFilterService,,BTC_Filter_Service_Inst
+
+[Motousbnet.ndi5.Services]
+AddService      = Motousbnet, 2, Motousbnet.Service, Motousbnet.EventLog
+AddService      = MotoSwitchService,,MotoSwitch_Service_Inst
+AddService      = BTCFilterService,,BTC_Filter_Service_Inst
+
+[Motousbnet.ndi.AddReg]
+HKR,,"UpperFilters",0x00010000,MotoSwitchService,BTCFilterService
+
+; Device Parameters Entries ----------------------------------------------------
+
+[Motousbnet_HW_Cfg0]
+HKR, , MotConfigFlag, 0x00010001, 0
+
+[Motousbnet_HW_Cfg1]
+HKR, , MotConfigFlag, 0x00010001, 1
+
+[Motousbnet_HW_Cfg2]
+HKR, , MotConfigFlag, 0x00010001, 2
+
+[Motousbnet_HW_Cfg4]
+HKR, , MotConfigFlag, 0x00010001, 4
+
+[Motousbnet_HW_Cfg5]
+HKR, , MotConfigFlag, 0x00010001, 5
+
+; Service installation ---------------------------------------------------------
+
+[MotoSwitch_Service_Inst]
+DisplayName     = "MotoSwitch Service"
+ServiceType     = 1 ;%SERVICE_KERNEL_DRIVER%
+StartType       = 3 ;%SERVICE_DEMAND_START%
+ErrorControl    = 0 ;%SERVICE_ERROR_IGNORE%
+ServiceBinary   = %12%\motswch.sys
+LoadOrderGroup  = extended base
+
+[BTC_Filter_Service_Inst]
+DisplayName     = "USB Networking Driver Filter Service"
+ServiceType     = 1    ; SERVICE_KERNEL_DRIVER
+StartType       = 3    ; SERVICE_AUTO_START
+ErrorControl    = 0    ; NORMAL
+ServiceBinary   = %12%\motfilt.sys
+LoadOrderGroup  = PNP Filter
+
+[Motousbnet.Service]
+DisplayName     = %Motousbnet.Service.DispName%
+ServiceType     = 1 ;%SERVICE_KERNEL_DRIVER%
+StartType       = 3 ;%SERVICE_DEMAND_START%
+ErrorControl    = 1 ;%SERVICE_ERROR_NORMAL%
+ServiceBinary   = %12%\Motousbnet.sys
+LoadOrderGroup  = NDIS
+AddReg          = TextModeFlags.Reg
+
+[Motousbnet.EventLog]
+AddReg = Motousbnet.AddEventLog.Reg
+
+[Motousbnet.AddEventLog.Reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll"
+HKR, , TypesSupported,   0x00010001, 7
+
+[TextModeFlags.Reg]
+HKR, , TextModeFlags,    0x00010001, 0x0001
+
+; Miniport common --------------------------------------------------------------
+
+[Motousbnet.Reg]
+HKR,    ,                         BusNumber,           0, "0"
+HKR, Ndi,                         Service,             0, "Motousbnet"
+HKR, Ndi\Interfaces,              UpperRange,          0, "ndis5"
+HKR, Ndi\Interfaces,              LowerRange,          0, "ethernet"
+
+[ParamsPromiscuous]
+;
+;    Should the physical NIC be set to Promiscuous mode
+;
+HKR, Ndi\Params\Promiscuous,     ParamDesc, , %Promiscuous%
+HKR, Ndi\Params\Promiscuous,     Default,  ,"0"
+HKR, Ndi\Params\Promiscuous,     type, ,      enum
+HKR, Ndi\Params\Promiscuous\enum,"1",  ,     %Promiscuous_Enable%
+HKR, Ndi\Params\Promiscuous\enum,"0",  ,     %Promiscuous_Disable%
+
+; Coinstaller installation -----------------------------------------------------
+
+[DestinationDirs]
+Motousbnet_CoInstaller_CopyFiles = 11
+
+[Motousbnet.ndi0.CoInstallers]
+AddReg    = Motousbnet_CoInstaller_AddReg
+CopyFiles = Motousbnet_CoInstaller_CopyFiles
+
+[Motousbnet.ndi1.CoInstallers]
+AddReg    = Motousbnet_CoInstaller_AddReg
+CopyFiles = Motousbnet_CoInstaller_CopyFiles
+
+[Motousbnet.ndi2.CoInstallers]
+AddReg    = Motousbnet_CoInstaller_AddReg
+CopyFiles = Motousbnet_CoInstaller_CopyFiles
+
+[Motousbnet.ndi4.CoInstallers]
+AddReg    = Motousbnet_CoInstaller_AddReg
+CopyFiles = Motousbnet_CoInstaller_CopyFiles
+
+[Motousbnet.ndi5.CoInstallers]
+AddReg    = Motousbnet_CoInstaller_AddReg
+CopyFiles = Motousbnet_CoInstaller_CopyFiles
+
+[Motousbnet_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "wdfcoinstaller01009.dll,WdfCoInstaller"
+
+[Motousbnet_CoInstaller_CopyFiles]
+wdfcoinstaller01009.dll
+
+[SourceDisksFiles]
+wdfcoinstaller01007.dll=1 ; make sure the number matches with SourceDisksNames
+
+[Motousbnet.ndi0.Wdf]
+KmdfService = Motousbnet, Motousbnet_wdfsect
+KmdfService = BTCFilterService, BTCFilterService_wdfsect
+
+[Motousbnet.ndi1.Wdf]
+KmdfService = Motousbnet, Motousbnet_wdfsect
+KmdfService = BTCFilterService, BTCFilterService_wdfsect
+
+[Motousbnet.ndi2.Wdf]
+KmdfService = Motousbnet, Motousbnet_wdfsect
+KmdfService = BTCFilterService, BTCFilterService_wdfsect
+
+[Motousbnet.ndi4.Wdf]
+KmdfService = Motousbnet, Motousbnet_wdfsect
+KmdfService = BTCFilterService, BTCFilterService_wdfsect
+
+[Motousbnet.ndi5.Wdf]
+KmdfService = Motousbnet, Motousbnet_wdfsect
+KmdfService = BTCFilterService, BTCFilterService_wdfsect
+
+[Motousbnet_wdfsect]
+KmdfLibraryVersion = 1.9
+
+[BTCFilterService_wdfsect]
+KmdfLibraryVersion = 1.9
+
+; Strings ----------------------------------------------------------------------
+
+[Strings]
+Motorola                    = "Motorola"
+Motousbnet.DeviceDesc       = "Motorola USB Networking Driver"
+Motousbnet.Service.DispName = "Motorola USB Networking Driver Service"
+DiskId1                     = "Motorola USB Networking Driver Disk #1"
+Promiscuous                 = "Set the physical NIC to promiscuous mode"
+Promiscuous_Disable         = "Disable"
+Promiscuous_Enable          = "Enable"

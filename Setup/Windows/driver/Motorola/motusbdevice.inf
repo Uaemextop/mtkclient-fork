@@ -1,0 +1,242 @@
+;-------------------------------------------------------------------------------
+;
+; Motorola USB DEvice Driver (motusbdevice.inf)
+;
+; Copyright (c) Motorola Mobility Inc
+;
+;-------------------------------------------------------------------------------
+
+[Version]
+Signature    = "$CHICAGO$"
+Class        = USB
+ClassGUID    = {36FC9E60-c465-11cf-8056-444553540000}
+Provider     = %Motorola%
+CatalogFile  = motusbdevice.cat
+DriverVer    = 03/01/2013, 1.2.0.0
+
+[SourceDisksNames]
+1 = %MotDisk%,,,""
+
+[SourceDisksFiles]
+motusbdevice.sys            = 1
+wdfcoinstaller01009.dll = 1
+
+[DestinationDirs]
+CopyFileSection         = 12
+DefaultDestDir          = 12
+
+[CopyFileSection]
+motusbdevice.sys
+
+
+; Models -----------------------------------------------------------------------
+
+[Manufacturer]
+%Motorola% = Motorola,NTamd64
+
+[Motorola]
+
+; 590
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_710F
+
+; qc svc
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_2E3F
+; qc
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_2E20
+
+; ics o4
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_437F
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_4340
+
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_42CD
+
+; svc 
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41CF
+; g2 svc
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41C5
+
+; p qc
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2E00
+; svc (test)
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41CD
+
+
+; o4-1
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_4320
+
+; h nV
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70AD
+; t o4
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_4300
+; s o4
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_42E0
+; d nV
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70D0
+
+; g,o3
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41C2
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41C3&MI_00
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41EB
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41EC&MI_00
+; o/e, e
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_708D
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70AD
+; c
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2DD7
+
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2D78
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41DE
+
+; test
+%motusbdevice.desc% = motusbdev.noswch, USB\VID_22B8&PID_41EE&MI_07
+
+
+[Motorola.NTamd64]
+
+; 590
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_710F
+
+; qc svc
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_2E3F
+; qc
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_2E20
+
+; ics o4
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_437F
+%motusbdevice.desc% = motusbdev,     USB\VID_22B8&PID_4340
+
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_42CD
+
+; svc 
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41CF
+; g2 svc
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41C5
+
+; p qc
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2E00
+; svc (test)
+%motusbdevice.desc% = motusbdev.svc, USB\VID_22B8&PID_41CD
+
+; o4-1
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_4320
+
+; h nV
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70AD
+; t o4
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_4300
+; s o4
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_42E0
+; d nV
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70D0
+
+; g,o3
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41C2
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41C3&MI_00
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41EB
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41EC&MI_00
+; o/e, e
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_708D
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_70AD
+; c
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2DD7
+
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_2D78
+%motusbdevice.desc% = motusbdev, USB\VID_22B8&PID_41DE
+
+; test 
+%motusbdevice.desc% = motusbdev.noswch, USB\VID_22B8&PID_41EE&MI_07
+
+
+; Model sections ---------------------------------------------------------------
+
+[motusbdev.NT]
+CopyFiles     = CopyFileSection
+
+[motusbdev.NT.HW]
+AddReg        = motusbdevaddreg
+
+[motusbdev.svc.NT]
+CopyFiles     = CopyFileSection
+
+[motusbdev.svc.NT.HW]
+AddReg        = motusbdevaddreg_svc
+
+[motusbdev.noswch.NT]
+CopyFiles     = CopyFileSection
+
+[motusbdev.noswch.NT.HW]
+AddReg        = motusbdevaddreg_noswch
+
+
+[motusbdevaddreg]
+HKR,,"DelayedTime",0x00010001,0x3e8
+
+[motusbdevaddreg_svc]
+HKR,,"MotSvcEnabled",0x00010001,0x1
+HKR,,"DelayedTime",0x00010001,0x3e8
+
+[motusbdevaddreg_noswch]
+HKR,,"SwitchDisable",0x00010001,0x1
+HKR,,"DelayedTime",0x00010001,0x3e8
+
+; Services ---------------------------------------------------------------------
+
+[motusbdev.NT.Services]
+AddService    = motusbdevice,   2, motusbdev_Service_Inst
+
+[motusbdev.svc.NT.Services]
+AddService    = motusbdevice,   2, motusbdev_Service_Inst
+
+[motusbdev.noswch.NT.Services]
+AddService    = motusbdevice,   2, motusbdev_Service_Inst
+
+; Service installation ---------------------------------------------------------
+[motusbdev_Service_Inst]
+DisplayName   = Motorola USB Dev Driver
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 0
+ServiceBinary = %12%\motusbdevice.sys
+
+
+; Coinstaller installation -----------------------------------------------------
+ 
+[DestinationDirs]
+motusbdev_CoInstaller_CopyFiles = 11
+
+[motusbdev.NT.CoInstallers]
+AddReg     = motusbdev_CoInstaller_AddReg
+CopyFiles  = motusbdev_CoInstaller_CopyFiles
+
+[motusbdev.svc.NT.CoInstallers]
+AddReg     = motusbdev_CoInstaller_AddReg
+CopyFiles  = motusbdev_CoInstaller_CopyFiles
+
+[motusbdev.noswch.NT.CoInstallers]
+AddReg     = motusbdev_CoInstaller_AddReg
+CopyFiles  = motusbdev_CoInstaller_CopyFiles
+
+[motusbdev_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "wdfcoinstaller01009.dll,WdfCoInstaller"
+
+[motusbdev_CoInstaller_CopyFiles]
+wdfcoinstaller01009.dll
+
+[motusbdev.NT.Wdf]
+KmdfService        = motusbdevice,   motusbdev_wdfsect
+
+[motusbdev.svc.NT.Wdf]
+KmdfService        = motusbdevice,   motusbdev_wdfsect
+
+[motusbdev.noswch.NT.Wdf]
+KmdfService        = motusbdevice,   motusbdev_wdfsect
+
+[motusbdev_wdfsect]
+KmdfLibraryVersion = 1.9
+
+; Strings ----------------------------------------------------------------------
+
+[Strings]
+Motorola             = "Motorola"
+motusbdevice.desc    = "Motorola USB Device"
+MotDisk              = "Motorola USB Device Installation Disk"

@@ -84,8 +84,21 @@ jobs:
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "Serial catalog signed"
 
+          # Motorola drivers already have their own catalogs from the official MSI,
+          # but we sign them with our test cert for consistency
+          $motoInfs = Get-ChildItem "$drvDir\Motorola\*.inf" -ErrorAction SilentlyContinue
+          foreach ($inf in $motoInfs) {
+            $catPath = $inf.FullName -replace '\.inf$', '.cat'
+            if (-not (Test-Path $catPath)) {
+              New-FileCatalog -Path $inf.FullName -CatalogFilePath $catPath -CatalogVersion 2.0
+            }
+            Set-AuthenticodeSignature -FilePath $catPath -Certificate $cert -TimestampServer "http://timestamp.digicert.com"
+            Write-Host "  Signed: $(Split-Path $catPath -Leaf)"
+          }
+          Write-Host "Motorola catalogs signed"
+
           # Verify catalogs and cert exist
-          Get-ChildItem "$drvDir\adb\*.cat","$drvDir\CDC\*.cat","$drvDir\*.cer" | ForEach-Object {
+          Get-ChildItem "$drvDir\adb\*.cat","$drvDir\CDC\*.cat","$drvDir\Motorola\*.cat","$drvDir\*.cer" | ForEach-Object {
             Write-Host "  $($_.Name)  $($_.Length) bytes"
           }
 
@@ -167,6 +180,7 @@ jobs:
             Setup/Windows/driver/adb/i386/WUDFUpdate_01009.dll
             Setup/Windows/driver/CDC/cdc-acm.inf
             Setup/Windows/driver/CDC/cdc-acm.cat
+            Setup/Windows/driver/Motorola/*
             Setup/Windows/driver/mtkclient_test.cer
             Setup/Windows/driver/cleanup_mtk_drivers.ps1
             Setup/Windows/driver/install_drivers.bat

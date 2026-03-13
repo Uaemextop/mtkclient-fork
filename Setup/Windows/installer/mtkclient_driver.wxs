@@ -56,6 +56,7 @@
             <Directory Id="DIR_ADB_I386"  Name="i386" />
           </Directory>
           <Directory Id="DIR_SERIAL" Name="serial" />
+          <Directory Id="DIR_MOTO" Name="Motorola" />
         </Directory>
       </Directory>
     </Directory>
@@ -130,6 +131,125 @@
     </DirectoryRef>
 
     <!-- ============================================================ -->
+    <!--  Components — Motorola drivers (from official MSI 6.4.0)      -->
+    <!--  ADB (motoandroid2.inf WinUSB), MTP, Serial, Composite       -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_MOTO">
+      <!-- ADB WinUSB driver (motoandroid2) — Win10/11 compatible -->
+      <Component Id="CMP_Moto_ADB2_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000001" Win64="yes">
+        <File Id="FILE_Moto_ADB2_INF" Source="$(var.DriverDir)\Motorola\motoandroid2.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB2_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000002" Win64="yes">
+        <File Id="FILE_Moto_ADB2_CAT" Source="$(var.DriverDir)\Motorola\motoandroid2.cat" KeyPath="yes" />
+      </Component>
+      <!-- ADB legacy driver (motoandroid) — broader device support -->
+      <Component Id="CMP_Moto_ADB_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000003" Win64="yes">
+        <File Id="FILE_Moto_ADB_INF" Source="$(var.DriverDir)\Motorola\motoandroid.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000004" Win64="yes">
+        <File Id="FILE_Moto_ADB_CAT" Source="$(var.DriverDir)\Motorola\motoandroid.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_ADB_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000005" Win64="yes">
+        <File Id="FILE_Moto_ADB_SYS" Source="$(var.DriverDir)\Motorola\motoandroid.sys" KeyPath="yes" />
+      </Component>
+      <!-- MTP / USB Device driver -->
+      <Component Id="CMP_Moto_MTP_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000006" Win64="yes">
+        <File Id="FILE_Moto_MTP_INF" Source="$(var.DriverDir)\Motorola\motusbdevice.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MTP_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000007" Win64="yes">
+        <File Id="FILE_Moto_MTP_CAT" Source="$(var.DriverDir)\Motorola\motusbdevice.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MTP_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000008" Win64="yes">
+        <File Id="FILE_Moto_MTP_SYS" Source="$(var.DriverDir)\Motorola\motusbdevice.sys" KeyPath="yes" />
+      </Component>
+      <!-- Composite device driver (motccgp) -->
+      <Component Id="CMP_Moto_CCGP_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000009" Win64="yes">
+        <File Id="FILE_Moto_CCGP_INF" Source="$(var.DriverDir)\Motorola\motccgp.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CCGP_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000A" Win64="yes">
+        <File Id="FILE_Moto_CCGP_CAT" Source="$(var.DriverDir)\Motorola\motccgp.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CCGP_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000B" Win64="yes">
+        <File Id="FILE_Moto_CCGP_SYS" Source="$(var.DriverDir)\Motorola\motccgp.sys" KeyPath="yes" />
+      </Component>
+      <!-- Main USB driver (motodrv) -->
+      <Component Id="CMP_Moto_DRV_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000C" Win64="yes">
+        <File Id="FILE_Moto_DRV_INF" Source="$(var.DriverDir)\Motorola\motodrv.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_DRV_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000D" Win64="yes">
+        <File Id="FILE_Moto_DRV_CAT" Source="$(var.DriverDir)\Motorola\motodrv.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_DRV_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000E" Win64="yes">
+        <File Id="FILE_Moto_DRV_SYS" Source="$(var.DriverDir)\Motorola\motodrv.sys" KeyPath="yes" />
+      </Component>
+      <!-- Serial port driver (motport) -->
+      <Component Id="CMP_Moto_PORT_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000000F" Win64="yes">
+        <File Id="FILE_Moto_PORT_INF" Source="$(var.DriverDir)\Motorola\motport.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_PORT_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000010" Win64="yes">
+        <File Id="FILE_Moto_PORT_CAT" Source="$(var.DriverDir)\Motorola\motport.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_PORT_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000011" Win64="yes">
+        <File Id="FILE_Moto_PORT_SYS" Source="$(var.DriverDir)\Motorola\motport.sys" KeyPath="yes" />
+      </Component>
+      <!-- Modem driver -->
+      <Component Id="CMP_Moto_MDM_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000012" Win64="yes">
+        <File Id="FILE_Moto_MDM_INF" Source="$(var.DriverDir)\Motorola\motmodem.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MDM_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000013" Win64="yes">
+        <File Id="FILE_Moto_MDM_CAT" Source="$(var.DriverDir)\Motorola\motmodem.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MDM_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000014" Win64="yes">
+        <File Id="FILE_Moto_MDM_SYS" Source="$(var.DriverDir)\Motorola\motmodem.sys" KeyPath="yes" />
+      </Component>
+      <!-- Shared SYS/DLL files -->
+      <Component Id="CMP_Moto_SWCH_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000015" Win64="yes">
+        <File Id="FILE_Moto_SWCH_SYS" Source="$(var.DriverDir)\Motorola\motswch.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_CI_DLL" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000016" Win64="yes">
+        <File Id="FILE_Moto_CI_DLL" Source="$(var.DriverDir)\Motorola\mot_ci.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_WDF_DLL" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000017" Win64="yes">
+        <File Id="FILE_Moto_WDF_DLL" Source="$(var.DriverDir)\Motorola\WdfCoInstaller01009.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_WUSB_DLL" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000018" Win64="yes">
+        <File Id="FILE_Moto_WUSB_DLL" Source="$(var.DriverDir)\Motorola\winusbcoinstaller2.dll" KeyPath="yes" />
+      </Component>
+      <!-- USB serial drivers -->
+      <Component Id="CMP_Moto_USBSER_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000019" Win64="yes">
+        <File Id="FILE_Moto_USBSER_INF" Source="$(var.DriverDir)\Motorola\motusbser.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_USBSER_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001A" Win64="yes">
+        <File Id="FILE_Moto_USBSER_CAT" Source="$(var.DriverDir)\Motorola\motusbser.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_SER_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001B" Win64="yes">
+        <File Id="FILE_Moto_SER_SYS" Source="$(var.DriverDir)\Motorola\Mousbser.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOSER_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001C" Win64="yes">
+        <File Id="FILE_Moto_MOSER_INF" Source="$(var.DriverDir)\Motorola\Moser.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOSER_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001D" Win64="yes">
+        <File Id="FILE_Moto_MOSER_CAT" Source="$(var.DriverDir)\Motorola\mousbser.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_MOMDM_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001E" Win64="yes">
+        <File Id="FILE_Moto_MOMDM_INF" Source="$(var.DriverDir)\Motorola\Momdm.inf" KeyPath="yes" />
+      </Component>
+      <!-- USB networking -->
+      <Component Id="CMP_Moto_NET_INF" Guid="B1C2D3E4-F5A6-7890-1234-MOTO0000001F" Win64="yes">
+        <File Id="FILE_Moto_NET_INF" Source="$(var.DriverDir)\Motorola\motousbnet.inf" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_NET_CAT" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000020" Win64="yes">
+        <File Id="FILE_Moto_NET_CAT" Source="$(var.DriverDir)\Motorola\motousbnet.cat" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_NET_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000021" Win64="yes">
+        <File Id="FILE_Moto_NET_SYS" Source="$(var.DriverDir)\Motorola\motousbnet.sys" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Moto_FILT_SYS" Guid="B1C2D3E4-F5A6-7890-1234-MOTO00000022" Win64="yes">
+        <File Id="FILE_Moto_FILT_SYS" Source="$(var.DriverDir)\Motorola\motfilt.sys" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
     <!--  Components — cleanup script, certificate, batch, readme      -->
     <!-- ============================================================ -->
     <DirectoryRef Id="INSTALLFOLDER">
@@ -173,6 +293,41 @@
       <ComponentRef Id="CMP_ADB_I386_WudfUpdate" />
       <ComponentRef Id="CMP_Serial_INF" />
       <ComponentRef Id="CMP_Serial_CAT" />
+      <!-- Motorola drivers -->
+      <ComponentRef Id="CMP_Moto_ADB2_INF" />
+      <ComponentRef Id="CMP_Moto_ADB2_CAT" />
+      <ComponentRef Id="CMP_Moto_ADB_INF" />
+      <ComponentRef Id="CMP_Moto_ADB_CAT" />
+      <ComponentRef Id="CMP_Moto_ADB_SYS" />
+      <ComponentRef Id="CMP_Moto_MTP_INF" />
+      <ComponentRef Id="CMP_Moto_MTP_CAT" />
+      <ComponentRef Id="CMP_Moto_MTP_SYS" />
+      <ComponentRef Id="CMP_Moto_CCGP_INF" />
+      <ComponentRef Id="CMP_Moto_CCGP_CAT" />
+      <ComponentRef Id="CMP_Moto_CCGP_SYS" />
+      <ComponentRef Id="CMP_Moto_DRV_INF" />
+      <ComponentRef Id="CMP_Moto_DRV_CAT" />
+      <ComponentRef Id="CMP_Moto_DRV_SYS" />
+      <ComponentRef Id="CMP_Moto_PORT_INF" />
+      <ComponentRef Id="CMP_Moto_PORT_CAT" />
+      <ComponentRef Id="CMP_Moto_PORT_SYS" />
+      <ComponentRef Id="CMP_Moto_MDM_INF" />
+      <ComponentRef Id="CMP_Moto_MDM_CAT" />
+      <ComponentRef Id="CMP_Moto_MDM_SYS" />
+      <ComponentRef Id="CMP_Moto_SWCH_SYS" />
+      <ComponentRef Id="CMP_Moto_CI_DLL" />
+      <ComponentRef Id="CMP_Moto_WDF_DLL" />
+      <ComponentRef Id="CMP_Moto_WUSB_DLL" />
+      <ComponentRef Id="CMP_Moto_USBSER_INF" />
+      <ComponentRef Id="CMP_Moto_USBSER_CAT" />
+      <ComponentRef Id="CMP_Moto_SER_SYS" />
+      <ComponentRef Id="CMP_Moto_MOSER_INF" />
+      <ComponentRef Id="CMP_Moto_MOSER_CAT" />
+      <ComponentRef Id="CMP_Moto_MOMDM_INF" />
+      <ComponentRef Id="CMP_Moto_NET_INF" />
+      <ComponentRef Id="CMP_Moto_NET_CAT" />
+      <ComponentRef Id="CMP_Moto_NET_SYS" />
+      <ComponentRef Id="CMP_Moto_FILT_SYS" />
       <ComponentRef Id="CMP_CleanupScript" />
       <ComponentRef Id="CMP_Certificate" />
       <ComponentRef Id="CMP_InstallBat" />
@@ -250,6 +405,54 @@
                   Return="ignore"
                   Impersonate="no" />
 
+    <!-- ── 6. INSTALL: Motorola ADB driver (motoandroid2 — WinUSB) ── -->
+    <SetProperty Id="CA_InstallMotoADB"
+                 Before="CA_InstallMotoADB"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motoandroid2.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoADB"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 7. INSTALL: Motorola composite driver (motccgp) ── -->
+    <SetProperty Id="CA_InstallMotoCCGP"
+                 Before="CA_InstallMotoCCGP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motccgp.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoCCGP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 8. INSTALL: Motorola USB driver (motodrv) ── -->
+    <SetProperty Id="CA_InstallMotoDRV"
+                 Before="CA_InstallMotoDRV"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motodrv.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoDRV"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 9. INSTALL: Motorola serial port driver (motport) ── -->
+    <SetProperty Id="CA_InstallMotoPort"
+                 Before="CA_InstallMotoPort"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_MOTO]motport.inf&quot; /install" />
+    <CustomAction Id="CA_InstallMotoPort"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
     <!-- ============================================================ -->
     <!--  Custom actions — UNINSTALL sequence                          -->
     <!--  1. Run cleanup script to remove devices + drivers from store -->
@@ -299,6 +502,10 @@
       <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallADB"      After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallSerial"   After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoADB"  After="CA_InstallSerial">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoCCGP" After="CA_InstallMotoADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoDRV"  After="CA_InstallMotoCCGP">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallMotoPort" After="CA_InstallMotoDRV">NOT Installed AND NOT REMOVE</Custom>
 
       <!-- UNINSTALL: cleanup devices+drivers → remove certificates -->
       <Custom Action="CA_UninstallCleanup" Before="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
