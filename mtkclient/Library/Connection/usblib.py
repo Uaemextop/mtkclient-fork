@@ -22,6 +22,13 @@ from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
 from mtkclient.Library.Connection.devicehandler import DeviceClass
 
+if sys.platform == "win32":
+    from mtkclient.Library.Connection.win32_utils import (
+        reenumerate_and_wait,
+        check_winusb_driver_installed,
+        suggest_driver_fix,
+    )
+
 USB_DIR_OUT = 0  # to device
 USB_DIR_IN = 0x80  # to host
 
@@ -311,6 +318,9 @@ class UsbClass(DeviceClass):
                 self.interface = self.portconfig[dev.idVendor][dev.idProduct]
                 break
         if self.device is None:
+            if sys.platform == "win32":
+                if not check_winusb_driver_installed():
+                    self.debug(suggest_driver_fix())
             self.debug("Couldn't detect the device. Is it connected ?")
             return False
         try:
@@ -411,7 +421,13 @@ class UsbClass(DeviceClass):
             usb.util.dispose_resources(self.device)
             del self.device
             if reset:
-                time.sleep(2)
+                if sys.platform == "win32":
+                    # On Windows, request USB bus re-enumeration so the OS
+                    # rediscovers the device after a reset (e.g. switching
+                    # from preloader to DA mode).
+                    reenumerate_and_wait(delay=2.0)
+                else:
+                    time.sleep(2)
             self.connected = False
 
     def write(self, command, pktsize=None):

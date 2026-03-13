@@ -1,0 +1,100 @@
+; mtkclient.inf
+; Copyright (c) 2024-2025 mtkclient contributors
+; Licensed under GPLv3
+;
+; WinUSB driver for MediaTek bootrom / preloader USB devices.
+; Allows libusb to communicate directly with MTK devices on Windows
+; without requiring the third-party UsbDk driver.
+;
+; Supported devices:
+;   VID 0x0E8D  PID 0x0003  -  MTK Bootrom (BROM)
+;   VID 0x0E8D  PID 0x2000  -  MTK Preloader
+;   VID 0x0E8D  PID 0x2001  -  MTK Preloader
+;   VID 0x0E8D  PID 0x20FF  -  MTK Preloader
+;   VID 0x0E8D  PID 0x3000  -  MTK Preloader
+;   VID 0x0E8D  PID 0x6000  -  MTK Preloader
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = USBDevice
+ClassGUID   = {88BAE032-5A81-49f0-BC3D-A4FF138216D6}
+Provider    = %ProviderName%
+CatalogFile = mtkclient.cat
+DriverVer   = 03/13/2026,1.0.0.0
+PnpLockDown = 1
+
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64
+
+[Standard.NTamd64]
+%DeviceName_Brom%       = USB_Install, USB\VID_0E8D&PID_0003
+%DeviceName_Preloader%  = USB_Install, USB\VID_0E8D&PID_2000
+%DeviceName_Preloader%  = USB_Install, USB\VID_0E8D&PID_2001
+%DeviceName_Preloader%  = USB_Install, USB\VID_0E8D&PID_20FF
+%DeviceName_Preloader%  = USB_Install, USB\VID_0E8D&PID_3000
+%DeviceName_Preloader%  = USB_Install, USB\VID_0E8D&PID_6000
+%DeviceName_LG%         = USB_Install, USB\VID_1004&PID_6000
+%DeviceName_OPPO%       = USB_Install, USB\VID_22D9&PID_0006
+
+; =================== Installation ===================
+
+[USB_Install]
+Include = winusb.inf
+Needs   = WINUSB.NT
+
+[USB_Install.Services]
+Include    = winusb.inf
+AddService = WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[WinUSB_ServiceInstall]
+DisplayName   = %WinUSB_SvcDesc%
+ServiceType   = 1  ; SERVICE_KERNEL_DRIVER
+StartType     = 3  ; SERVICE_DEMAND_START
+ErrorControl  = 1  ; SERVICE_ERROR_NORMAL
+ServiceBinary = %12%\WinUSB.sys
+
+[USB_Install.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[WinUSB_Install]
+KmdfLibraryVersion = 1.11
+
+[USB_Install.HW]
+AddReg = Dev_AddReg
+
+[Dev_AddReg]
+; Allow raw access from user-mode applications via WinUSB
+HKR,,DeviceInterfaceGUIDs,0x00010000,"{13EB360B-BC1E-46CB-B606-B4884B5E8B23}"
+
+[USB_Install.CoInstallers]
+AddReg    = CoInstallers_AddReg
+CopyFiles = CoInstallers_CopyFiles
+
+[CoInstallers_AddReg]
+HKR,,CoInstallers32,0x00010000,"WdfCoInstaller01011.dll,WdfCoInstaller"
+
+[CoInstallers_CopyFiles]
+WdfCoInstaller01011.dll
+
+[DestinationDirs]
+CoInstallers_CopyFiles = 11  ; %SystemRoot%\System32
+
+; =================== Source Media ===================
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+WdfCoInstaller01011.dll = 1
+
+; =================== Strings ===================
+
+[Strings]
+ProviderName       = "mtkclient"
+ManufacturerName   = "MediaTek Inc."
+DeviceName_Brom    = "MTK Bootrom (BROM) Interface"
+DeviceName_Preloader = "MTK Preloader Interface"
+DeviceName_LG      = "LG Preloader Interface"
+DeviceName_OPPO    = "OPPO Preloader Interface"
+WinUSB_SvcDesc     = "WinUSB Driver for MTK Devices"
+DiskName           = "mtkclient WinUSB Driver Installation Disk"

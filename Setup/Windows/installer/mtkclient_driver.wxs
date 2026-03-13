@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mtkclient_driver.wxs
+  WiX v3 source for the mtkclient WinUSB driver MSI installer.
+  Targets Windows 11 x64.
+
+  Copyright (c) 2024-2025 mtkclient contributors – GPLv3
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:difx="http://schemas.microsoft.com/wix/DifxAppExtension">
+
+  <Product Id="*"
+           Name="mtkclient WinUSB Driver"
+           Language="1033"
+           Version="1.0.0.0"
+           Manufacturer="mtkclient"
+           UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="WinUSB driver for MediaTek bootrom and preloader USB devices"
+             Comments="Enables libusb access to MTK devices on Windows without UsbDk"
+             Manufacturer="mtkclient" />
+
+    <!-- Require Windows 10 build 10240 or later (covers Windows 11) -->
+    <Condition Message="This installer requires Windows 10 version 1507 or later.">
+      <![CDATA[Installed OR VersionNT64 >= 1000]]>
+    </Condition>
+
+    <!-- Require 64-bit OS -->
+    <Condition Message="This installer requires a 64-bit version of Windows.">
+      <![CDATA[VersionNT64]]>
+    </Condition>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- ============ Directory layout ============ -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="mtkclient">
+          <Directory Id="DRIVERFOLDER" Name="driver" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- ============ Driver files ============ -->
+    <DirectoryRef Id="DRIVERFOLDER">
+      <Component Id="DriverINF" Guid="B1C2D3E4-F5A6-7890-1234-567890ABCDEF" Win64="yes">
+        <File Id="mtkclient_inf"
+              Source="$(var.DriverDir)\mtkclient.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="DriverCAT" Guid="C2D3E4F5-A6B7-8901-2345-67890ABCDEF0" Win64="yes">
+        <File Id="mtkclient_cat"
+              Source="$(var.DriverDir)\mtkclient.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============ Features ============ -->
+    <Feature Id="DriverFeature" Title="WinUSB Driver" Level="1"
+             Description="Installs the WinUSB driver for MediaTek devices">
+      <ComponentRef Id="DriverINF" />
+      <ComponentRef Id="DriverCAT" />
+    </Feature>
+
+    <!-- ============ Custom Actions ============ -->
+    <!--
+      Use pnputil to stage the driver into the Windows driver store.
+      This is the modern, recommended approach for Windows 10/11.
+    -->
+    <SetProperty Id="InstallDriver"
+                 Before="InstallDriver"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DRIVERFOLDER]mtkclient.inf&quot; /install" />
+
+    <CustomAction Id="InstallDriver"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <SetProperty Id="UninstallDriver"
+                 Before="UninstallDriver"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /delete-driver &quot;[DRIVERFOLDER]mtkclient.inf&quot; /uninstall /force" />
+
+    <CustomAction Id="UninstallDriver"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallDriver"   After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="UninstallDriver" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+    <!-- WiX default UI (minimal) -->
+    <UIRef Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.DriverDir)\..\..\..\..\LICENSE" />
+
+  </Product>
+</Wix>
