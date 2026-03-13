@@ -260,6 +260,16 @@ HKR,,SelectiveSuspendEnabled,0x00010001,0
 ; Allow user-mode access for adb / libusb / WinUSB
 HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
 
+; ── ADB VID registration ──────────────────────────────────────────
+; Write all supported VIDs to the system-wide adb_usb.ini so that
+; both old and new adb.exe versions can detect these devices.
+; (Replaces the manual ADB_add_VID.bat from MTK SP Drivers 20160804)
+HKLM,"SOFTWARE\Android USB Devices","VID_0E8D",,"0x0E8D"
+HKLM,"SOFTWARE\Android USB Devices","VID_18D1",,"0x18D1"
+HKLM,"SOFTWARE\Android USB Devices","VID_0FCE",,"0x0FCE"
+HKLM,"SOFTWARE\Android USB Devices","VID_1004",,"0x1004"
+HKLM,"SOFTWARE\Android USB Devices","VID_22D9",,"0x22D9"
+
 [DestinationDirs]
 DefaultDestDir = 13   ; Driver Store (DCH compliant)
 
