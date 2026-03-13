@@ -15,6 +15,7 @@
 import os
 import sys
 import logging
+import time
 import ctypes
 import ctypes.wintypes as wintypes
 from ctypes import (
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 # Only available on Windows
 if not sys.platform.startswith('win32'):
     raise ImportError("win32_utils is only available on Windows")
+
+import winreg  # noqa: E402 - Windows-only module, imported after platform check
 
 # ── Windows constants ──────────────────────────────────────────
 
@@ -869,7 +872,6 @@ def reset_usb_device(vid, pid):
                 )
                 if cr == 0:
                     logger.info(f"Device VID={vid:#06x} PID={pid:#06x} re-enumerated")
-                    import time
                     time.sleep(1.0)
                     result = True
                     break
@@ -889,7 +891,6 @@ def reset_usb_device(vid, pid):
                 _setupapi.SetupDiCallClassInstaller(
                     DIF_PROPERTYCHANGE, dev_info, byref(dev_info_data)
                 )
-                import time
                 time.sleep(0.5)
 
                 pcp.StateChange = DICS_ENABLE
@@ -900,7 +901,6 @@ def reset_usb_device(vid, pid):
                     if _setupapi.SetupDiCallClassInstaller(
                         DIF_PROPERTYCHANGE, dev_info, byref(dev_info_data)
                     ):
-                        import time
                         time.sleep(1.0)
                         result = True
                         break
@@ -922,8 +922,6 @@ def disable_selective_suspend(vid, pid):
     Returns:
         True on success, False on failure.
     """
-    import winreg
-
     key_path = f"SYSTEM\\CurrentControlSet\\Enum\\USB\\VID_{vid:04X}&PID_{pid:04X}"
     try:
         usb_key = winreg.OpenKey(

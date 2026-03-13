@@ -28,7 +28,7 @@
 #include <devguid.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <initguid.h>
 
 /* Define GUID_DEVINTERFACE_USB_DEVICE inline to avoid usbiodef.h dependency */
