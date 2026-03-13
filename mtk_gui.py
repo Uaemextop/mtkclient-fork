@@ -566,7 +566,6 @@ class MainWindow(QMainWindow):
     def updateGui(self, phone_info):
         with lock:
             chipset = phone_info.get('chipset', '').replace("()", "")
-            phone_info['chipset'] = chipset
             cdc_init = phone_info.get('cdcInit', False)
             da_init = phone_info.get('daInit', False)
             boot_mode = phone_info.get('bootMode', '')

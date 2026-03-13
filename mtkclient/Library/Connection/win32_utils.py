@@ -64,7 +64,7 @@ def _try_reenumerate_device_windows():
         CM_REENUMERATE_NORMAL = 0x0
         CM_LOCATE_DEVNODE_NORMAL = 0x0
 
-        devInst = wintypes.DWORD()
+        devInst = wintypes.ULONG()
         # Locate the root device node (the top-level USB hub)
         ret = cfgmgr32.CM_Locate_DevNodeW(
             ctypes.byref(devInst),

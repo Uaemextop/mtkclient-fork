@@ -100,8 +100,7 @@ class UsbClass(DeviceClass):
     @staticmethod
     def load_windows_dll():
         if os.name == 'nt':
-            windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
-            windows_dir = os.path.normpath(windows_dir)
+            windows_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Windows'))
             if not os.path.exists(windows_dir):
                 logging.warning(f"Windows DLL directory not found: {windows_dir}")
                 return
@@ -460,10 +459,7 @@ class UsbClass(DeviceClass):
             except Exception:
                 pass
             self.connected = False
-            # Windows needs time for USB device re-enumeration
-            if os.name == 'nt':
-                time.sleep(2)
-            elif reset:
+            if os.name == 'nt' or reset:
                 time.sleep(2)
             else:
                 time.sleep(0.5)
