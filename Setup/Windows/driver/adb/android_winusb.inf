@@ -2,15 +2,15 @@
 ; Android WinUsb driver installation.
 ;
 ; Based on Google USB Driver r13 (android_winusb.inf).
-; Modified to add MediaTek device support for BROM, Preloader, DA,
-; ADB, Bootloader, and MTP modes.
+; Modified to add MediaTek ADB, Bootloader, and MTP device support.
+;
+; NOTE: BROM/Preloader/DA devices are in a SEPARATE INF:
+;   preloader/mtk_preloader.inf — installs under "MediaTek USB Devices" class.
 ;
 ; Changes from Google original:
-;   - Added [MediaTek.NTamd64] section with all MTK VID_0E8D entries
-;     from MTK SP Drivers 20160804 android_winusb.inf
+;   - Added [MediaTek.NTamd64] section with MTK ADB/Bootloader/MTP entries
 ;   - Added [Sony.NTamd64], [LG.NTamd64], [OPPO.NTamd64], [Motorola.NTamd64] sections
 ;   - Added MTK MTP entries from original wpdmtp.inf
-;   - Added MTK BROM/Preloader/DA whole-device entries
 ;   - Removed legacy CoInstallers (not needed on Windows 10+)
 ;   - Added PnpLockdown=1, DefaultDestDir=13 for DCH compliance
 ;   - Added selective suspend disable + security ACL
@@ -105,20 +105,12 @@ HKR,,Icon,,-1
 ; =====================================================================
 ;  MediaTek devices (VID 0x0E8D)
 ;  Entries from MTK SP Drivers 20160804 android_winusb.inf + wpdmtp.inf
+;
+;  NOTE: BROM (0x0003), Preloader (0x2000/20FF/3000/6000) and DA (0x2001)
+;  are in a SEPARATE driver: preloader/mtk_preloader.inf
+;  Those install under "MediaTek USB Devices" class, not "Android Device".
 ; =====================================================================
 [MediaTek.NTamd64]
-
-; ==================== BROM Mode ====================
-%MTK_BROM%                  = USB_Install, USB\VID_0E8D&PID_0003
-
-; ==================== Preloader Mode ===============
-%MTK_Preloader%             = USB_Install, USB\VID_0E8D&PID_2000
-%MTK_Preloader%             = USB_Install, USB\VID_0E8D&PID_20FF
-%MTK_Preloader%             = USB_Install, USB\VID_0E8D&PID_3000
-%MTK_Preloader%             = USB_Install, USB\VID_0E8D&PID_6000
-
-; ==================== DA Mode ======================
-%MTK_DA%                    = USB_Install, USB\VID_0E8D&PID_2001
 
 ; ==================== Bootloader / Fastboot ========
 ; (from original MTK android_winusb.inf)
@@ -202,30 +194,26 @@ HKR,,Icon,,-1
 %MTK_MTP%                   = USB_Install, USB\VID_0E8D&PID_202A&MI_00
 
 ; =====================================================================
-;  Sony devices (VID 0x0FCE) — BROM modes from usb_ids.py
+;  Sony devices (VID 0x0FCE) — ADB/Bootloader only
+;  BROM modes moved to preloader/mtk_preloader.inf
 ; =====================================================================
 [Sony.NTamd64]
-%Sony_BROM%                 = USB_Install, USB\VID_0FCE&PID_F200
-%Sony_BROM%                 = USB_Install, USB\VID_0FCE&PID_D1E9
-%Sony_BROM%                 = USB_Install, USB\VID_0FCE&PID_D1E2
-%Sony_BROM%                 = USB_Install, USB\VID_0FCE&PID_D1EC
-%Sony_BROM%                 = USB_Install, USB\VID_0FCE&PID_D1DD
 %SingleBootLoaderInterface% = USB_Install, USB\VID_0FCE&PID_0DDE
 
 ; =====================================================================
-;  LG devices (VID 0x1004)
+;  LG devices (VID 0x1004) — ADB/Bootloader only
+;  Preloader (PID 0x6000) moved to preloader/mtk_preloader.inf
 ; =====================================================================
 [LG.NTamd64]
-%LG_Preloader%              = USB_Install, USB\VID_1004&PID_6000
 %SingleAdbInterface%        = USB_Install, USB\VID_1004&PID_631C
 %CompositeAdbInterface%     = USB_Install, USB\VID_1004&PID_631C&MI_01
 %SingleBootLoaderInterface% = USB_Install, USB\VID_1004&PID_6300
 
 ; =====================================================================
-;  OPPO devices (VID 0x22D9)
+;  OPPO devices (VID 0x22D9) — ADB/Bootloader only
+;  Preloader (PID 0x0006) moved to preloader/mtk_preloader.inf
 ; =====================================================================
 [OPPO.NTamd64]
-%OPPO_Preloader%            = USB_Install, USB\VID_22D9&PID_0006
 %SingleAdbInterface%        = USB_Install, USB\VID_22D9&PID_2769
 %CompositeAdbInterface%     = USB_Install, USB\VID_22D9&PID_2769&MI_01
 
@@ -414,10 +402,4 @@ CompositeAdbInterface       = "Android Composite ADB Interface"
 SingleBootLoaderInterface   = "Android Bootloader Interface"
 WinUSB_SvcDesc              = "Android USB Driver"
 ClassName                   = "Android Device"
-MTK_BROM                    = "MediaTek BROM Interface"
-MTK_Preloader               = "MediaTek Preloader Interface"
-MTK_DA                      = "MediaTek DA Interface"
 MTK_MTP                     = "MediaTek MTP Interface"
-Sony_BROM                   = "Sony BROM Interface"
-LG_Preloader                = "LG Preloader Interface"
-OPPO_Preloader              = "OPPO Preloader Interface"

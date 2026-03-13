@@ -32,7 +32,7 @@ echo.
 
 set "DRIVER_DIR=%~dp0"
 
-echo [1/5] Removing old MediaTek drivers and USB devices...
+echo [1/7] Removing old MediaTek drivers and USB devices...
 echo       This may take a moment...
 if exist "%DRIVER_DIR%cleanup_mtk_drivers.ps1" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%DRIVER_DIR%cleanup_mtk_drivers.ps1"
@@ -43,7 +43,7 @@ if exist "%DRIVER_DIR%cleanup_mtk_drivers.ps1" (
 )
 echo.
 
-echo [2/5] Installing test-signing certificate...
+echo [2/7] Installing test-signing certificate...
 if exist "%DRIVER_DIR%mtkclient_test.cer" (
     certutil -addstore Root "%DRIVER_DIR%mtkclient_test.cer"
     certutil -addstore TrustedPublisher "%DRIVER_DIR%mtkclient_test.cer"
@@ -64,7 +64,17 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [4/5] Installing Serial driver (VCOM, Meta, ETS, ELT)...
+echo [4/7] Installing Preloader / BROM / DA driver...
+echo       Devices appear under "MediaTek USB Devices" in Device Manager
+pnputil /add-driver "%DRIVER_DIR%preloader\mtk_preloader.inf" /install
+if %errorlevel% neq 0 (
+    echo WARNING: Preloader driver installation returned error %errorlevel%
+) else (
+    echo       Preloader driver installed successfully.
+)
+echo.
+
+echo [5/7] Installing Serial driver (VCOM, Meta, ETS, ELT)...
 echo       Configuring: 115200 bps default, 921600 bps max, 8-N-1
 pnputil /add-driver "%DRIVER_DIR%CDC\cdc-acm.inf" /install
 if %errorlevel% neq 0 (
@@ -74,8 +84,8 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [5/5] Verifying installation...
-pnputil /enum-drivers | findstr /i "android_winusb cdc-acm" >nul 2>&1
+echo [6/7] Verifying installation...
+pnputil /enum-drivers | findstr /i "android_winusb mtk_preloader cdc-acm" >nul 2>&1
 if %errorlevel% equ 0 (
     echo       Drivers are registered in the Driver Store.
 ) else (

@@ -3,8 +3,9 @@
   mtkclient_driver.wxs — WiX v3 source for the mtkclient USB driver MSI.
 
   Drivers installed:
-    1. android_winusb.inf — Google USB Driver r13 modified for MTK ADB/MTP/BROM/DA
-    2. cdc-acm.inf — Serial COM port driver (inbox usbser.sys) for VCOM/Meta/ETS/ELT
+    1. android_winusb.inf — Google USB Driver r13 modified for MTK ADB/MTP/Bootloader
+    2. mtk_preloader.inf — WinUSB driver for MTK BROM/Preloader/DA (MediaTek USB Devices class)
+    3. cdc-acm.inf — Serial COM port driver (inbox usbser.sys) for VCOM/Meta/ETS/ELT
 
   The MSI:
     1. Runs cleanup script to remove old MTK drivers and devices
@@ -56,6 +57,7 @@
             <Directory Id="DIR_ADB_I386"  Name="i386" />
           </Directory>
           <Directory Id="DIR_SERIAL" Name="serial" />
+          <Directory Id="DIR_PRELOADER" Name="preloader" />
           <Directory Id="DIR_MOTO" Name="Motorola" />
         </Directory>
       </Directory>
@@ -126,6 +128,23 @@
       <Component Id="CMP_Serial_CAT" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678902" Win64="yes">
         <File Id="FILE_Serial_CAT"
               Source="$(var.DriverDir)\CDC\cdc-acm.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — Preloader driver (mtk_preloader.inf + CAT)      -->
+    <!--  BROM/Preloader/DA under "MediaTek USB Devices" class         -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_PRELOADER">
+      <Component Id="CMP_Preloader_INF" Guid="C3D4E5F6-A7B8-9012-CDEF-234567890123" Win64="yes">
+        <File Id="FILE_Preloader_INF"
+              Source="$(var.DriverDir)\preloader\mtk_preloader.inf"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Preloader_CAT" Guid="C3D4E5F6-A7B8-9012-CDEF-234567890124" Win64="yes">
+        <File Id="FILE_Preloader_CAT"
+              Source="$(var.DriverDir)\preloader\mtk_preloader.cat"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
@@ -293,6 +312,9 @@
       <ComponentRef Id="CMP_ADB_I386_WudfUpdate" />
       <ComponentRef Id="CMP_Serial_INF" />
       <ComponentRef Id="CMP_Serial_CAT" />
+      <!-- Preloader/BROM/DA driver -->
+      <ComponentRef Id="CMP_Preloader_INF" />
+      <ComponentRef Id="CMP_Preloader_CAT" />
       <!-- Motorola drivers -->
       <ComponentRef Id="CMP_Moto_ADB2_INF" />
       <ComponentRef Id="CMP_Moto_ADB2_CAT" />
@@ -393,7 +415,19 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── 5. INSTALL: Serial driver ── -->
+    <!-- ── 5. INSTALL: Preloader / BROM / DA driver ── -->
+    <SetProperty Id="CA_InstallPreloader"
+                 Before="CA_InstallPreloader"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_PRELOADER]mtk_preloader.inf&quot; /install" />
+    <CustomAction Id="CA_InstallPreloader"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 6. INSTALL: Serial driver ── -->
     <SetProperty Id="CA_InstallSerial"
                  Before="CA_InstallSerial"
                  Sequence="execute"
@@ -501,7 +535,8 @@
       <Custom Action="CA_InstallCertRoot" After="CA_CleanupDrivers">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallADB"      After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="CA_InstallSerial"   After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallPreloader" After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallSerial"   After="CA_InstallPreloader">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallMotoADB"  After="CA_InstallSerial">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallMotoCCGP" After="CA_InstallMotoADB">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallMotoDRV"  After="CA_InstallMotoCCGP">NOT Installed AND NOT REMOVE</Custom>

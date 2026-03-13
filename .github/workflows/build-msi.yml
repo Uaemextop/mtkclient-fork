@@ -84,6 +84,17 @@ jobs:
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "Serial catalog signed"
 
+          # Preloader/BROM/DA catalog (mtk_preloader.inf)
+          New-FileCatalog `
+            -Path "$drvDir\preloader\mtk_preloader.inf" `
+            -CatalogFilePath "$drvDir\preloader\mtk_preloader.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "$drvDir\preloader\mtk_preloader.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "Preloader catalog signed"
+
           # Motorola drivers already have their own catalogs from the official MSI,
           # but we sign them with our test cert for consistency
           $motoInfs = Get-ChildItem "$drvDir\Motorola\*.inf" -ErrorAction SilentlyContinue

@@ -1,0 +1,149 @@
+;
+; mtk_preloader.inf — WinUSB driver for MediaTek BROM / Preloader / DA modes
+;
+; These devices are NOT ADB interfaces.  They use raw USB bulk transfers
+; for bootloader-level communication (BROM handshake, Preloader payload,
+; Download-Agent flash).  mtkclient detects them by VID_0E8D + PID and
+; accesses them via WinUSB / libusb.
+;
+; Devices appear in Device Manager under "MediaTek USB Devices" — separate
+; from the "Android Device" class used by ADB.
+;
+; Supports:
+;   BROM       — PID 0x0003
+;   Preloader  — PID 0x2000, 0x20FF, 0x3000, 0x6000
+;   DA         — PID 0x2001
+;   + LG Preloader  (VID 0x1004, PID 0x6000)
+;   + OPPO Preloader (VID 0x22D9, PID 0x0006)
+;   + Sony BROM modes (VID 0x0FCE, PID 0xF200/0xD1E9/0xD1E2/0xD1EC/0xD1DD)
+;
+
+[Version]
+Signature           = "$Windows NT$"
+Class               = MediaTekUSBDevices
+ClassGuid           = {E3A3CE1F-2C3E-4D7A-B0F4-1A6F5E7C9D0B}
+Provider            = %ProviderName%
+DriverVer           = 03/13/2026,13.0.0.1
+CatalogFile         = mtk_preloader.cat
+PnpLockdown         = 1
+
+[ClassInstall32]
+Addreg = MTKClassReg
+
+[MTKClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-10
+
+[Manufacturer]
+%MTKName%  = MediaTek, NTamd64
+%SonyName% = Sony, NTamd64
+%LGName%   = LG, NTamd64
+%OPPOName% = OPPO, NTamd64
+
+; =====================================================================
+;  MediaTek (VID 0x0E8D)
+; =====================================================================
+[MediaTek.NTamd64]
+%MTK_BROM%       = MTK_Install, USB\VID_0E8D&PID_0003
+%MTK_Preloader%  = MTK_Install, USB\VID_0E8D&PID_2000
+%MTK_Preloader%  = MTK_Install, USB\VID_0E8D&PID_20FF
+%MTK_Preloader%  = MTK_Install, USB\VID_0E8D&PID_3000
+%MTK_Preloader%  = MTK_Install, USB\VID_0E8D&PID_6000
+%MTK_DA%         = MTK_Install, USB\VID_0E8D&PID_2001
+
+; =====================================================================
+;  Sony BROM modes (VID 0x0FCE)
+; =====================================================================
+[Sony.NTamd64]
+%Sony_BROM%      = MTK_Install, USB\VID_0FCE&PID_F200
+%Sony_BROM%      = MTK_Install, USB\VID_0FCE&PID_D1E9
+%Sony_BROM%      = MTK_Install, USB\VID_0FCE&PID_D1E2
+%Sony_BROM%      = MTK_Install, USB\VID_0FCE&PID_D1EC
+%Sony_BROM%      = MTK_Install, USB\VID_0FCE&PID_D1DD
+
+; =====================================================================
+;  LG Preloader (VID 0x1004)
+; =====================================================================
+[LG.NTamd64]
+%LG_Preloader%   = MTK_Install, USB\VID_1004&PID_6000
+
+; =====================================================================
+;  OPPO Preloader (VID 0x22D9)
+; =====================================================================
+[OPPO.NTamd64]
+%OPPO_Preloader% = MTK_Install, USB\VID_22D9&PID_0006
+
+; =====================================================================
+;  Install sections (WinUSB)
+; =====================================================================
+[MTK_Install]
+Include = winusb.inf
+Needs   = WINUSB.NT
+
+[MTK_Install.Services]
+Include    = winusb.inf
+AddService = WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[MTK_Install.HW]
+AddReg = MTK_Dev_AddReg
+
+; --- x64 architecture-decorated ---
+[MTK_Install.NTamd64]
+Include = winusb.inf
+Needs   = WINUSB.NT
+
+[MTK_Install.NTamd64.Services]
+Include    = winusb.inf
+AddService = WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[MTK_Install.NTamd64.HW]
+AddReg = MTK_Dev_AddReg
+
+; --- Wdf section (required for WinUSB KMDF binding) ---
+[MTK_Install.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[MTK_Install.NTamd64.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[WinUSB_Install]
+KmdfLibraryVersion = 1.9
+
+; --- Service install ---
+[WinUSB_ServiceInstall]
+DisplayName   = %WinUSB_SvcDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %12%\WinUSB.sys
+
+; --- Device registry settings ---
+[MTK_Dev_AddReg]
+; Register mtkclient GUID so libusb/WinUSB backend can claim the device
+HKR,,DeviceInterfaceGUIDs,0x10000,"{1D0C3B4F-2E1A-4A32-9C3F-5D6B7E8F9A0B}"
+; Selective suspend — disable to prevent device disconnects during flash
+HKR,,DeviceSelectiveSuspended,0x00010001,0
+HKR,,SelectiveSuspendEnabled,0x00010001,0
+; Allow user-mode access for mtkclient / libusb / WinUSB
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
+
+[DestinationDirs]
+DefaultDestDir = 13   ; Driver Store (DCH compliant)
+
+; =====================================================================
+;  Strings
+; =====================================================================
+[Strings]
+ProviderName    = "mtkclient"
+MTKName         = "MediaTek Inc."
+SonyName        = "Sony Mobile Communications"
+LGName          = "LG Electronics"
+OPPOName        = "OPPO Mobile"
+ClassName       = "MediaTek USB Devices"
+MTK_BROM        = "MediaTek BROM Interface"
+MTK_Preloader   = "MediaTek Preloader Interface"
+MTK_DA          = "MediaTek DA Interface"
+Sony_BROM       = "Sony BROM Interface"
+LG_Preloader    = "LG Preloader Interface"
+OPPO_Preloader  = "OPPO Preloader Interface"
+WinUSB_SvcDesc  = "MediaTek USB Driver"
