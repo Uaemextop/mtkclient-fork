@@ -116,7 +116,11 @@
     </Feature>
 
     <!-- ============================================================ -->
-    <!--  Custom actions — pnputil driver install / uninstall          -->
+    <!--  Custom actions — pnputil driver install                      -->
+    <!--  Note: Uninstall does NOT remove drivers from the Driver      -->
+    <!--  Store because pnputil /delete-driver requires the OEM        -->
+    <!--  published name (oemXX.inf) which is assigned at install      -->
+    <!--  time.  This is standard behaviour for driver packages.       -->
     <!-- ============================================================ -->
 
     <!-- ── INSTALL: WinUSB ── -->
@@ -143,37 +147,10 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── UNINSTALL: WinUSB ── -->
-    <SetProperty Id="CA_UninstallWinUSB"
-                 Before="CA_UninstallWinUSB"
-                 Sequence="execute"
-                 Value="&quot;[SystemFolder]pnputil.exe&quot; /delete-driver &quot;[DIR_WINUSB]mtkclient_winusb.inf&quot; /uninstall /force" />
-    <CustomAction Id="CA_UninstallWinUSB"
-                  BinaryKey="WixCA"
-                  DllEntry="WixQuietExec64"
-                  Execute="deferred"
-                  Return="ignore"
-                  Impersonate="no" />
-
-    <!-- ── UNINSTALL: Serial ── -->
-    <SetProperty Id="CA_UninstallSerial"
-                 Before="CA_UninstallSerial"
-                 Sequence="execute"
-                 Value="&quot;[SystemFolder]pnputil.exe&quot; /delete-driver &quot;[DIR_SERIAL]mtkclient_preloader.inf&quot; /uninstall /force" />
-    <CustomAction Id="CA_UninstallSerial"
-                  BinaryKey="WixCA"
-                  DllEntry="WixQuietExec64"
-                  Execute="deferred"
-                  Return="ignore"
-                  Impersonate="no" />
-
     <InstallExecuteSequence>
       <!-- Install drivers after files are laid down (first install only) -->
       <Custom Action="CA_InstallWinUSB"   After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallSerial"   After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
-      <!-- Remove drivers before files are removed (uninstall only) -->
-      <Custom Action="CA_UninstallWinUSB" Before="RemoveFiles">REMOVE="ALL"</Custom>
-      <Custom Action="CA_UninstallSerial" After="CA_UninstallWinUSB">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
   </Product>
