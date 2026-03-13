@@ -158,6 +158,48 @@ driver/
 - **Windows 11** all versions
 - **Architecture**: x64 only
 
+## Test Signing
+
+The CI workflow builds the driver with a self-signed test certificate.
+Windows requires **test signing mode** to load drivers signed with test
+certificates.
+
+### Automatic (MSI installer or install_driver.bat)
+
+Both the MSI installer and `install_driver.bat` will automatically:
+1. Install the test certificate to Trusted Root + Trusted Publisher stores
+2. Enable test signing mode (`bcdedit /set testsigning on`)
+3. Stage the driver via `pnputil /add-driver`
+
+**A reboot is required** after the first install for test signing to activate.
+
+### Manual
+
+```powershell
+# As Administrator:
+certutil -addstore Root output\mtkclient_test_cert.cer
+certutil -addstore TrustedPublisher output\mtkclient_test_cert.cer
+bcdedit /set testsigning on
+# Reboot, then:
+pnputil /add-driver driver\mtkclient.inf /install
+```
+
+### Troubleshooting Code 43
+
+If Device Manager shows **Code 43** ("Windows stopped this device"):
+1. Verify test signing mode is active: `bcdedit | findstr testsigning`
+2. Verify the certificate is installed: `certutil -store TrustedPublisher`
+3. If Secure Boot is enabled, you may need to disable it in BIOS first
+4. Reboot after making any changes
+5. Unplug and replug the USB cable
+
+### Note on Secure Boot
+
+Enabling test signing mode (`bcdedit /set testsigning on`) may conflict
+with Secure Boot. If your system has Secure Boot enabled:
+- Enter BIOS/UEFI setup and disable Secure Boot, **or**
+- Use a production EV code signing certificate (not included)
+
 ## License
 
 GPLv3 — same as the mtkclient project.

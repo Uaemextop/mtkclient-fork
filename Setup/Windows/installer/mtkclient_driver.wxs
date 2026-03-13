@@ -2,7 +2,12 @@
 <!--
   mtkclient_driver.wxs
   WiX v3 source for the mtkclient WinUSB driver MSI installer.
-  Targets Windows 11 x64.
+  Targets Windows 10/11 x64.
+
+  The MSI:
+  1. Installs the test signing certificate to Root + TrustedPublisher stores
+  2. Enables test signing mode (bcdedit /set testsigning on)
+  3. Stages the signed WinUSB INF + CAT via pnputil /add-driver
 
   Copyright (c) 2024-2025 mtkclient contributors – GPLv3
 -->
@@ -56,18 +61,65 @@
       </Component>
     </DirectoryRef>
 
+    <!-- ============ Test certificate (in driver folder) ============ -->
+    <DirectoryRef Id="DRIVERFOLDER">
+      <Component Id="TestCert" Guid="D3E4F5A6-B7C8-9012-3456-7890ABCDEF01" Win64="yes">
+        <File Id="mtkclient_test_cert"
+              Source="$(var.DriverDir)\..\output\mtkclient_test_cert.cer"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
     <!-- ============ Features ============ -->
     <Feature Id="DriverFeature" Title="WinUSB Driver" Level="1"
              Description="Installs the WinUSB driver for MediaTek devices">
       <ComponentRef Id="DriverINF" />
       <ComponentRef Id="DriverCAT" />
+      <ComponentRef Id="TestCert" />
     </Feature>
 
     <!-- ============ Custom Actions ============ -->
-    <!--
-      Use pnputil to stage the driver into the Windows driver store.
-      This is the modern, recommended approach for Windows 10/11.
-    -->
+
+    <!-- Install test certificate to Trusted Root store -->
+    <SetProperty Id="InstallCertRoot"
+                 Before="InstallCertRoot"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore Root &quot;[DRIVERFOLDER]mtkclient_test_cert.cer&quot;" />
+
+    <CustomAction Id="InstallCertRoot"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Install test certificate to Trusted Publisher store -->
+    <SetProperty Id="InstallCertPublisher"
+                 Before="InstallCertPublisher"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore TrustedPublisher &quot;[DRIVERFOLDER]mtkclient_test_cert.cer&quot;" />
+
+    <CustomAction Id="InstallCertPublisher"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Enable test signing mode -->
+    <SetProperty Id="EnableTestSigning"
+                 Before="EnableTestSigning"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]bcdedit.exe&quot; /set testsigning on" />
+
+    <CustomAction Id="EnableTestSigning"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Stage driver via pnputil -->
     <SetProperty Id="InstallDriver"
                  Before="InstallDriver"
                  Sequence="execute"
@@ -80,6 +132,7 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Uninstall: remove driver -->
     <SetProperty Id="UninstallDriver"
                  Before="UninstallDriver"
                  Sequence="execute"
@@ -93,8 +146,11 @@
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="InstallDriver"   After="InstallFiles">NOT Installed</Custom>
-      <Custom Action="UninstallDriver" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="InstallCertRoot"      After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="InstallCertPublisher" After="InstallCertRoot">NOT Installed</Custom>
+      <Custom Action="EnableTestSigning"    After="InstallCertPublisher">NOT Installed</Custom>
+      <Custom Action="InstallDriver"        After="EnableTestSigning">NOT Installed</Custom>
+      <Custom Action="UninstallDriver"      Before="RemoveFiles">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
     <!-- WiX default UI (minimal) -->
