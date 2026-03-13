@@ -39,16 +39,18 @@ msiexec /i Setup\Windows\output\mtkclient_driver.msi
 ```
 
 The driver supports these MediaTek USB devices:
-| VID      | PID      | Description        |
-|----------|----------|--------------------|
-| `0x0E8D` | `0x0003` | MTK Bootrom (BROM) |
-| `0x0E8D` | `0x2000` | MTK Preloader      |
-| `0x0E8D` | `0x2001` | MTK Preloader      |
-| `0x0E8D` | `0x20FF` | MTK Preloader      |
-| `0x0E8D` | `0x3000` | MTK Preloader      |
-| `0x0E8D` | `0x6000` | MTK Preloader      |
-| `0x1004` | `0x6000` | LG Preloader       |
-| `0x22D9` | `0x0006` | OPPO Preloader     |
+| VID      | PID      | Description            |
+|----------|----------|------------------------|
+| `0x0E8D` | `0x0003` | MTK Bootrom (BROM)     |
+| `0x0E8D` | `0x2000` | MTK Preloader          |
+| `0x0E8D` | `0x2001` | MTK DA (Download Agent) |
+| `0x0E8D` | `0x2007` | MTK Meta Mode          |
+| `0x0E8D` | `0x20FF` | MTK Preloader          |
+| `0x0E8D` | `0x2024` | MTK Bootloader         |
+| `0x0E8D` | `0x3000` | MTK Preloader          |
+| `0x0E8D` | `0x6000` | MTK Preloader          |
+| `0x1004` | `0x6000` | LG Preloader           |
+| `0x22D9` | `0x0006` | OPPO Preloader         |
 
 #### Option B: Get latest UsbDk 64-Bit (legacy)
 - Install normal MTK Serial Port driver (or use default Windows COM Port one, make sure no exclamation is seen)
