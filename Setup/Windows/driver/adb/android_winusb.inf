@@ -250,7 +250,10 @@ ServiceBinary = %12%\WinUSB.sys
 AddReg = Dev_AddReg
 
 [Dev_AddReg]
-; Standard ADB DeviceInterfaceGUID — required for adb.exe to find the device
+; Standard ADB DeviceInterfaceGUID — required for adb.exe to find the device.
+; Modern ADB (1.0.32+) discovers devices via this GUID, not via adb_usb.ini.
+; All VIDs (0x0E8D, 0x18D1, 0x0FCE, 0x1004, 0x22D9) are registered directly
+; in the [Manufacturer] hardware ID sections above — no external VID list needed.
 HKR,,DeviceInterfaceGUIDs,0x10000,"{F72FE0D4-CBCB-407d-8814-9ED673D0DD6B}"
 ; Also register mtkclient GUID so libusb/WinUSB backend can claim the device
 HKR,,DeviceInterfaceGUIDs,0x10008,"{1D0C3B4F-2E1A-4A32-9C3F-5D6B7E8F9A0B}"
@@ -259,16 +262,6 @@ HKR,,DeviceSelectiveSuspended,0x00010001,0
 HKR,,SelectiveSuspendEnabled,0x00010001,0
 ; Allow user-mode access for adb / libusb / WinUSB
 HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
-
-; ── ADB VID registration ──────────────────────────────────────────
-; Write all supported VIDs to the system-wide adb_usb.ini so that
-; both old and new adb.exe versions can detect these devices.
-; (Replaces the manual ADB_add_VID.bat from MTK SP Drivers 20160804)
-HKLM,"SOFTWARE\Android USB Devices","VID_0E8D",,"0x0E8D"
-HKLM,"SOFTWARE\Android USB Devices","VID_18D1",,"0x18D1"
-HKLM,"SOFTWARE\Android USB Devices","VID_0FCE",,"0x0FCE"
-HKLM,"SOFTWARE\Android USB Devices","VID_1004",,"0x1004"
-HKLM,"SOFTWARE\Android USB Devices","VID_22D9",,"0x22D9"
 
 [DestinationDirs]
 DefaultDestDir = 13   ; Driver Store (DCH compliant)
