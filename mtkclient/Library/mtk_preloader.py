@@ -356,20 +356,15 @@ class Preloader(metaclass=LogBase):
                 pos += rlen
                 bytestoread -= rlen
         except Exception:
-            flash=b"".join([int.from_bytes(flash[pos:pos+4],"big").to_bytes(4,"little")
-                            for pos in range(0,len(flash),4)])
-            return flash
+            return b""
         pg.done()
         if len(flash) > 0 and filename != "":
             with open("internal_flash.bin", "wb") as wf:
                 wf.write(flash)
                 print("Done reading internal flash to \"internal_flash.bin\"")
         elif len(flash) > 0:
-            flash = b"".join(
-                [int.from_bytes(flash[pos:pos + 4], "big").to_bytes(4, "little") for pos in range(0, len(flash), 4)])
             return flash
         sys.stdout.flush()
-        return b""
 
     def read_a2(self, addr, dwords=1) -> list:
         cmd = self.Cmd.CMD_READ16_A2
@@ -624,6 +619,7 @@ class Preloader(metaclass=LogBase):
                 # BootEngine
                 # set external boot , remap control change to Bus
                 # Set MB0 to Bank0 and MB1 to Bank1
+                self.write32(0xA0510000, self.read32(0xA0510000, 1) | 2)
                 self.write32(0xA0510000, self.read32(0xA0510000, 1) | 2)
             else:
                 self.write16(0xA0030000, 0x2200)
