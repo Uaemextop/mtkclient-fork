@@ -24,14 +24,10 @@
              Comments="Enables libusb access to MTK devices on Windows without UsbDk"
              Manufacturer="mtkclient" />
 
-    <!-- Require Windows 10 build 10240 or later (covers Windows 11) -->
-    <Condition Message="This installer requires Windows 10 version 1507 or later.">
-      <![CDATA[Installed OR VersionNT64 >= 1000]]>
-    </Condition>
-
-    <!-- Require 64-bit OS -->
-    <Condition Message="This installer requires a 64-bit version of Windows.">
-      <![CDATA[VersionNT64]]>
+    <!-- Require 64-bit Windows 8.1+ (VersionNT64=603 covers Windows 8.1/10/11
+         due to MSI compatibility shims; VersionNT64 is NOT 1000 on Win10/11) -->
+    <Condition Message="This installer requires 64-bit Windows 10 or later.">
+      <![CDATA[Installed OR VersionNT64 >= 603]]>
     </Condition>
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
