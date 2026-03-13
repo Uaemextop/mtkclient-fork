@@ -16,14 +16,23 @@ import time
 logger = logging.getLogger(__name__)
 
 # MediaTek USB Vendor ID and known Product IDs
+# Sourced from MediaTek SP Drivers 20160804 (cdc-acm.inf) and mtkclient usb_ids.py
 MTK_VID = 0x0E8D
 MTK_PIDS = {
+    # Bootrom (BROM)
     0x0003: "MTK Bootrom",
+    # Preloader
     0x2000: "MTK Preloader",
-    0x2001: "MTK Preloader",
+    # Download Agent (DA)
+    0x2001: "MTK DA",
+    # Meta Mode / Generic VCOM
+    0x2007: "MTK Meta Mode",
+    # mtkclient-specific preloader PIDs
     0x20FF: "MTK Preloader",
     0x3000: "MTK Preloader",
     0x6000: "MTK Preloader",
+    # Android bootloader
+    0x2024: "MTK Bootloader",
 }
 
 if sys.platform == "win32":
