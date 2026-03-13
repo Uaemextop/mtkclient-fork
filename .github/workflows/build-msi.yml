@@ -89,7 +89,7 @@ jobs:
       - name: Install WiX Toolset v3
         shell: pwsh
         run: |
-          choco install wixtoolset -y --version=3.14.1 --no-progress
+          choco install wixtoolset -y --no-progress
           # Find WiX bin directory
           $wixDir = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin" `
                     -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
