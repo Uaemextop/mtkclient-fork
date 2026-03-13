@@ -33,8 +33,11 @@ echo.
 set "DRIVER_DIR=%~dp0"
 
 echo [1/5] Removing old MediaTek drivers and USB devices...
+echo       This may take a moment...
 if exist "%DRIVER_DIR%cleanup_mtk_drivers.ps1" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%DRIVER_DIR%cleanup_mtk_drivers.ps1"
+    echo.
+    echo       Cleanup script completed.
 ) else (
     echo       Cleanup script not found, skipping...
 )

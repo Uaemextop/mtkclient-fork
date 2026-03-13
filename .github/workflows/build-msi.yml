@@ -159,6 +159,12 @@ jobs:
           path: |
             Setup/Windows/driver/adb/android_winusb.inf
             Setup/Windows/driver/adb/android_winusb.cat
+            Setup/Windows/driver/adb/amd64/WdfCoInstaller01009.dll
+            Setup/Windows/driver/adb/amd64/winusbcoinstaller2.dll
+            Setup/Windows/driver/adb/amd64/WUDFUpdate_01009.dll
+            Setup/Windows/driver/adb/i386/WdfCoInstaller01009.dll
+            Setup/Windows/driver/adb/i386/winusbcoinstaller2.dll
+            Setup/Windows/driver/adb/i386/WUDFUpdate_01009.dll
             Setup/Windows/driver/CDC/cdc-acm.inf
             Setup/Windows/driver/CDC/cdc-acm.cat
             Setup/Windows/driver/mtkclient_test.cer

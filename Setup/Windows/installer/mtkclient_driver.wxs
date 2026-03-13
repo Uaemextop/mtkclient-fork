@@ -51,7 +51,10 @@
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="mtkclient Drivers">
-          <Directory Id="DIR_ADB"    Name="adb" />
+          <Directory Id="DIR_ADB" Name="adb">
+            <Directory Id="DIR_ADB_AMD64" Name="amd64" />
+            <Directory Id="DIR_ADB_I386"  Name="i386" />
+          </Directory>
           <Directory Id="DIR_SERIAL" Name="serial" />
         </Directory>
       </Directory>
@@ -60,6 +63,7 @@
     <!-- ============================================================ -->
     <!--  Components — ADB/Bootloader/MTP driver (android_winusb.inf)  -->
     <!--  Google USB Driver r13, modified for MediaTek devices          -->
+    <!--  Includes amd64/ and i386/ CoInstaller DLLs from Google r13   -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_ADB">
       <Component Id="CMP_ADB_INF" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABC" Win64="yes">
@@ -70,6 +74,40 @@
       <Component Id="CMP_ADB_CAT" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABD" Win64="yes">
         <File Id="FILE_ADB_CAT"
               Source="$(var.DriverDir)\adb\android_winusb.cat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="DIR_ADB_AMD64">
+      <Component Id="CMP_ADB_AMD64_WdfCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000001" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WdfCoInst"
+              Source="$(var.DriverDir)\adb\amd64\WdfCoInstaller01009.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_AMD64_WinUsbCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000002" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WinUsbCoInst"
+              Source="$(var.DriverDir)\adb\amd64\winusbcoinstaller2.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_AMD64_WudfUpdate" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000003" Win64="yes">
+        <File Id="FILE_ADB_AMD64_WudfUpdate"
+              Source="$(var.DriverDir)\adb\amd64\WUDFUpdate_01009.dll"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="DIR_ADB_I386">
+      <Component Id="CMP_ADB_I386_WdfCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000004" Win64="no">
+        <File Id="FILE_ADB_I386_WdfCoInst"
+              Source="$(var.DriverDir)\adb\i386\WdfCoInstaller01009.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_I386_WinUsbCoInst" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000005" Win64="no">
+        <File Id="FILE_ADB_I386_WinUsbCoInst"
+              Source="$(var.DriverDir)\adb\i386\winusbcoinstaller2.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_ADB_I386_WudfUpdate" Guid="A1B2C3D4-E5F6-7890-1234-ABCDEF000006" Win64="no">
+        <File Id="FILE_ADB_I386_WudfUpdate"
+              Source="$(var.DriverDir)\adb\i386\WUDFUpdate_01009.dll"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
@@ -127,6 +165,12 @@
              ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="CMP_ADB_INF" />
       <ComponentRef Id="CMP_ADB_CAT" />
+      <ComponentRef Id="CMP_ADB_AMD64_WdfCoInst" />
+      <ComponentRef Id="CMP_ADB_AMD64_WinUsbCoInst" />
+      <ComponentRef Id="CMP_ADB_AMD64_WudfUpdate" />
+      <ComponentRef Id="CMP_ADB_I386_WdfCoInst" />
+      <ComponentRef Id="CMP_ADB_I386_WinUsbCoInst" />
+      <ComponentRef Id="CMP_ADB_I386_WudfUpdate" />
       <ComponentRef Id="CMP_Serial_INF" />
       <ComponentRef Id="CMP_Serial_CAT" />
       <ComponentRef Id="CMP_CleanupScript" />
@@ -208,8 +252,20 @@
 
     <!-- ============================================================ -->
     <!--  Custom actions — UNINSTALL sequence                          -->
-    <!--  Remove the test-signing certificate from both stores.        -->
+    <!--  1. Run cleanup script to remove devices + drivers from store -->
+    <!--  2. Remove the test-signing certificate from both stores      -->
     <!-- ============================================================ -->
+
+    <SetProperty Id="CA_UninstallCleanup"
+                 Before="CA_UninstallCleanup"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]cleanup_mtk_drivers.ps1&quot;" />
+    <CustomAction Id="CA_UninstallCleanup"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
 
     <SetProperty Id="CA_RemoveCertRoot"
                  Before="CA_RemoveCertRoot"
@@ -244,9 +300,10 @@
       <Custom Action="CA_InstallADB"      After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallSerial"   After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
 
-      <!-- UNINSTALL: remove certificate from stores -->
-      <Custom Action="CA_RemoveCertRoot"  Before="RemoveFiles">REMOVE="ALL"</Custom>
-      <Custom Action="CA_RemoveCertTP"    After="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
+      <!-- UNINSTALL: cleanup devices+drivers → remove certificates -->
+      <Custom Action="CA_UninstallCleanup" Before="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
+      <Custom Action="CA_RemoveCertRoot"   Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="CA_RemoveCertTP"     After="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
   </Product>
