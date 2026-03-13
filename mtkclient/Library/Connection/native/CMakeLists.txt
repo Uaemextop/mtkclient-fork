@@ -24,7 +24,6 @@ if(WIN32)
     target_link_libraries(mtk_usb_driver PRIVATE
         setupapi
         cfgmgr32
-        winusb
     )
 
     # Set output name

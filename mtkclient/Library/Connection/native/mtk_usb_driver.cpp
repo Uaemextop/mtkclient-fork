@@ -417,96 +417,31 @@ MTK_USB_API int mtk_usb_reset_device_by_path(const char *device_path) {
  *   "USBError(5, 'Input/Output Error')"
  *
  * When a USB transfer fails, the endpoint may enter a STALL condition.
- * Clearing it allows subsequent transfers to succeed without full device reset.
+ * Uses device re-enumeration via SetupAPI as a recovery mechanism
+ * (no WinUSB dependency required).
  */
 MTK_USB_API int mtk_usb_clear_endpoint(const char *device_path,
                                         uint8_t endpoint) {
     if (!device_path) return MTK_ERROR_INVALID_PARAM;
 
-    log_msg("mtk_usb_clear_endpoint: Clearing endpoint 0x%02X on %s",
+    log_msg("mtk_usb_clear_endpoint: Clearing endpoint 0x%02X on %s via device reset",
             endpoint, device_path);
 
-    /* Get device interface path for WinUSB */
-    HDEVINFO dev_info = SetupDiGetClassDevsA(
-        &GUID_DEVINTERFACE_USB_DEVICE,
-        NULL, NULL,
-        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
-    );
-
-    if (dev_info == INVALID_HANDLE_VALUE) {
-        return MTK_ERROR_OTHER;
+    /*
+     * Without WinUSB, we recover from endpoint stalls by triggering
+     * a device re-enumeration through the parent hub. This resets
+     * all endpoints and clears any stall conditions.
+     */
+    uint16_t vid = 0, pid = 0;
+    if (parse_vid_pid(device_path, &vid, &pid)) {
+        int rc = mtk_usb_reset_device(vid, pid);
+        if (rc == MTK_SUCCESS) {
+            log_msg("mtk_usb_clear_endpoint: Device reset successful (clears all endpoints)");
+        }
+        return rc;
     }
 
-    SP_DEVICE_INTERFACE_DATA iface_data;
-    iface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-
-    int result = MTK_ERROR_NOT_FOUND;
-
-    for (DWORD i = 0; SetupDiEnumDeviceInterfaces(dev_info, NULL,
-                                                     &GUID_DEVINTERFACE_USB_DEVICE,
-                                                     i, &iface_data); i++) {
-        /* Get required buffer size */
-        DWORD required_size = 0;
-        SetupDiGetDeviceInterfaceDetailA(dev_info, &iface_data, NULL, 0,
-                                          &required_size, NULL);
-
-        SP_DEVICE_INTERFACE_DETAIL_DATA_A *detail =
-            (SP_DEVICE_INTERFACE_DETAIL_DATA_A *)malloc(required_size);
-        if (!detail) continue;
-
-        detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
-
-        if (!SetupDiGetDeviceInterfaceDetailA(dev_info, &iface_data,
-                                               detail, required_size,
-                                               NULL, NULL)) {
-            free(detail);
-            continue;
-        }
-
-        /* Check if this is our target device */
-        if (strstr(detail->DevicePath, device_path) ||
-            strstr(device_path, detail->DevicePath)) {
-
-            /* Open device for WinUSB */
-            HANDLE dev_handle = CreateFileA(
-                detail->DevicePath,
-                GENERIC_READ | GENERIC_WRITE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                NULL,
-                OPEN_EXISTING,
-                FILE_FLAG_OVERLAPPED,
-                NULL
-            );
-
-            if (dev_handle != INVALID_HANDLE_VALUE) {
-                WINUSB_INTERFACE_HANDLE winusb_handle;
-                if (WinUsb_Initialize(dev_handle, &winusb_handle)) {
-                    /* Clear the halt on the endpoint */
-                    if (WinUsb_ResetPipe(winusb_handle, endpoint)) {
-                        log_msg("mtk_usb_clear_endpoint: Endpoint 0x%02X cleared successfully",
-                                endpoint);
-                        result = MTK_SUCCESS;
-                    } else {
-                        log_msg("mtk_usb_clear_endpoint: WinUsb_ResetPipe failed: %lu",
-                                GetLastError());
-                        result = MTK_ERROR_IO;
-                    }
-                    WinUsb_Free(winusb_handle);
-                } else {
-                    log_debug("WinUsb_Initialize failed: %lu (device may use libusb)",
-                              GetLastError());
-                    result = MTK_ERROR_NO_DRIVER;
-                }
-                CloseHandle(dev_handle);
-            }
-        }
-
-        free(detail);
-        if (result == MTK_SUCCESS) break;
-    }
-
-    SetupDiDestroyDeviceInfoList(dev_info);
-    return result;
+    return MTK_ERROR_INVALID_PARAM;
 }
 
 /*
