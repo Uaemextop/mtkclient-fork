@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mtkclient_driver.wxs — WiX v3 source for the mtkclient WinUSB / Serial
+  driver MSI installer.
+
+  The MSI ships the two repackaged INF files and runs pnputil at install
+  time so the drivers are registered in the Driver Store.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <?define ProductVersion = "2.0.0.0" ?>
+  <?define Manufacturer   = "MediaTek Inc. / mtkclient" ?>
+  <?define ProductName    = "mtkclient USB Drivers for Windows 10/11" ?>
+  <?define UpgradeCode    = "7A3B5C1D-4E2F-6A8B-9C0D-1E2F3A4B5C6D" ?>
+  <?define DriverDir      = "..\driver" ?>
+
+  <Product Id="*"
+           Name="$(var.ProductName)"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.Manufacturer)"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Description="mtkclient WinUSB and Serial drivers for MediaTek devices"
+             Comments="Derived from MTK SP Drivers 20160804, repackaged for Win10/11 x64"
+             Platform="x64" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- License -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.DriverDir)\..\LICENSE.rtf" />
+
+    <!-- Minimal UI -->
+    <UIRef Id="WixUI_Minimal" />
+
+    <!-- ============================================================ -->
+    <!--  Directory layout                                             -->
+    <!-- ============================================================ -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="mtkclient Drivers">
+          <Directory Id="DIR_WINUSB"  Name="winusb" />
+          <Directory Id="DIR_SERIAL"  Name="serial" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- ============================================================ -->
+    <!--  Components — WinUSB INF                                      -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_WINUSB">
+      <Component Id="CMP_WinUSB_INF" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890" Win64="yes">
+        <File Id="FILE_WinUSB_INF"
+              Source="$(var.DriverDir)\mtkclient_winusb.inf"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — Serial / Preloader INF                          -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="DIR_SERIAL">
+      <Component Id="CMP_Serial_INF" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901" Win64="yes">
+        <File Id="FILE_Serial_INF"
+              Source="$(var.DriverDir)\mtkclient_preloader.inf"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Components — install_drivers.bat (convenience)               -->
+    <!-- ============================================================ -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="CMP_InstallBat" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012" Win64="yes">
+        <File Id="FILE_InstallBat"
+              Source="$(var.DriverDir)\install_drivers.bat"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ============================================================ -->
+    <!--  Feature                                                      -->
+    <!-- ============================================================ -->
+    <Feature Id="DriverFeature"
+             Title="mtkclient USB Drivers"
+             Level="1"
+             ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentRef Id="CMP_WinUSB_INF" />
+      <ComponentRef Id="CMP_Serial_INF" />
+      <ComponentRef Id="CMP_InstallBat" />
+    </Feature>
+
+    <!-- ============================================================ -->
+    <!--  Custom actions — pnputil driver registration                 -->
+    <!-- ============================================================ -->
+    <SetProperty Id="InstallWinUSBDriver"
+                 Before="InstallWinUSBDriver"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_WINUSB]mtkclient_winusb.inf&quot; /install" />
+
+    <CustomAction Id="InstallWinUSBDriver"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <SetProperty Id="InstallSerialDriver"
+                 Before="InstallSerialDriver"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_SERIAL]mtkclient_preloader.inf&quot; /install" />
+
+    <CustomAction Id="InstallSerialDriver"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallWinUSBDriver"  After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="InstallSerialDriver"  After="InstallWinUSBDriver">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+  </Product>
+</Wix>

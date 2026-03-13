@@ -1,0 +1,102 @@
+;=============================================================================
+; mtkmbim7_x64.inf
+;
+; MediaTek Mobile Broadband NDIS 6.20 Miniport Driver
+;
+; Copyright (C) MediaTek Inc.. All rights reserved.
+;=============================================================================
+
+[version]
+Signature   = "$Windows NT$"
+Class       = Net
+ClassGUID   = {4d36e972-e325-11ce-bfc1-08002be10318}
+Provider    = %Provider%
+DriverVer   = 05/07/2015,2.15.19.0
+CatalogFile = mtkmbim7_x64.cat
+
+[Manufacturer]
+%Provider%       = VENDOR,NTamd64.6.1
+
+[VENDOR]
+; Empty section to block legacy operating systems that do not understand TargetOSVersion
+
+[VENDOR.NTamd64.6.1]
+
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_7106&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_00A5&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_00A6&REV_0001&MI_01
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_00A5&REV_0300&MI_00
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_00A6&REV_0300&MI_01
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_00AA&MI_00
+
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_7106&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_00A5&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_00A6&REV_0001&MI_01
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_7106&MI_00
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_00A5&MI_00
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_00A6&MI_01
+%DeviceDesc%    = Inst_Ndi, VBUS\VID_0E8D&PID_00AA&MI_00
+
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_7106&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_00A5&REV_0001&MI_00
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_00A6&REV_0001&MI_01
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_7106&MI_00
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_00A5&MI_00
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_00A6&MI_01
+%DeviceDesc%    = Inst_Ndi, SBUS\VID_0E8D&PID_00AA&MI_00
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_2057&MI_00
+%DeviceDesc%    = Inst_Ndi, USB\VID_0E8D&PID_2055&MI_00
+
+[Inst_Ndi]
+Characteristics    = 0x1 ; NCF_VIRTUAL
+*IfType            = 243 ; IF_TYPE_WWANPP
+*MediaType         = 9 ; NdisMediumWirelessWan
+*PhysicalMediaType = 8 ; NdisPhysicalMediumWirelessWan
+EnableDhcp         = 0 ; Disable DHCP
+AddReg             = Inst_Ndi.Reg
+CopyFiles          = Inst_Ndi.CopyFiles
+
+[Inst_Ndi.Services]
+AddService         = mtkmbim, 2, mtkmbim.Service, mtkmbim.EventLog
+
+[Inst_Ndi.Reg]
+HKR,    ,                         BusNumber,           0, "0" 
+HKR,    ,                         EnableDhcp,          0x00010001, 0x00000000       ;Disable DHCP
+HKR, Ndi,                         Service,             0, "mtkmbim"
+HKR, Ndi\Interfaces,              UpperRange,          0, "flpp4,flpp6"
+HKR, Ndi\Interfaces,              LowerRange,          0, "ppip"
+
+;HKR,,MbimOpenFuncTimeout,0x00010001 , 0x1f40
+
+[Inst_Ndi.CopyFiles]
+mtkmbim7_x64.sys,,,2
+
+[mtkmbim.Service]
+DisplayName    = %DriverDesc%
+ServiceType    = 1 ;%SERVICE_KERNEL_DRIVER%
+StartType      = 3 ;%SERVICE_DEMAND_START%
+ErrorControl   = 1 ;%SERVICE_ERROR_NORMAL%
+ServiceBinary  = %12%\mtkmbim7_x64.sys
+LoadOrderGroup = NDIS
+
+[mtkmbim.EventLog]
+AddReg             = mtkmbim.AddEventLog.Reg
+
+[mtkmbim.AddEventLog.Reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll"
+HKR, , TypesSupported,   0x00010001, 7
+
+[SourceDisksNames]
+1 = %DiskDesc%,,,
+
+[SourceDisksFiles]
+mtkmbim7_x64.sys = 1,.
+
+[DestinationDirs]
+Inst_Ndi.CopyFiles    = 12
+
+[Strings]
+Provider = "MediaTek Inc."
+DeviceDesc = "MediaTek Mobile Broadband Device"
+DriverDesc = "MediaTek Mobile Broadband NDIS 6.20 Miniport Driver"
+DiskDesc = "MediaTek Mobile Broadband NDIS 6.20 Miniport Driver Installation Disk"

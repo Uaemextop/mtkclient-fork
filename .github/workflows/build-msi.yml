@@ -1,0 +1,152 @@
+name: Build Driver MSI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Setup/Windows/**'
+      - '.github/workflows/build-msi.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'Setup/Windows/**'
+      - '.github/workflows/build-msi.yml'
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Generate LICENSE.rtf from plain-text LICENSE ──────────────
+      - name: Generate LICENSE.rtf
+        shell: pwsh
+        run: |
+          $licenseTxt = Get-Content -Path LICENSE -Raw -ErrorAction SilentlyContinue
+          if (-not $licenseTxt) {
+            $licenseTxt = "MIT License — see repository for full text."
+          }
+          # Escape RTF special characters
+          $escaped = $licenseTxt -replace '\\', '\\\\' `
+                                -replace '\{', '\{' `
+                                -replace '\}', '\}' `
+                                -replace "`r`n", "\par`r`n" `
+                                -replace "`n", "\par`r`n"
+          $rtf = "{\rtf1\ansi\deff0{\fonttbl{\f0 Consolas;}}\f0\fs20 $escaped}"
+          Set-Content -Path "Setup\Windows\LICENSE.rtf" -Value $rtf -Encoding ASCII
+          Write-Host "LICENSE.rtf generated at Setup\Windows\LICENSE.rtf"
+
+      # ── Test-sign the INF files (self-signed cert) ───────────────
+      - name: Create test-signing certificate
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=mtkclient Test Signing" `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -NotAfter (Get-Date).AddYears(5)
+          Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+
+      - name: Create and sign catalog files
+        shell: pwsh
+        run: |
+          $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
+
+          # WinUSB catalog
+          $catW = New-FileCatalog `
+            -Path "Setup\Windows\driver\mtkclient_winusb.inf" `
+            -CatalogFilePath "Setup\Windows\driver\mtkclient_winusb.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "Setup\Windows\driver\mtkclient_winusb.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "WinUSB catalog signed"
+
+          # Serial catalog
+          $catS = New-FileCatalog `
+            -Path "Setup\Windows\driver\mtkclient_preloader.inf" `
+            -CatalogFilePath "Setup\Windows\driver\mtkclient_preloader.cat" `
+            -CatalogVersion 2.0
+          Set-AuthenticodeSignature `
+            -FilePath "Setup\Windows\driver\mtkclient_preloader.cat" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "Serial catalog signed"
+
+      # ── Install WiX Toolset v3 ──────────────────────────────────
+      - name: Install WiX Toolset v3
+        shell: pwsh
+        run: |
+          choco install wixtoolset -y --version=3.14.1 --no-progress
+          $wixDir = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin"
+          if (-not (Test-Path $wixDir)) {
+            $wixDir = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          }
+          Write-Host "WiX bin dir: $wixDir"
+          echo "$wixDir" >> $env:GITHUB_PATH
+
+      # ── Build the MSI ───────────────────────────────────────────
+      - name: Build MSI with candle + light
+        shell: pwsh
+        run: |
+          $wxsFile  = "Setup\Windows\installer\mtkclient_driver.wxs"
+          $objFile  = "Setup\Windows\installer\mtkclient_driver.wixobj"
+          $msiFile  = "Setup\Windows\installer\mtkclient-winusb-driver.msi"
+
+          Write-Host "=== candle (compile) ==="
+          candle.exe -nologo `
+            -arch x64 `
+            -ext WixUIExtension `
+            -ext WixUtilExtension `
+            -out $objFile `
+            $wxsFile
+          if ($LASTEXITCODE -ne 0) { throw "candle failed with exit code $LASTEXITCODE" }
+
+          Write-Host "=== light (link) ==="
+          light.exe -nologo `
+            -ext WixUIExtension `
+            -ext WixUtilExtension `
+            -sice:ICE61 `
+            -out $msiFile `
+            $objFile
+          if ($LASTEXITCODE -ne 0) { throw "light failed with exit code $LASTEXITCODE" }
+
+          Write-Host "MSI built: $msiFile"
+          Get-Item $msiFile | Select-Object Name, Length
+
+      # ── Sign the MSI ────────────────────────────────────────────
+      - name: Sign MSI
+        shell: pwsh
+        run: |
+          $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
+          Set-AuthenticodeSignature `
+            -FilePath "Setup\Windows\installer\mtkclient-winusb-driver.msi" `
+            -Certificate $cert `
+            -TimestampServer "http://timestamp.digicert.com"
+          Write-Host "MSI signed"
+
+      # ── Upload artifact ─────────────────────────────────────────
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-winusb-driver-msi
+          path: Setup/Windows/installer/mtkclient-winusb-driver.msi
+          if-no-files-found: error
+
+      # ── Upload driver files artifact ────────────────────────────
+      - name: Upload signed driver files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-driver-files
+          path: |
+            Setup/Windows/driver/mtkclient_winusb.inf
+            Setup/Windows/driver/mtkclient_winusb.cat
+            Setup/Windows/driver/mtkclient_preloader.inf
+            Setup/Windows/driver/mtkclient_preloader.cat
+            Setup/Windows/driver/install_drivers.bat
+          if-no-files-found: error
