@@ -22,6 +22,25 @@ from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
 from mtkclient.Library.Connection.devicehandler import DeviceClass
 
+# Native Windows USB driver (optional, used when DLL is available)
+_native_driver = None
+_winusb_available = False
+try:
+    if sys.platform.startswith('win32'):
+        from mtkclient.Library.Connection.native import get_native_driver
+        _native_driver = get_native_driver()
+        # Check if WinUSB backend is available (win32_utils.py)
+        try:
+            from mtkclient.Library.Connection.win32_utils import (
+                WinUsbDevice, winusb_available, find_all_mtk_devices,
+                reset_usb_device, disable_selective_suspend, check_winusb_driver
+            )
+            _winusb_available = winusb_available()
+        except ImportError:
+            pass
+except ImportError:
+    pass
+
 USB_DIR_OUT = 0  # to device
 USB_DIR_IN = 0x80  # to host
 
@@ -100,7 +119,6 @@ class UsbClass(DeviceClass):
     def load_windows_dll():
         if os.name == 'nt':
             try:
-                # add pygame folder to Windows DLL search paths
                 windows_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "Windows")
                 try:
                     os.add_dll_directory(windows_dir)
@@ -109,7 +127,30 @@ class UsbClass(DeviceClass):
                 os.environ['PATH'] = windows_dir + ';' + os.environ['PATH']
             except Exception:
                 pass
-            del windows_dir
+
+    def _init_backend(self):
+        """Initialize USB backend with fallback options for Windows compatibility."""
+        backend = None
+        if sys.platform.startswith('freebsd') or sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+            backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.so")
+        elif sys.platform.startswith('win32'):
+            if calcsize("P") * 8 == 64:
+                backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
+            else:
+                backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
+            if backend is None:
+                # Fallback: try default libusb1 backend discovery
+                backend = usb.backend.libusb1.get_backend()
+            if backend is None:
+                # Last resort: try libusb0 backend
+                backend = usb.backend.libusb0.get_backend()
+        if backend is not None:
+            try:
+                backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
+                backend.lib.libusb_set_option(backend.ctx, 1)
+            except Exception:
+                pass  # Don't nullify backend on option failure
+        return backend
 
     def __init__(self, loglevel=logging.INFO, portconfig=None, devclass=-1):
         super().__init__(loglevel, portconfig, devclass)
@@ -128,23 +169,58 @@ class UsbClass(DeviceClass):
         self.EP_IN = None
         self.EP_OUT = None
         self.is_serial = False
+        self._is_windows = sys.platform.startswith('win32')
+        self._native_driver = _native_driver
+        self._winusb_device = None  # WinUSB direct device (no libusb)
+        self._use_winusb = False    # True when connected via WinUSB
         self.queue = Queue()
-        if sys.platform.startswith('freebsd') or sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
-            self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.so")
-        elif sys.platform.startswith('win32'):
-            if calcsize("P") * 8 == 64:
-                self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
-            else:
-                self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
+        self.backend = self._init_backend()
+        # On Windows, try to disable selective suspend for known MTK devices
+        if self._is_windows:
+            if self._native_driver and self._native_driver.available:
+                try:
+                    self._native_driver.disable_selective_suspend(0x0E8D, 0x2000)
+                    self._native_driver.disable_selective_suspend(0x0E8D, 0x0003)
+                except Exception:
+                    pass
+            elif _winusb_available:
+                try:
+                    disable_selective_suspend(0x0E8D, 0x2000)
+                    disable_selective_suspend(0x0E8D, 0x0003)
+                except Exception:
+                    pass
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
+
+    def _try_winusb_connect(self):
+        """Try to connect via WinUSB (Windows-only, no libusb/UsbDk needed).
+        Returns True if successfully connected via WinUSB."""
+        try:
+            # Find MTK devices via SetupAPI
+            devices = find_all_mtk_devices()
+            for dev in devices:
+                vid = dev.get('vid', 0)
+                pid = dev.get('pid', 0)
+                if vid in self.portconfig and pid in self.portconfig[vid]:
+                    # Try to open via WinUSB
+                    winusb_dev = WinUsbDevice()
+                    interface = self.portconfig[vid][pid]
+                    if winusb_dev.open(vid, pid, interface if interface >= 0 else 0):
+                        self._winusb_device = winusb_dev
+                        self._use_winusb = True
+                        self.vid = vid
+                        self.pid = pid
+                        self.interface = interface
+                        self.connected = True
+                        self.info(f"Connected via WinUSB: VID={vid:#06x} PID={pid:#06x} "
+                                  f"EP_IN=0x{winusb_dev.ep_in:02X} EP_OUT=0x{winusb_dev.ep_out:02X}")
+                        return True
+                    else:
+                        winusb_dev.close()
+        except Exception as e:
+            self.debug(f"WinUSB connect failed: {e}")
+        return False
 
     def verify_data(self, data, pre="RX:"):
         if self.__logger.level == logging.DEBUG:
@@ -302,14 +378,47 @@ class UsbClass(DeviceClass):
         self.device = None
         self.EP_OUT = None
         self.EP_IN = None
-        devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
-        for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
-            if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
-                self.device = dev
-                self.vid = dev.idVendor
-                self.pid = dev.idProduct
-                self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+        self._use_winusb = False
+
+        # On Windows, try WinUSB backend first (no libusb/UsbDk required)
+        if self._is_windows and _winusb_available:
+            if self._try_winusb_connect():
+                return True
+
+        # On Windows, re-initialize backend if it was lost
+        if self.backend is None:
+            self.backend = self._init_backend()
+            if self.backend is None:
+                self.error("No USB backend available. Check libusb installation.")
+                return False
+
+        # Try scanning with specified devclass first, then fallback to class 0
+        for scan_devclass in [devclass, 0]:
+            devices = usb.core.find(find_all=True, bDeviceClass=scan_devclass, backend=self.backend)
+            for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
+                if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
+                    self.device = dev
+                    self.vid = dev.idVendor
+                    self.pid = dev.idProduct
+                    self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+                    break
+            if self.device is not None:
                 break
+
+        # On Windows, also try scanning without device class filter
+        if self.device is None and self._is_windows:
+            try:
+                devices = usb.core.find(find_all=True, backend=self.backend)
+                for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
+                    if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
+                        self.device = dev
+                        self.vid = dev.idVendor
+                        self.pid = dev.idProduct
+                        self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+                        break
+            except Exception as e:
+                self.debug(f"Windows extended scan failed: {str(e)}")
+
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
             return False
@@ -352,7 +461,15 @@ class UsbClass(DeviceClass):
             try:
                 usb.util.claim_interface(self.device, 0)
             except Exception:
-                return False
+                # On Windows, retry after a short delay
+                if self._is_windows:
+                    time.sleep(0.5)
+                    try:
+                        usb.util.claim_interface(self.device, 0)
+                    except Exception:
+                        return False
+                else:
+                    return False
 
             self.debug(self.configuration)
             try:
@@ -365,7 +482,15 @@ class UsbClass(DeviceClass):
                 if self.interface != 0:
                     usb.util.claim_interface(self.device, self.interface)
             except Exception:
-                return False
+                if self._is_windows:
+                    time.sleep(0.5)
+                    try:
+                        if self.interface != 0:
+                            usb.util.claim_interface(self.device, self.interface)
+                    except Exception:
+                        return False
+                else:
+                    return False
 
             self.EP_OUT = ep_out
             self.EP_IN = ep_in
@@ -389,9 +514,51 @@ class UsbClass(DeviceClass):
 
     def close(self, reset=False):
         if self.connected:
+            # WinUSB path
+            if self._use_winusb and self._winusb_device:
+                try:
+                    self._winusb_device.close()
+                except Exception:
+                    pass
+                self._winusb_device = None
+                self._use_winusb = False
+                if reset and self._is_windows:
+                    try:
+                        if _winusb_available:
+                            reset_usb_device(self.vid, self.pid)
+                        elif self._native_driver and self._native_driver.available:
+                            self._native_driver.reset_device(self.vid, self.pid)
+                    except Exception:
+                        pass
+                    time.sleep(2)
+                elif self._is_windows:
+                    time.sleep(0.2)
+                self.connected = False
+                return
+
+            # libusb/PyUSB path
             try:
+                # Release interfaces before closing
+                try:
+                    usb.util.release_interface(self.device, 0)
+                except Exception:
+                    pass
+                if self.interface and self.interface != 0:
+                    try:
+                        usb.util.release_interface(self.device, self.interface)
+                    except Exception:
+                        pass
+
                 if reset:
-                    self.device.reset()
+                    try:
+                        self.device.reset()
+                    except Exception as err:
+                        self.debug(f"Device reset error: {str(err)}")
+                        # Fallback: use native driver for reset on Windows
+                        if (self._is_windows and self._native_driver
+                                and self._native_driver.available
+                                and self.vid and self.pid):
+                            self._native_driver.reset_device(self.vid, self.pid)
                 try:
                     if not self.device.is_kernel_driver_active(self.interface):
                         # self.device.attach_kernel_driver(self.interface) #Do NOT uncomment
@@ -407,21 +574,53 @@ class UsbClass(DeviceClass):
                         self.device.attach_kernel_driver(0)
                 except Exception:
                     pass
-            pass
-            usb.util.dispose_resources(self.device)
-            del self.device
+            try:
+                usb.util.dispose_resources(self.device)
+            except Exception:
+                pass
+            try:
+                del self.device
+            except Exception:
+                pass
             if reset:
                 time.sleep(2)
+            elif self._is_windows:
+                # On Windows, give a short delay for USB stack cleanup
+                time.sleep(0.2)
             self.connected = False
 
+    def reset_device_native(self):
+        """Reset the USB device using native Windows APIs (no physical disconnect needed)."""
+        if self._is_windows and self.vid and self.pid:
+            # Try WinUSB reset first
+            if _winusb_available:
+                try:
+                    if reset_usb_device(self.vid, self.pid):
+                        self.info(f"USB device reset via WinUSB: VID={self.vid:#06x} PID={self.pid:#06x}")
+                        return True
+                except Exception:
+                    pass
+            # Fall back to native DLL
+            if self._native_driver and self._native_driver.available:
+                self.info(f"Resetting USB device VID={self.vid:#06x} PID={self.pid:#06x} via native driver")
+                return self._native_driver.reset_device(self.vid, self.pid)
+        return False
+
     def write(self, command, pktsize=None):
-        if pktsize is None:
-            pktsize = self.EP_OUT.wMaxPacketSize
         if isinstance(command, str):
             command = bytes(command, 'utf-8')
+
+        # WinUSB path
+        if self._use_winusb and self._winusb_device:
+            return self._winusb_write(command, pktsize)
+
+        # libusb/PyUSB path
+        if pktsize is None:
+            pktsize = self.EP_OUT.wMaxPacketSize
         pos = 0
         if command != b'':
             i = 0
+            max_retries = 5 if self._is_windows else 3
             while pos < len(command):
                 try:
                     ctr = self.EP_OUT.write(command[pos:pos + pktsize])
@@ -429,24 +628,37 @@ class UsbClass(DeviceClass):
                         self.info(ctr)
                     else:
                         pos += ctr
+                        i = 0  # Reset retry counter on success
+                except usb.core.USBError as err:
+                    error = str(err.strerror) if err.strerror else str(err)
+                    self.debug(f"Write error: {error}")
+                    if 'No such device' in error:
+                        self.error(error)
+                        sys.exit(1)
+                    # On Windows, I/O errors may be transient - add delay before retry
+                    if self._is_windows and ('Input/Output' in error or 'pipe' in error.lower()):
+                        time.sleep(0.05)
+                        try:
+                            usb.util.clear_halt(self.device, self.EP_OUT)
+                        except Exception:
+                            pass
+                    i += 1
+                    if i >= max_retries:
+                        return False
                 except Exception as err:
                     self.debug(str(err))
                     if 'No such device' in str(err):
                         self.error(str(err))
                         sys.exit(1)
-                    # print("Error while writing")
-                    # time.sleep(0.01)
                     i += 1
-                    if i == 3:
+                    if i >= max_retries:
                         return False
-                    pass
         else:
             try:
                 self.EP_OUT.write(b'')
             except usb.core.USBError as err:
                 error = str(err.strerror)
                 if "timeout" in error:
-                    # time.sleep(0.01)
                     try:
                         self.EP_OUT.write(b'')
                     except Exception as err:
@@ -457,16 +669,86 @@ class UsbClass(DeviceClass):
         return True
 
     def get_read_packetsize(self):
+        if self._use_winusb and self._winusb_device:
+            return self._winusb_device.max_packet_in
         return self.EP_IN.wMaxPacketSize
 
     def get_write_packetsize(self):
+        if self._use_winusb and self._winusb_device:
+            return self._winusb_device.max_packet_out
         return self.EP_OUT.wMaxPacketSize
+
+    def _winusb_write(self, command, pktsize=None):
+        """Write data via WinUSB backend."""
+        dev = self._winusb_device
+        if pktsize is None:
+            pktsize = dev.max_packet_out
+
+        if command == b'':
+            dev.write(b'')
+            return True
+
+        pos = 0
+        max_retries = 5
+        i = 0
+        while pos < len(command):
+            chunk = command[pos:pos + pktsize]
+            written = dev.write(chunk)
+            if written < 0:
+                i += 1
+                if i >= max_retries:
+                    return False
+                # Try resetting the pipe on error
+                dev.reset_pipe(dev.ep_out)
+                time.sleep(0.05)
+            else:
+                pos += written
+                i = 0
+
+        self.verify_data(bytearray(command), "TX:")
+        return True
+
+    def _winusb_read(self, resplen, maxtimeout=100):
+        """Read data via WinUSB backend."""
+        dev = self._winusb_device
+        res = bytearray()
+        timeout_count = 0
+        io_error_count = 0
+        max_io_errors = 3
+        pktsize = dev.max_packet_in
+
+        while len(res) < resplen:
+            remaining = resplen - len(res)
+            sz = min(pktsize, remaining)
+            timeout_ms = self.timeout if self.timeout > 0 else 1000
+
+            data = dev.read(sz, timeout=timeout_ms)
+            if data:
+                res.extend(data)
+                timeout_count = 0
+                io_error_count = 0
+            else:
+                timeout_count += 1
+                if timeout_count >= maxtimeout:
+                    break
+                io_error_count += 1
+                if io_error_count >= max_io_errors:
+                    dev.reset_pipe(dev.ep_in)
+                    io_error_count = 0
+
+        if self.loglevel == logging.DEBUG:
+            self.verify_data(res[:resplen], "RX:")
+        return res[:resplen]
 
     def usbread(self, resplen=None, maxtimeout=100, w_max_packet_size=None):
         if resplen is None:
             resplen = self.maxsize
         if resplen <= 0:
             self.info("Warning !")
+
+        # WinUSB path
+        if self._use_winusb and self._winusb_device:
+            return self._winusb_read(resplen, maxtimeout)
         res = bytearray()
         timeout = 0
         loglevel = self.loglevel
@@ -482,6 +764,8 @@ class UsbClass(DeviceClass):
         if self.fast:
             buffer = b[:buflen]
         bytestoread = resplen
+        io_error_count = 0
+        max_io_errors = 3 if self._is_windows else 1
         while bytestoread > 0:
             bytestoread = resplen - len(res) if len(res) < resplen else 0
             if not q.empty():
@@ -509,8 +793,9 @@ class UsbClass(DeviceClass):
                     extend(dt)
                     if rlen < sz and maxtimeout == -1:
                         break
+                io_error_count = 0  # Reset on successful read
             except usb.core.USBError as e:
-                error = str(e.strerror)
+                error = str(e.strerror) if e.strerror else str(e)
                 if "timed out" in error:
                     self.debug("Timed out")
                     if timeout == maxtimeout:
@@ -523,6 +808,18 @@ class UsbClass(DeviceClass):
                 elif "No such device" in error:
                     self.error("Device disconnected")
                     sys.exit(1)
+                elif self._is_windows and ("Input/Output" in error or "pipe" in error.lower()):
+                    # Windows I/O error - try to recover by clearing endpoint
+                    io_error_count += 1
+                    self.debug(f"USB I/O error (attempt {io_error_count}/{max_io_errors}): {error}")
+                    if io_error_count >= max_io_errors:
+                        self.error(f"USB I/O error after {max_io_errors} retries")
+                        return b""
+                    try:
+                        usb.util.clear_halt(self.device, self.EP_IN)
+                    except Exception:
+                        pass
+                    time.sleep(0.05)
                 else:
                     self.info(repr(e))
                     return b""
@@ -534,6 +831,10 @@ class UsbClass(DeviceClass):
         return res[:resplen]
 
     def usbxmlread(self, maxtimeout=100):
+        # WinUSB path
+        if self._use_winusb and self._winusb_device:
+            return self._winusb_xmlread(maxtimeout)
+
         res = bytearray()
         timeout = 0
         loglevel = self.loglevel
@@ -573,7 +874,43 @@ class UsbClass(DeviceClass):
                 self.verify_data(res, "RX:")
         return res
 
+    def _winusb_xmlread(self, maxtimeout=100):
+        """Read null-terminated XML data via WinUSB."""
+        dev = self._winusb_device
+        res = bytearray()
+        timeout_count = 0
+        pktsize = dev.max_packet_in
+
+        while len(res) < max_xml_data_length:
+            data = dev.read(pktsize, timeout=self.timeout if self.timeout > 0 else 1000)
+            if data:
+                res.extend(data)
+                timeout_count = 0
+            else:
+                timeout_count += 1
+                if timeout_count >= maxtimeout:
+                    return b""
+
+            if res and res[-1] == 0:
+                break
+
+        if self.loglevel == logging.DEBUG:
+            self.verify_data(res, "RX:")
+        return res
+
     def ctrl_transfer(self, bm_request_type, b_request, w_value=0, w_index=0, data_or_w_length=None):
+        # WinUSB path
+        if self._use_winusb and self._winusb_device:
+            result = self._winusb_device.control_transfer(
+                bm_request_type, b_request, w_value, w_index, data_or_w_length
+            )
+            if isinstance(result, bytes):
+                if len(result) >= 2:
+                    return result[0] | (result[1] << 8)
+                return 0
+            return result if result >= 0 else 0
+
+        # libusb/PyUSB path
         ret = self.device.ctrl_transfer(bmRequestType=bm_request_type, bRequest=b_request,
                                         wValue=w_value, wIndex=w_index,
                                         data_or_wLength=data_or_w_length)
@@ -588,6 +925,14 @@ class UsbClass(DeviceClass):
             self.pid = pid
 
     def detectdevices(self):
+        # WinUSB path
+        if self._use_winusb or (self._is_windows and _winusb_available):
+            try:
+                mtk_devs = find_all_mtk_devices()
+                return [self.DeviceClass(d['vid'], d['pid']) for d in mtk_devs]
+            except Exception:
+                pass
+
         dev = usb.core.find(find_all=True, backend=self.backend)
         ids = [self.DeviceClass(cfg.idVendor, cfg.idProduct) for cfg in dev]
         return ids

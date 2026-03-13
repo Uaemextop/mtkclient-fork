@@ -14,3 +14,12 @@ DA_*.bin
 # Pyinstaller stuff
 build
 dist
+
+# Build artifacts
+mtkclient/Library/Connection/native/mtk_usb_driver.dll
+mtkclient/Library/Connection/native/build/
+mtkclient/Windows/mtk_usb_driver.dll
+mtkclient/Windows/driver/mtkclient_cert.cer
+mtkclient/Windows/driver/mtkclient_preloader.cat
+build_dll/
+mtkclient_setup.exe

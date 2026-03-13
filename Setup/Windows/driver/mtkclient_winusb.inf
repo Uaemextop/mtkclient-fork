@@ -1,0 +1,233 @@
+; mtkclient_winusb.inf
+; Windows 11 DCH-compliant WinUSB driver for MediaTek USB devices
+; Maps MTK Bootrom/Preloader/DA devices to Microsoft WinUSB.sys
+; Enables direct USB bulk I/O from user-space (no UsbDk/libusb needed)
+;
+; (c) 2024-2026 GPLv3 License
+;
+; Compatible: Windows 10 1809+ (build 17763), Windows 11 21H2+
+; Architecture: x64 (NTamd64)
+;
+; Device modes:
+;   Bootrom   (VID 0x0E8D, PID 0x0003)
+;   Preloader (VID 0x0E8D, PID 0x2000/0x2001/0x20FF/0x3000/0x6000)
+;   DA Agent  (VID 0x0E8D, PID 0x2001)
+;   Meta      (VID 0x0E8D, PID 0x2007)
+;   Fastboot  (VID 0x0E8D, PID 0x2024)
+;   LG/OPPO/Sony preloader variants
+;
+; Install: pnputil /add-driver mtkclient_winusb.inf /install
+
+;---------------------------------------------------------------
+; Version - Windows 11 DCH compliant
+;---------------------------------------------------------------
+[Version]
+Signature   = "$Windows NT$"
+Class       = USBDevice
+ClassGuid   = {88BAE032-5A81-49f0-BC3D-A4FF138216D6}
+Provider    = %ProviderName%
+CatalogFile = mtkclient_winusb.cat
+DriverVer   = 03/13/2026,2.1.0.0
+PnpLockdown = 1
+
+;---------------------------------------------------------------
+; Class install (only if USBDevice class not yet registered)
+;---------------------------------------------------------------
+[ClassInstall32]
+AddReg = ClassInstall_AddReg
+
+[ClassInstall_AddReg]
+HKR,,,,%ClassName%
+HKR,,NoInstallClass,,1
+HKR,,SilentInstall,,1
+HKR,,IconPath,%REG_MULTI_SZ%,"%%systemroot%%\system32\setupapi.dll,-20"
+
+;---------------------------------------------------------------
+; Destination - driver store isolation (DCH requirement)
+;---------------------------------------------------------------
+[DestinationDirs]
+DefaultDestDir = 13
+
+;---------------------------------------------------------------
+; Source disks (no extra files needed - WinUSB.sys is inbox)
+;---------------------------------------------------------------
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+
+;---------------------------------------------------------------
+; Manufacturer / Models
+;---------------------------------------------------------------
+[Manufacturer]
+%MfgName% = MTKDevices, NTamd64, NTamd64.10.0...17763
+
+;---------------------------------------------------------------
+; Windows 10 1809+ / Windows 11 x64 device list
+;---------------------------------------------------------------
+[MTKDevices.NTamd64.10.0...17763]
+; === MediaTek Bootrom ===
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003&MI_00
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003&MI_01
+
+; === MediaTek Preloader ===
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000&MI_00
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000&MI_01
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000&MI_02
+
+; === MediaTek DA Agent ===
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001&MI_00
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001&MI_01
+
+; === MediaTek VCOM ===
+%MTK_VCOM%            = MTK_WinUSB_Install, USB\VID_0E8D&PID_2006
+%MTK_VCOM%            = MTK_WinUSB_Install, USB\VID_0E8D&PID_2006&MI_00
+%MTK_VCOM%            = MTK_WinUSB_Install, USB\VID_0E8D&PID_2006&MI_01
+
+; === MediaTek Meta Mode ===
+%MTK_Meta%            = MTK_WinUSB_Install, USB\VID_0E8D&PID_2007
+%MTK_Meta%            = MTK_WinUSB_Install, USB\VID_0E8D&PID_2007&MI_00
+
+; === MediaTek Fastboot/Bootloader ===
+%MTK_Fastboot%        = MTK_WinUSB_Install, USB\VID_0E8D&PID_2024
+%MTK_Fastboot%        = MTK_WinUSB_Install, USB\VID_0E8D&PID_2024&MI_00
+
+; === MediaTek Preloader (alternate PIDs) ===
+%MTK_Preloader_FF%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_20FF
+%MTK_Preloader_FF%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_20FF&MI_00
+%MTK_Preloader_FF%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_20FF&MI_01
+%MTK_Preloader_3K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_3000
+%MTK_Preloader_3K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_3000&MI_00
+%MTK_Preloader_3K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_3000&MI_01
+%MTK_Preloader_6K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_6000
+%MTK_Preloader_6K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_6000&MI_00
+%MTK_Preloader_6K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_6000&MI_01
+
+; === MediaTek COM Ports (SP Drivers compatible) ===
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0023
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0023&MI_00
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0023&MI_01
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0043
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0043&MI_00
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0043&MI_01
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0063
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0063&MI_00
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_0063&MI_01
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_00A5
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_00A5&MI_00
+%MTK_COM%             = MTK_WinUSB_Install, USB\VID_0E8D&PID_00A5&MI_01
+
+; === MediaTek Composite (ADB+ACM+RNDIS) ===
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200B
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200B&MI_00
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200C
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200C&MI_00
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200D
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_200D&MI_00
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2012
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2012&MI_00
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2012&MI_01
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2016
+%MTK_Composite%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2016&MI_00
+
+; === LG MediaTek Preloader ===
+%LG_Preloader%        = MTK_WinUSB_Install, USB\VID_1004&PID_6000
+%LG_Preloader%        = MTK_WinUSB_Install, USB\VID_1004&PID_6000&MI_00
+%LG_Preloader%        = MTK_WinUSB_Install, USB\VID_1004&PID_6000&MI_01
+
+; === OPPO/Realme MediaTek Preloader ===
+%OPPO_Preloader%      = MTK_WinUSB_Install, USB\VID_22D9&PID_0006
+%OPPO_Preloader%      = MTK_WinUSB_Install, USB\VID_22D9&PID_0006&MI_00
+%OPPO_Preloader%      = MTK_WinUSB_Install, USB\VID_22D9&PID_0006&MI_01
+
+; === Sony MediaTek Bootrom ===
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_F200
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1E9
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1E2
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1EC
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1DD
+
+;---------------------------------------------------------------
+; Fallback for older Windows 10 (pre-1809)
+;---------------------------------------------------------------
+[MTKDevices.NTamd64]
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003&MI_00
+%MTK_Bootrom%         = MTK_WinUSB_Install, USB\VID_0E8D&PID_0003&MI_01
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000&MI_00
+%MTK_Preloader%       = MTK_WinUSB_Install, USB\VID_0E8D&PID_2000&MI_01
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001&MI_00
+%MTK_DA%              = MTK_WinUSB_Install, USB\VID_0E8D&PID_2001&MI_01
+%MTK_Preloader_FF%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_20FF
+%MTK_Preloader_3K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_3000
+%MTK_Preloader_6K%    = MTK_WinUSB_Install, USB\VID_0E8D&PID_6000
+%LG_Preloader%        = MTK_WinUSB_Install, USB\VID_1004&PID_6000
+%OPPO_Preloader%      = MTK_WinUSB_Install, USB\VID_22D9&PID_0006
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_F200
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1E9
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1E2
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1EC
+%Sony_Brom%           = MTK_WinUSB_Install, USB\VID_0FCE&PID_D1DD
+
+;---------------------------------------------------------------
+; DDInstall - WinUSB function driver (NTamd64 decorated)
+;---------------------------------------------------------------
+[MTK_WinUSB_Install.NTamd64]
+Include   = winusb.inf
+Needs     = WINUSB.NT
+
+[MTK_WinUSB_Install.NTamd64.Services]
+Include   = winusb.inf
+Needs     = WINUSB.NT.Services
+
+;---------------------------------------------------------------
+; HW section - DeviceInterfaceGUID for SetupAPI enumeration
+;---------------------------------------------------------------
+[MTK_WinUSB_Install.NTamd64.HW]
+AddReg    = MTK_WinUSB_HW_AddReg
+
+[MTK_WinUSB_HW_AddReg]
+HKR,,DeviceInterfaceGUIDs,0x10000,"{1D0C3B4F-2E1A-4A32-9C3F-5D6B7E8F9A0B}"
+; FeatureScore 0x80 = WinUSB generic driver priority
+HKR,,FeatureScore,0x00010001,0x80
+
+;---------------------------------------------------------------
+; WDF co-installer section (required for WinUSB on Windows 11)
+;---------------------------------------------------------------
+[MTK_WinUSB_Install.NTamd64.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[WinUSB_Install]
+KmdfLibraryVersion = 1.11
+
+;---------------------------------------------------------------
+; Strings
+;---------------------------------------------------------------
+[Strings]
+; Non-localizable
+REG_MULTI_SZ  = 0x00010000
+
+; Localizable
+ProviderName    = "mtkclient"
+MfgName         = "MediaTek Inc."
+ClassName       = "Universal Serial Bus devices"
+DiskName        = "mtkclient WinUSB Driver"
+MTK_Bootrom     = "MediaTek Bootrom (WinUSB)"
+MTK_Preloader   = "MediaTek Preloader (WinUSB)"
+MTK_DA          = "MediaTek DA Agent (WinUSB)"
+MTK_VCOM        = "MediaTek VCOM (WinUSB)"
+MTK_Meta        = "MediaTek Meta Mode (WinUSB)"
+MTK_Fastboot    = "MediaTek Fastboot (WinUSB)"
+MTK_Preloader_FF = "MediaTek Preloader (WinUSB) [0x20FF]"
+MTK_Preloader_3K = "MediaTek Preloader (WinUSB) [0x3000]"
+MTK_Preloader_6K = "MediaTek Preloader (WinUSB) [0x6000]"
+MTK_COM         = "MediaTek USB COM Port (WinUSB)"
+MTK_Composite   = "MediaTek Composite Device (WinUSB)"
+LG_Preloader    = "LG MediaTek Preloader (WinUSB)"
+OPPO_Preloader  = "OPPO MediaTek Preloader (WinUSB)"
+Sony_Brom       = "Sony MediaTek Bootrom (WinUSB)"

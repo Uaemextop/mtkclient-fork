@@ -151,13 +151,15 @@ class Preloader(metaclass=LogBase):
         if self.config.chipconfig.damode == DAmodes.XML:
             readsocid = True
         skipwdt = self.config.skipwdt
+        is_windows = sys.platform.startswith('win32')
 
         self.info("Status: Waiting for PreLoader VCOM, please reconnect mobile/iot device to brom mode")
         self.config.set_gui_status(self.config.tr("Status: Waiting for connection"))
         res = False
         maxtries = 100
         tries = 0
-        while not res and tries < 1000:
+        max_outer_tries = 1000
+        while not res and tries < max_outer_tries:
             if self.mtk.serialportname:
                 res = self.mtk.port.serial_handshake(maxtries=maxtries)
             else:
@@ -167,8 +169,11 @@ class Preloader(metaclass=LogBase):
                     self.error("Status: Handshake failed, retrying...")
                     self.config.set_gui_status(self.config.tr("Status: Handshake failed, retrying..."))
                 self.mtk.port.close()
+                # On Windows, give extra time for USB stack to release resources
+                if is_windows:
+                    time.sleep(0.5)
                 tries += 1
-        if tries == 1000:
+        if tries == max_outer_tries:
             return False
 
         if not self.echo(self.Cmd.GET_HW_CODE.value):  # 0xFD

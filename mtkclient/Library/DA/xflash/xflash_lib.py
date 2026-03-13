@@ -117,6 +117,9 @@ class DAXFlash(metaclass=LogBase):
     def xread(self):
         try:
             hdr = self.usbread(4 + 4 + 4)
+            if len(hdr) < 12:
+                self.error(f"xread error: Incomplete header ({len(hdr)} bytes, expected 12)")
+                return -1
             magic, _, length = unpack("<III", hdr)
         except Exception as err:
             self.error(f"xread error: {str(err)}")
@@ -130,20 +133,34 @@ class DAXFlash(metaclass=LogBase):
     def rdword(self, count=1):
         data = []
         for _ in range(count):
-            data.append(unpack("<I", self.xread())[0])
+            resp = self.xread()
+            if resp == -1 or len(resp) < 4:
+                self.error("rdword: Failed to read data from device")
+                return 0 if count == 1 else [0] * count
+            data.append(unpack("<I", resp[:4])[0])
         if count == 1:
             return data[0]
         return data
 
     def status(self):
         hdr = self.usbread(4 + 4 + 4)
-        magic, _, length = unpack("<III", hdr)
+        if len(hdr) < 12:
+            self.error(f"Status error: Incomplete header ({len(hdr)} bytes, expected 12)")
+            return -1
+        try:
+            magic, _, length = unpack("<III", hdr)
+        except Exception as err:
+            self.error(f"Status unpack error: {str(err)}")
+            return -1
         if magic != 0xFEEEEEEF:
             self.error("Status error: Wrong magic")
             return -1
+        if length > 0x100000:  # Sanity check: length should not exceed 1MB
+            self.error(f"Status error: Unreasonable length {hex(length)}")
+            return -1
         tmp = self.usbread(length)
         if len(tmp) < length:
-            self.error(f"Status length error: Too few data {hex(len(hdr))}")
+            self.error(f"Status length error: Too few data ({len(tmp)} bytes, expected {length})")
             return -1
         if length == 2:
             status = unpack("<H", tmp)[0]
@@ -153,8 +170,11 @@ class DAXFlash(metaclass=LogBase):
             status = unpack("<I", tmp)[0]
             if status == 0xFEEEEEEF:
                 return 0
-        else:
+        elif length >= 4 and (length % 4) == 0:
             status = unpack("<" + str(length // 4) + "I", tmp)[0]
+        else:
+            self.error(f"Status error: Unexpected length {length}")
+            return -1
         return status
 
     def read_pmt(self) -> tuple:
