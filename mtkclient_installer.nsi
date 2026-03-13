@@ -10,6 +10,8 @@
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "x64.nsh"
+!include "WinMessages.nsh"
+!include "WordFunc.nsh"
 
 ; --- General ---
 Name "mtkclient"
@@ -22,11 +24,11 @@ Unicode True
 VIProductVersion "2.1.3.0"
 VIAddVersionKey "ProductName" "mtkclient"
 VIAddVersionKey "ProductVersion" "2.1.3"
+VIAddVersionKey "FileVersion" "2.1.3.0"
 VIAddVersionKey "FileDescription" "mtkclient - MediaTek Flash Tool for Windows"
 VIAddVersionKey "LegalCopyright" "(c) B.Kerler 2018-2026 GPLv3"
 
 ; --- UI ---
-!define MUI_ICON "mtkclient\icon.ico"
 !define MUI_ABORTWARNING
 
 !insertmacro MUI_PAGE_WELCOME
@@ -40,7 +42,38 @@ VIAddVersionKey "LegalCopyright" "(c) B.Kerler 2018-2026 GPLv3"
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Spanish"
 
-; --- Sections ---
+; --- Helper: Add directory to system PATH via registry ---
+Function AddToPath
+    ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+    StrCpy $1 "$INSTDIR"
+    ; Check if already in PATH
+    ${WordFind} "$0" "$1" "E+1{" $R0
+    IfErrors 0 skip_add
+    ; Append to PATH
+    StrCpy $0 "$0;$1"
+    WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" "$0"
+    ; Notify all windows of environment change
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    skip_add:
+FunctionEnd
+
+; --- Helper: Remove directory from system PATH via registry ---
+Function un.RemoveFromPath
+    ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+    StrCpy $1 "$INSTDIR"
+    ; Remove our entry (with leading or trailing semicolons)
+    ${WordFind} "$0" "$1" "E+1{" $R0
+    IfErrors skip_remove
+    StrCpy $2 "$0" "" ""
+    ${WordReplace} "$2" ";$1" "" "+" $0
+    ${WordReplace} "$0" "$1;" "" "+" $0
+    ${WordReplace} "$0" "$1" "" "+" $0
+    WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path" "$0"
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+    skip_remove:
+FunctionEnd
+
+; --- Main install section ---
 Section "mtkclient (required)" SecMain
     SectionIn RO
     SetOutPath "$INSTDIR"
@@ -57,24 +90,24 @@ Section "mtkclient (required)" SecMain
     File "mtkclient\Windows\libusb-1.0.dll"
     File /nonfatal "mtkclient\Windows\libusb32-1.0.dll"
 
-    ; Driver INF
+    ; Driver files
     SetOutPath "$INSTDIR\driver"
     File "mtkclient\Windows\driver\mtkclient_preloader.inf"
     File /nonfatal "mtkclient\Windows\driver\mtkclient_preloader.cat"
+    File /nonfatal "mtkclient\Windows\driver\mtkclient_cert.cer"
 
     ; Uninstaller
     SetOutPath "$INSTDIR"
     WriteUninstaller "$INSTDIR\uninstall.exe"
 
-    ; Start menu
+    ; Start menu shortcuts
     CreateDirectory "$SMPROGRAMS\mtkclient"
     CreateShortCut "$SMPROGRAMS\mtkclient\mtkclient GUI.lnk" "$INSTDIR\mtk_gui.exe"
     CreateShortCut "$SMPROGRAMS\mtkclient\mtkclient CLI.lnk" "$INSTDIR\mtk.exe"
     CreateShortCut "$SMPROGRAMS\mtkclient\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
-    ; Add to PATH
-    EnVar::SetHKLM
-    EnVar::AddValue "PATH" "$INSTDIR"
+    ; Add to system PATH
+    Call AddToPath
 
     ; Add/Remove Programs entry
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\mtkclient" \
@@ -94,24 +127,22 @@ Section "mtkclient (required)" SecMain
 SectionEnd
 
 Section "Install USB Driver" SecDriver
-    ; Install the self-signed certificate to TrustedPublisher store
-    ; (the cert was created and embedded in the .cat during build)
-    nsExec::ExecToLog 'certutil -addstore "TrustedPublisher" "$INSTDIR\driver\mtkclient_preloader.cat"'
+    ; Install self-signed certificate to TrustedPublisher store
+    IfFileExists "$INSTDIR\driver\mtkclient_cert.cer" 0 skip_cert
+    nsExec::ExecToLog 'certutil -addstore "TrustedPublisher" "$INSTDIR\driver\mtkclient_cert.cer"'
+    nsExec::ExecToLog 'certutil -addstore "Root" "$INSTDIR\driver\mtkclient_cert.cer"'
+    skip_cert:
 
-    ; Install the driver INF using pnputil
+    ; Install driver INF using pnputil
     nsExec::ExecToLog 'pnputil /add-driver "$INSTDIR\driver\mtkclient_preloader.inf" /install'
-
-    ; Fallback: also try the older method
-    nsExec::ExecToLog 'rundll32.exe setupapi.dll,InstallHinfSection DefaultInstall 132 $INSTDIR\driver\mtkclient_preloader.inf'
 SectionEnd
 
 Section "Uninstall"
-    ; Remove driver
+    ; Try to remove driver
     nsExec::ExecToLog 'pnputil /delete-driver "$INSTDIR\driver\mtkclient_preloader.inf" /uninstall'
 
     ; Remove from PATH
-    EnVar::SetHKLM
-    EnVar::DeleteValue "PATH" "$INSTDIR"
+    Call un.RemoveFromPath
 
     ; Remove files
     Delete "$INSTDIR\mtk.exe"
@@ -121,6 +152,7 @@ Section "Uninstall"
     Delete "$INSTDIR\libusb32-1.0.dll"
     Delete "$INSTDIR\driver\mtkclient_preloader.inf"
     Delete "$INSTDIR\driver\mtkclient_preloader.cat"
+    Delete "$INSTDIR\driver\mtkclient_cert.cer"
     RMDir "$INSTDIR\driver"
     Delete "$INSTDIR\uninstall.exe"
     RMDir "$INSTDIR"

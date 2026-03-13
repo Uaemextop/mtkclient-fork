@@ -24,12 +24,14 @@ jobs:
           cache: "pip"
 
       - name: Install Python dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller
           pip install pyusb pycryptodome pycryptodomex colorama pyserial
           pip install pyside6 shiboken6
-          pip install fusepy
+          # fusepy is optional on Windows
+          pip install fusepy 2>$null; $true
           pip install -e .
 
       # ── Build C++ native DLL (MSVC) ──────────────────────
@@ -39,122 +41,157 @@ jobs:
           arch: x64
 
       - name: Build native USB driver DLL
+        shell: pwsh
         run: |
-          cd mtkclient/Library/Connection/native
-          mkdir build
-          cd build
+          $nativeDir = "mtkclient\Library\Connection\native"
+          $buildDir = Join-Path $nativeDir "build"
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          Push-Location $buildDir
           cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
           cmake --build . --config Release
-          # Copy DLL to Windows directory
-          Copy-Item -Path "bin\mtk_usb_driver.dll" -Destination "../../../../Windows/" -Force -ErrorAction SilentlyContinue
-          Copy-Item -Path "mtk_usb_driver.dll" -Destination "../../../../Windows/" -Force -ErrorAction SilentlyContinue
-          dir ..\..\..\..\Windows\
-        shell: pwsh
+          Pop-Location
+          # Find the built DLL and copy to Windows directory
+          $dll = Get-ChildItem -Path $buildDir -Recurse -Filter "mtk_usb_driver.dll" | Select-Object -First 1
+          if ($dll) {
+            Copy-Item $dll.FullName "mtkclient\Windows\mtk_usb_driver.dll" -Force
+            Write-Host "DLL built: $($dll.FullName) -> mtkclient\Windows\mtk_usb_driver.dll"
+          } else {
+            Write-Host "WARNING: mtk_usb_driver.dll not found in build output"
+            Get-ChildItem -Path $buildDir -Recurse | ForEach-Object { Write-Host $_.FullName }
+          }
 
       # ── Build PyInstaller EXEs ────────────────────────────
-      - name: Build mtk_console.exe (CLI)
-        run: |
-          pyinstaller mtk_console.spec --noconfirm
-          dir dist\
-
-      - name: Build mtk_standalone.exe (GUI)
-        run: |
-          pyinstaller mtk_standalone.spec --noconfirm
-          dir dist\
-
-      # Rename the date-stamped exes to stable names for the installer
-      - name: Normalize EXE names
-        run: |
-          $cli = Get-ChildItem dist\mtk_console_*.exe | Select-Object -First 1
-          $gui = Get-ChildItem dist\mtk_standalone_*.exe -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($cli) { Copy-Item $cli.FullName "dist\mtk_console.exe" }
-          if ($gui) { Copy-Item $gui.FullName "dist\mtk_standalone.exe" }
-          dir dist\
+      - name: Ensure icon file exists
         shell: pwsh
-
-      # ── Create self-signed certificate & sign driver ──────
-      - name: Create self-signed certificate and sign driver INF
         run: |
-          # Create self-signed certificate for driver signing
-          $cert = New-SelfSignedCertificate `
-            -Type Custom `
-            -Subject "CN=mtkclient Driver Signing, O=mtkclient, C=US" `
-            -KeyUsage DigitalSignature `
-            -FriendlyName "mtkclient Driver Signing Certificate" `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3","2.5.29.19={text}false") `
-            -NotAfter (Get-Date).AddYears(10)
-
-          Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
-
-          # Export certificate for distribution
-          Export-Certificate -Cert $cert -FilePath "mtkclient\Windows\driver\mtkclient_cert.cer" -Type CERT
-
-          # Create catalog file using inf2cat (from Windows SDK)
-          # If inf2cat is not available, create a minimal .cat by signing the INF directly
-          $sdkPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\inf2cat.exe" -ErrorAction SilentlyContinue | Sort-Object -Descending | Select-Object -First 1
-          if ($sdkPath) {
-            Write-Host "Using inf2cat from: $($sdkPath.FullName)"
-            & $sdkPath.FullName /driver:"$PWD\mtkclient\Windows\driver" /os:10_X64
-          } else {
-            Write-Host "inf2cat not found, skipping catalog generation"
-          }
-
-          # Sign catalog or INF with signtool
-          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Sort-Object -Descending | Select-Object -First 1
-          if ($signtool) {
-            Write-Host "Using signtool from: $($signtool.FullName)"
-            $catFile = "mtkclient\Windows\driver\mtkclient_preloader.cat"
-            if (Test-Path $catFile) {
-              & $signtool.FullName sign /a /sha1 $cert.Thumbprint /fd SHA256 /t http://timestamp.digicert.com $catFile
-            }
-          } else {
-            Write-Host "signtool not found, skipping signing"
-          }
-        shell: pwsh
-
-      # ── Build NSIS installer ──────────────────────────────
-      - name: Install NSIS
-        run: |
-          choco install nsis -y --no-progress
-          # Install EnVar plugin for PATH management
-          $nsisDir = "C:\Program Files (x86)\NSIS"
-          Write-Host "NSIS installed at: $nsisDir"
-        shell: pwsh
-
-      - name: Copy DLL build output for installer
-        run: |
-          # Ensure build_dll directory exists for NSIS script
-          mkdir -Force build_dll\bin\Release
-          mkdir -Force build_dll\bin
-          $dll = Get-ChildItem -Recurse -Filter "mtk_usb_driver.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($dll) {
-            Copy-Item $dll.FullName "build_dll\bin\Release\" -Force
-            Copy-Item $dll.FullName "build_dll\bin\" -Force
-            Write-Host "DLL found and copied: $($dll.FullName)"
-          } else {
-            Write-Host "WARNING: mtk_usb_driver.dll not found, installer will skip it"
-          }
-        shell: pwsh
-
-      - name: Build NSIS installer
-        run: |
-          # Check if icon exists, create a placeholder if not
           if (!(Test-Path "mtkclient\icon.ico")) {
-            # Use a default icon - copy from Windows
-            Copy-Item "C:\Windows\System32\shell32.dll" -Destination "mtkclient\icon_tmp.dll" -Force -ErrorAction SilentlyContinue
-            # Create a minimal valid .ico (1x1 pixel)
-            $icoHeader = [byte[]]@(0,0,1,0,1,0,1,1,0,0,1,0,32,0,40,0,0,0,22,0,0,0)
-            $bmpHeader = [byte[]]@(40,0,0,0,1,0,0,0,2,0,0,0,1,0,32,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
-            $pixels = [byte[]]@(0,0,255,255,0,0,0,0)
-            $ico = $icoHeader + $bmpHeader + $pixels
+            Write-Host "Creating placeholder icon..."
+            $b = [byte[]]@(
+              0,0,1,0,1,0,16,16,0,0,1,0,32,0,104,4,0,0,22,0,0,0,
+              40,0,0,0,16,0,0,0,32,0,0,0,1,0,32,0,0,0,0,0,0,4,0,0,
+              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+            $pixels = New-Object byte[] 1024
+            $mask = New-Object byte[] 64
+            $ico = $b + $pixels + $mask
             [System.IO.File]::WriteAllBytes("mtkclient\icon.ico", $ico)
           }
 
-          & "C:\Program Files (x86)\NSIS\makensis.exe" /V3 mtkclient_installer.nsi
-          dir mtkclient_setup.exe
-        shell: pwsh
+      - name: Build mtk_console.exe (CLI)
+        shell: cmd
+        run: pyinstaller mtk_console.spec --noconfirm
+
+      - name: Build mtk_standalone.exe (GUI)
+        shell: cmd
+        run: pyinstaller mtk_standalone.spec --noconfirm
         continue-on-error: true
+
+      - name: Normalize EXE names for installer
+        shell: pwsh
+        run: |
+          # PyInstaller adds date stamp to names; create stable copies
+          $cli = Get-ChildItem "dist\mtk_console_*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $gui = Get-ChildItem "dist\mtk_standalone_*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($cli) {
+            Copy-Item $cli.FullName "dist\mtk_console.exe" -Force
+            Write-Host "CLI: $($cli.Name) -> mtk_console.exe"
+          }
+          if ($gui) {
+            Copy-Item $gui.FullName "dist\mtk_standalone.exe" -Force
+            Write-Host "GUI: $($gui.Name) -> mtk_standalone.exe"
+          }
+          Write-Host "`nContents of dist\:"
+          Get-ChildItem dist\ | Format-Table Name, Length
+
+      # ── Self-signed certificate & driver signing ──────────
+      - name: Create self-signed certificate and sign driver
+        shell: pwsh
+        run: |
+          # Create code-signing certificate
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject "CN=mtkclient, O=mtkclient, C=US" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "mtkclient Driver Signing" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @(
+              "2.5.29.37={text}1.3.6.1.5.5.7.3.3",
+              "2.5.29.19={text}false"
+            ) `
+            -NotAfter (Get-Date).AddYears(10)
+
+          Write-Host "Certificate created: $($cert.Thumbprint)"
+
+          # Export .cer for distribution
+          $driverDir = "mtkclient\Windows\driver"
+          Export-Certificate -Cert $cert -FilePath "$driverDir\mtkclient_cert.cer" -Type CERT
+          Write-Host "Certificate exported to $driverDir\mtkclient_cert.cer"
+
+          # Try inf2cat to create catalog (.cat) file
+          $inf2cat = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\inf2cat.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+          if ($inf2cat) {
+            Write-Host "Running inf2cat: $($inf2cat.FullName)"
+            & $inf2cat.FullName /driver:"$PWD\$driverDir" /os:10_X64 /verbose
+            Write-Host "inf2cat exit code: $LASTEXITCODE"
+          } else {
+            Write-Host "inf2cat not found - catalog skipped"
+          }
+
+          # Try signtool to sign the .cat
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+          $catFile = "$driverDir\mtkclient_preloader.cat"
+          if ($signtool -and (Test-Path $catFile)) {
+            Write-Host "Signing catalog: $($signtool.FullName)"
+            & $signtool.FullName sign /a /sha1 $cert.Thumbprint /fd SHA256 $catFile
+            Write-Host "signtool exit code: $LASTEXITCODE"
+          } else {
+            Write-Host "signtool or .cat not available - signing skipped"
+          }
+
+          Write-Host "`nDriver directory contents:"
+          Get-ChildItem $driverDir | Format-Table Name, Length
+
+      # ── Build NSIS installer ──────────────────────────────
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis -y --no-progress
+
+      - name: Prepare installer build directory
+        shell: pwsh
+        run: |
+          # NSIS script expects DLL in build_dll\bin\ paths
+          New-Item -ItemType Directory -Force -Path "build_dll\bin\Release" | Out-Null
+          New-Item -ItemType Directory -Force -Path "build_dll\bin" | Out-Null
+          $dll = Get-ChildItem -Recurse -Filter "mtk_usb_driver.dll" -ErrorAction SilentlyContinue |
+            Where-Object { $_.DirectoryName -notlike "*build_dll*" } |
+            Select-Object -First 1
+          if ($dll) {
+            Copy-Item $dll.FullName "build_dll\bin\Release\mtk_usb_driver.dll" -Force
+            Copy-Item $dll.FullName "build_dll\bin\mtk_usb_driver.dll" -Force
+            Write-Host "DLL staged for installer: $($dll.FullName)"
+          } else {
+            Write-Host "WARNING: DLL not found, installer will not include it"
+          }
+
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $nsis = "C:\Program Files (x86)\NSIS\makensis.exe"
+          if (!(Test-Path $nsis)) {
+            $nsis = "makensis.exe"
+          }
+          Write-Host "Building installer with: $nsis"
+          & $nsis /V3 mtkclient_installer.nsi
+          if (Test-Path "mtkclient_setup.exe") {
+            $size = (Get-Item "mtkclient_setup.exe").Length
+            Write-Host "Installer built: mtkclient_setup.exe ($size bytes)"
+          } else {
+            Write-Host "ERROR: Installer not created"
+            exit 1
+          }
 
       # ── Upload artifacts ──────────────────────────────────
       - name: Upload CLI executable
@@ -176,15 +213,13 @@ jobs:
         if: always()
         with:
           name: mtk-usb-driver-dll
-          path: |
-            mtkclient/Windows/mtk_usb_driver.dll
-            build_dll/bin/**/mtk_usb_driver.dll
+          path: mtkclient/Windows/mtk_usb_driver.dll
           if-no-files-found: warn
 
-      - name: Upload driver INF + certificate
+      - name: Upload driver package
         uses: actions/upload-artifact@v4
         with:
-          name: mtkclient-driver-inf
+          name: mtkclient-driver-package
           path: |
             mtkclient/Windows/driver/mtkclient_preloader.inf
             mtkclient/Windows/driver/mtkclient_preloader.cat
@@ -199,7 +234,7 @@ jobs:
           path: mtkclient_setup.exe
           if-no-files-found: warn
 
-      - name: Upload all-in-one bundle
+      - name: Upload complete bundle
         uses: actions/upload-artifact@v4
         if: always()
         with:
