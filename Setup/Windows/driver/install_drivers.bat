@@ -2,6 +2,11 @@
 :: install_drivers.bat — Install mtkclient WinUSB + Serial drivers
 :: Derived from MTK SP Drivers 20160804, repackaged for Windows 10/11 x64
 ::
+:: This script performs a clean installation:
+::   1. Removes old MTK USB device instances and drivers
+::   2. Installs the test-signing certificate
+::   3. Installs the new WinUSB + Serial drivers
+::
 :: Port speeds configured by the serial driver:
 ::   BROM/Preloader handshake : 115200 bps  8-N-1
 ::   DA high-speed transfer   : 921600 bps  8-N-1
@@ -30,7 +35,26 @@ echo.
 
 set "DRIVER_DIR=%~dp0"
 
-echo [1/2] Installing WinUSB driver (BROM, Preloader, DA, ADB, Sony)...
+echo [1/5] Removing old MediaTek drivers and USB devices...
+if exist "%DRIVER_DIR%cleanup_mtk_drivers.ps1" (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%DRIVER_DIR%cleanup_mtk_drivers.ps1"
+) else (
+    echo       Cleanup script not found, skipping...
+)
+echo.
+
+echo [2/5] Installing test-signing certificate...
+if exist "%DRIVER_DIR%mtkclient_test.cer" (
+    certutil -addstore Root "%DRIVER_DIR%mtkclient_test.cer"
+    certutil -addstore TrustedPublisher "%DRIVER_DIR%mtkclient_test.cer"
+    echo       Certificate installed to Root and TrustedPublisher stores.
+) else (
+    echo       Certificate file not found, skipping...
+    echo       NOTE: Driver installation may fail without a trusted certificate.
+)
+echo.
+
+echo [3/5] Installing WinUSB driver (BROM, Preloader, DA, ADB, Sony)...
 pnputil /add-driver "%DRIVER_DIR%mtkclient_winusb.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: WinUSB driver installation returned error %errorlevel%
@@ -39,13 +63,22 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [2/2] Installing Serial driver (VCOM, Meta, ETS, ELT)...
+echo [4/5] Installing Serial driver (VCOM, Meta, ETS, ELT)...
 echo       Configuring: 115200 bps default, 921600 bps max, 8-N-1
 pnputil /add-driver "%DRIVER_DIR%mtkclient_preloader.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: Serial driver installation returned error %errorlevel%
 ) else (
     echo       Serial driver installed successfully.
+)
+echo.
+
+echo [5/5] Verifying installation...
+pnputil /enum-drivers | findstr /i "mtkclient" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo       Drivers are registered in the Driver Store.
+) else (
+    echo       WARNING: Could not verify driver registration.
 )
 echo.
 

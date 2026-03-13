@@ -52,11 +52,15 @@ jobs:
           Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
           echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
 
-      - name: Create and sign catalog files
+      - name: Export certificate and sign catalog files
         shell: pwsh
         run: |
           $cert = Get-ChildItem Cert:\CurrentUser\My\$env:CERT_THUMBPRINT
           $drvDir = "Setup\Windows\driver"
+
+          # Export the signing certificate as .cer for MSI embedding
+          Export-Certificate -Cert $cert -FilePath "$drvDir\mtkclient_test.cer" -Type CERT
+          Write-Host "Certificate exported: mtkclient_test.cer ($((Get-Item "$drvDir\mtkclient_test.cer").Length) bytes)"
 
           # WinUSB catalog — hash the INF
           New-FileCatalog `
@@ -80,8 +84,8 @@ jobs:
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "Serial catalog signed"
 
-          # Verify catalogs exist
-          Get-ChildItem "$drvDir\*.cat" | ForEach-Object {
+          # Verify catalogs and cert exist
+          Get-ChildItem "$drvDir\*.cat","$drvDir\*.cer" | ForEach-Object {
             Write-Host "  $($_.Name)  $($_.Length) bytes"
           }
 
@@ -157,6 +161,8 @@ jobs:
             Setup/Windows/driver/mtkclient_winusb.cat
             Setup/Windows/driver/mtkclient_preloader.inf
             Setup/Windows/driver/mtkclient_preloader.cat
+            Setup/Windows/driver/mtkclient_test.cer
+            Setup/Windows/driver/cleanup_mtk_drivers.ps1
             Setup/Windows/driver/install_drivers.bat
             Setup/Windows/driver/README.md
           if-no-files-found: error

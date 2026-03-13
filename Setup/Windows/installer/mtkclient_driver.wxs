@@ -3,9 +3,11 @@
   mtkclient_driver.wxs — WiX v3 source for the mtkclient WinUSB / Serial
   driver MSI installer.
 
-  The MSI ships the repackaged INF + CAT files and calls pnputil at
-  install / uninstall time so the drivers are registered in (or removed
-  from) the Windows Driver Store.
+  The MSI ships the repackaged INF + CAT files and:
+    1. Runs a cleanup script to remove old MTK drivers and devices
+    2. Installs the test-signing certificate to Root + TrustedPublisher
+    3. Calls pnputil to register the new drivers in the Driver Store
+    4. On uninstall, removes the certificate from both stores
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
@@ -84,9 +86,19 @@
     </DirectoryRef>
 
     <!-- ============================================================ -->
-    <!--  Components — convenience batch script + README               -->
+    <!--  Components — cleanup script, certificate, batch, readme      -->
     <!-- ============================================================ -->
     <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="CMP_CleanupScript" Guid="D4E5F6A7-B8C9-0123-DEF0-456789012345" Win64="yes">
+        <File Id="FILE_CleanupScript"
+              Source="$(var.DriverDir)\cleanup_mtk_drivers.ps1"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_Certificate" Guid="E5F6A7B8-C9D0-1234-EF01-567890123456" Win64="yes">
+        <File Id="FILE_Certificate"
+              Source="$(var.DriverDir)\mtkclient_test.cer"
+              KeyPath="yes" />
+      </Component>
       <Component Id="CMP_InstallBat" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012" Win64="yes">
         <File Id="FILE_InstallBat"
               Source="$(var.DriverDir)\install_drivers.bat"
@@ -111,19 +123,60 @@
       <ComponentRef Id="CMP_WinUSB_CAT" />
       <ComponentRef Id="CMP_Serial_INF" />
       <ComponentRef Id="CMP_Serial_CAT" />
+      <ComponentRef Id="CMP_CleanupScript" />
+      <ComponentRef Id="CMP_Certificate" />
       <ComponentRef Id="CMP_InstallBat" />
       <ComponentRef Id="CMP_Readme" />
     </Feature>
 
     <!-- ============================================================ -->
-    <!--  Custom actions — pnputil driver install                      -->
-    <!--  Note: Uninstall does NOT remove drivers from the Driver      -->
-    <!--  Store because pnputil /delete-driver requires the OEM        -->
-    <!--  published name (oemXX.inf) which is assigned at install      -->
-    <!--  time.  This is standard behaviour for driver packages.       -->
+    <!--  Custom actions — INSTALL sequence                            -->
+    <!--                                                               -->
+    <!--  Order after InstallFiles:                                    -->
+    <!--    1. Run cleanup script (remove old drivers + devices)       -->
+    <!--    2. Install certificate to Root store                       -->
+    <!--    3. Install certificate to TrustedPublisher store           -->
+    <!--    4. pnputil install WinUSB driver                           -->
+    <!--    5. pnputil install Serial driver                           -->
     <!-- ============================================================ -->
 
-    <!-- ── INSTALL: WinUSB ── -->
+    <!-- ── 1. CLEANUP: Remove old MTK drivers and devices ── -->
+    <SetProperty Id="CA_CleanupDrivers"
+                 Before="CA_CleanupDrivers"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]cleanup_mtk_drivers.ps1&quot;" />
+    <CustomAction Id="CA_CleanupDrivers"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 2. CERT: Install to Root store ── -->
+    <SetProperty Id="CA_InstallCertRoot"
+                 Before="CA_InstallCertRoot"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore Root &quot;[INSTALLFOLDER]mtkclient_test.cer&quot;" />
+    <CustomAction Id="CA_InstallCertRoot"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 3. CERT: Install to TrustedPublisher store ── -->
+    <SetProperty Id="CA_InstallCertTP"
+                 Before="CA_InstallCertTP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -addstore TrustedPublisher &quot;[INSTALLFOLDER]mtkclient_test.cer&quot;" />
+    <CustomAction Id="CA_InstallCertTP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── 4. INSTALL: WinUSB driver ── -->
     <SetProperty Id="CA_InstallWinUSB"
                  Before="CA_InstallWinUSB"
                  Sequence="execute"
@@ -135,7 +188,7 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── INSTALL: Serial ── -->
+    <!-- ── 5. INSTALL: Serial driver ── -->
     <SetProperty Id="CA_InstallSerial"
                  Before="CA_InstallSerial"
                  Sequence="execute"
@@ -147,10 +200,52 @@
                   Return="ignore"
                   Impersonate="no" />
 
+    <!-- ============================================================ -->
+    <!--  Custom actions — UNINSTALL sequence                          -->
+    <!--                                                               -->
+    <!--  Remove the test-signing certificate from both stores.        -->
+    <!--  Driver Store cleanup is not done because pnputil             -->
+    <!--  /delete-driver requires the OEM name assigned at install.    -->
+    <!-- ============================================================ -->
+
+    <!-- ── UNINSTALL: Remove cert from Root ── -->
+    <SetProperty Id="CA_RemoveCertRoot"
+                 Before="CA_RemoveCertRoot"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore Root &quot;mtkclient Test Signing&quot;" />
+    <CustomAction Id="CA_RemoveCertRoot"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ── UNINSTALL: Remove cert from TrustedPublisher ── -->
+    <SetProperty Id="CA_RemoveCertTP"
+                 Before="CA_RemoveCertTP"
+                 Sequence="execute"
+                 Value="&quot;[SystemFolder]certutil.exe&quot; -delstore TrustedPublisher &quot;mtkclient Test Signing&quot;" />
+    <CustomAction Id="CA_RemoveCertTP"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- ============================================================ -->
+    <!--  Sequence scheduling                                          -->
+    <!-- ============================================================ -->
     <InstallExecuteSequence>
-      <!-- Install drivers after files are laid down (first install only) -->
-      <Custom Action="CA_InstallWinUSB"   After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <!-- INSTALL: cleanup → cert → drivers (after InstallFiles, first install only) -->
+      <Custom Action="CA_CleanupDrivers"  After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallCertRoot" After="CA_CleanupDrivers">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallWinUSB"   After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallSerial"   After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
+
+      <!-- UNINSTALL: remove certificate from stores (before RemoveFiles) -->
+      <Custom Action="CA_RemoveCertRoot"  Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="CA_RemoveCertTP"    After="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
 
   </Product>
