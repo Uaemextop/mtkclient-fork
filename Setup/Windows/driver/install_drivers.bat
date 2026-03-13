@@ -1,11 +1,7 @@
 @echo off
-:: install_drivers.bat — Install mtkclient WinUSB + Serial drivers
-:: Derived from MTK SP Drivers 20160804, repackaged for Windows 10/11 x64
-::
-:: This script performs a clean installation:
-::   1. Removes old MTK USB device instances and drivers
-::   2. Installs the test-signing certificate
-::   3. Installs the new WinUSB + Serial drivers
+:: install_drivers.bat — Install mtkclient USB drivers
+:: ADB driver based on Google USB Driver r13, modified for MTK devices.
+:: Serial driver uses inbox usbser.sys (replaces legacy usb2ser.sys).
 ::
 :: Port speeds configured by the serial driver:
 ::   BROM/Preloader handshake : 115200 bps  8-N-1
@@ -24,7 +20,8 @@ if %errorlevel% neq 0 (
 
 echo ============================================================
 echo   mtkclient Driver Installer — Windows 10/11 x64
-echo   Derived from MTK SP Drivers 20160804
+echo   ADB driver: Google USB Driver r13 modified for MTK
+echo   Serial driver: inbox usbser.sys (Win10+)
 echo.
 echo   Serial port config:
 echo     Default baud : 115200 bps (BROM handshake)
@@ -54,18 +51,8 @@ if exist "%DRIVER_DIR%mtkclient_test.cer" (
 )
 echo.
 
-echo [3/6] Installing WinUSB driver (BROM, Preloader, DA)...
-pnputil /add-driver "%DRIVER_DIR%mtkclient_winusb.inf" /install
-if %errorlevel% neq 0 (
-    echo WARNING: WinUSB driver installation returned error %errorlevel%
-) else (
-    echo       WinUSB driver installed successfully.
-)
-echo.
-
-echo [4/6] Installing ADB / Bootloader / MTP driver (android_winusb.inf)...
-echo       Based on Google USB Driver r13, modified for MTK devices
-pnputil /add-driver "%DRIVER_DIR%android_winusb.inf" /install
+echo [3/5] Installing ADB / Bootloader / MTP driver (Google r13 + MTK)...
+pnputil /add-driver "%DRIVER_DIR%adb\android_winusb.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: ADB driver installation returned error %errorlevel%
 ) else (
@@ -73,9 +60,9 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [5/6] Installing Serial driver (VCOM, Meta, ETS, ELT)...
+echo [4/5] Installing Serial driver (VCOM, Meta, ETS, ELT)...
 echo       Configuring: 115200 bps default, 921600 bps max, 8-N-1
-pnputil /add-driver "%DRIVER_DIR%mtkclient_preloader.inf" /install
+pnputil /add-driver "%DRIVER_DIR%CDC\cdc-acm.inf" /install
 if %errorlevel% neq 0 (
     echo WARNING: Serial driver installation returned error %errorlevel%
 ) else (
@@ -83,8 +70,8 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [6/6] Verifying installation...
-pnputil /enum-drivers | findstr /i "mtkclient" >nul 2>&1
+echo [5/5] Verifying installation...
+pnputil /enum-drivers | findstr /i "android_winusb cdc-acm" >nul 2>&1
 if %errorlevel% equ 0 (
     echo       Drivers are registered in the Driver Store.
 ) else (
@@ -95,14 +82,15 @@ echo.
 echo ============================================================
 echo   Installation complete.
 echo.
-echo   Connect your MediaTek device in BROM or Preloader mode
-echo   and check Device Manager for proper detection.
+echo   Connect your MediaTek device and check Device Manager.
 echo.
 echo   Supported modes (VID 0x0E8D):
 echo     BROM       : PID 0x0003
 echo     Preloader  : PID 0x2000, 0x20FF, 0x3000, 0x6000
 echo     DA         : PID 0x2001
-echo     Fastboot   : PID 0x2024
-echo     Meta/VCOM  : PID 0x2007
+echo     Bootloader : PID 0x2024
+echo     ADB        : Various composite PIDs
+echo     MTP        : PID 0x2008 + composites
+echo     VCOM/Meta  : PID 0x2007 + composites
 echo ============================================================
 pause

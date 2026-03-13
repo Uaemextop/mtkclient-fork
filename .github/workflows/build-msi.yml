@@ -62,41 +62,30 @@ jobs:
           Export-Certificate -Cert $cert -FilePath "$drvDir\mtkclient_test.cer" -Type CERT
           Write-Host "Certificate exported: mtkclient_test.cer ($((Get-Item "$drvDir\mtkclient_test.cer").Length) bytes)"
 
-          # WinUSB catalog (BROM/Preloader/DA)
+          # ADB/Bootloader/MTP catalog (Google r13 modified for MTK)
           New-FileCatalog `
-            -Path "$drvDir\mtkclient_winusb.inf" `
-            -CatalogFilePath "$drvDir\mtkclient_winusb.cat" `
+            -Path "$drvDir\adb\android_winusb.inf" `
+            -CatalogFilePath "$drvDir\adb\android_winusb.cat" `
             -CatalogVersion 2.0
           Set-AuthenticodeSignature `
-            -FilePath "$drvDir\mtkclient_winusb.cat" `
-            -Certificate $cert `
-            -TimestampServer "http://timestamp.digicert.com"
-          Write-Host "WinUSB catalog signed"
-
-          # ADB/Bootloader/MTP catalog (android_winusb.inf — Google r13 modified)
-          New-FileCatalog `
-            -Path "$drvDir\android_winusb.inf" `
-            -CatalogFilePath "$drvDir\android_winusb.cat" `
-            -CatalogVersion 2.0
-          Set-AuthenticodeSignature `
-            -FilePath "$drvDir\android_winusb.cat" `
+            -FilePath "$drvDir\adb\android_winusb.cat" `
             -Certificate $cert `
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "ADB catalog signed"
 
-          # Serial catalog (VCOM/Meta/ETS/ELT)
+          # Serial catalog (cdc-acm.inf, inbox usbser.sys)
           New-FileCatalog `
-            -Path "$drvDir\mtkclient_preloader.inf" `
-            -CatalogFilePath "$drvDir\mtkclient_preloader.cat" `
+            -Path "$drvDir\CDC\cdc-acm.inf" `
+            -CatalogFilePath "$drvDir\CDC\cdc-acm.cat" `
             -CatalogVersion 2.0
           Set-AuthenticodeSignature `
-            -FilePath "$drvDir\mtkclient_preloader.cat" `
+            -FilePath "$drvDir\CDC\cdc-acm.cat" `
             -Certificate $cert `
             -TimestampServer "http://timestamp.digicert.com"
           Write-Host "Serial catalog signed"
 
           # Verify catalogs and cert exist
-          Get-ChildItem "$drvDir\*.cat","$drvDir\*.cer" | ForEach-Object {
+          Get-ChildItem "$drvDir\adb\*.cat","$drvDir\CDC\*.cat","$drvDir\*.cer" | ForEach-Object {
             Write-Host "  $($_.Name)  $($_.Length) bytes"
           }
 
@@ -168,12 +157,10 @@ jobs:
         with:
           name: mtkclient-driver-files
           path: |
-            Setup/Windows/driver/mtkclient_winusb.inf
-            Setup/Windows/driver/mtkclient_winusb.cat
-            Setup/Windows/driver/android_winusb.inf
-            Setup/Windows/driver/android_winusb.cat
-            Setup/Windows/driver/mtkclient_preloader.inf
-            Setup/Windows/driver/mtkclient_preloader.cat
+            Setup/Windows/driver/adb/android_winusb.inf
+            Setup/Windows/driver/adb/android_winusb.cat
+            Setup/Windows/driver/CDC/cdc-acm.inf
+            Setup/Windows/driver/CDC/cdc-acm.cat
             Setup/Windows/driver/mtkclient_test.cer
             Setup/Windows/driver/cleanup_mtk_drivers.ps1
             Setup/Windows/driver/install_drivers.bat

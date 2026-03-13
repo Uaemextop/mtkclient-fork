@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  mtkclient_driver.wxs — WiX v3 source for the mtkclient WinUSB / Serial
-  driver MSI installer.
+  mtkclient_driver.wxs — WiX v3 source for the mtkclient USB driver MSI.
 
-  The MSI ships the repackaged INF + CAT files and:
-    1. Runs a cleanup script to remove old MTK drivers and devices
+  Drivers installed:
+    1. android_winusb.inf — Google USB Driver r13 modified for MTK ADB/MTP/BROM/DA
+    2. cdc-acm.inf — Serial COM port driver (inbox usbser.sys) for VCOM/Meta/ETS/ELT
+
+  The MSI:
+    1. Runs cleanup script to remove old MTK drivers and devices
     2. Installs the test-signing certificate to Root + TrustedPublisher
     3. Calls pnputil to register the new drivers in the Driver Store
     4. On uninstall, removes the certificate from both stores
@@ -12,7 +15,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 
-  <?define ProductVersion = "2.0.0.0" ?>
+  <?define ProductVersion = "3.0.0.0" ?>
   <?define Manufacturer   = "MediaTek Inc. / mtkclient" ?>
   <?define ProductName    = "mtkclient USB Drivers for Windows 10/11" ?>
   <?define UpgradeCode    = "7A3B5C1D-4E2F-6A8B-9C0D-1E2F3A4B5C6D" ?>
@@ -29,8 +32,8 @@
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perMachine"
-             Description="mtkclient WinUSB and Serial drivers for MediaTek devices (BROM, Preloader, DA). Configures COM port at 115200/921600 bps 8-N-1."
-             Comments="Derived from MTK SP Drivers 20160804, repackaged for Win10/11 x64"
+             Description="Android USB (ADB/MTP/BROM/DA/Bootloader) and Serial (VCOM) drivers for MediaTek devices. Based on Google USB Driver r13."
+             Comments="Google USB Driver r13 modified for MTK + inbox usbser.sys for COM ports"
              Platform="x64" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
@@ -48,58 +51,42 @@
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="mtkclient Drivers">
-          <Directory Id="DIR_WINUSB"  Name="winusb" />
-          <Directory Id="DIR_ADB"     Name="adb" />
-          <Directory Id="DIR_SERIAL"  Name="serial" />
+          <Directory Id="DIR_ADB"    Name="adb" />
+          <Directory Id="DIR_SERIAL" Name="serial" />
         </Directory>
       </Directory>
     </Directory>
 
     <!-- ============================================================ -->
-    <!--  Components — WinUSB driver for BROM/Preloader/DA (INF+CAT)   -->
-    <!-- ============================================================ -->
-    <DirectoryRef Id="DIR_WINUSB">
-      <Component Id="CMP_WinUSB_INF" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890" Win64="yes">
-        <File Id="FILE_WinUSB_INF"
-              Source="$(var.DriverDir)\mtkclient_winusb.inf"
-              KeyPath="yes" />
-      </Component>
-      <Component Id="CMP_WinUSB_CAT" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567891" Win64="yes">
-        <File Id="FILE_WinUSB_CAT"
-              Source="$(var.DriverDir)\mtkclient_winusb.cat"
-              KeyPath="yes" />
-      </Component>
-    </DirectoryRef>
-
-    <!-- ============================================================ -->
     <!--  Components — ADB/Bootloader/MTP driver (android_winusb.inf)  -->
-    <!--  Based on Google USB Driver r13, modified for MTK devices     -->
+    <!--  Google USB Driver r13, modified for MediaTek devices          -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_ADB">
       <Component Id="CMP_ADB_INF" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABC" Win64="yes">
         <File Id="FILE_ADB_INF"
-              Source="$(var.DriverDir)\android_winusb.inf"
+              Source="$(var.DriverDir)\adb\android_winusb.inf"
               KeyPath="yes" />
       </Component>
       <Component Id="CMP_ADB_CAT" Guid="F1A2B3C4-D5E6-7890-ABCD-123456789ABD" Win64="yes">
         <File Id="FILE_ADB_CAT"
-              Source="$(var.DriverDir)\android_winusb.cat"
+              Source="$(var.DriverDir)\adb\android_winusb.cat"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
     <!-- ============================================================ -->
-    <!--  Components — Serial / Preloader driver (INF + CAT)           -->
+    <!--  Components — Serial driver (cdc-acm.inf + CAT)               -->
+    <!--  Uses inbox usbser.sys (replaces legacy usb2ser.sys)          -->
     <!-- ============================================================ -->
     <DirectoryRef Id="DIR_SERIAL">
       <Component Id="CMP_Serial_INF" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901" Win64="yes">
         <File Id="FILE_Serial_INF"
-              Source="$(var.DriverDir)\mtkclient_preloader.inf"
+              Source="$(var.DriverDir)\CDC\cdc-acm.inf"
               KeyPath="yes" />
       </Component>
       <Component Id="CMP_Serial_CAT" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678902" Win64="yes">
         <File Id="FILE_Serial_CAT"
-              Source="$(var.DriverDir)\mtkclient_preloader.cat"
+              Source="$(var.DriverDir)\CDC\cdc-acm.cat"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>
@@ -135,11 +122,9 @@
     <!-- ============================================================ -->
     <Feature Id="DriverFeature"
              Title="mtkclient USB Drivers"
-             Description="WinUSB driver for BROM/Preloader/DA and serial driver for VCOM ports. COM port configured at 115200 bps (handshake) / 921600 bps (DA transfer), 8-N-1, no flow control."
+             Description="Android USB driver (ADB/MTP/BROM/DA/Bootloader) based on Google r13, plus serial COM port driver for VCOM. COM port: 115200 bps default, 921600 bps max, 8-N-1."
              Level="1"
              ConfigurableDirectory="INSTALLFOLDER">
-      <ComponentRef Id="CMP_WinUSB_INF" />
-      <ComponentRef Id="CMP_WinUSB_CAT" />
       <ComponentRef Id="CMP_ADB_INF" />
       <ComponentRef Id="CMP_ADB_CAT" />
       <ComponentRef Id="CMP_Serial_INF" />
@@ -157,8 +142,8 @@
     <!--    1. Run cleanup script (remove old drivers + devices)       -->
     <!--    2. Install certificate to Root store                       -->
     <!--    3. Install certificate to TrustedPublisher store           -->
-    <!--    4. pnputil install WinUSB driver                           -->
-    <!--    5. pnputil install Serial driver                           -->
+    <!--    4. pnputil install ADB driver (android_winusb.inf)         -->
+    <!--    5. pnputil install Serial driver (cdc-acm.inf)             -->
     <!-- ============================================================ -->
 
     <!-- ── 1. CLEANUP: Remove old MTK drivers and devices ── -->
@@ -197,19 +182,7 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── 4. INSTALL: WinUSB driver ── -->
-    <SetProperty Id="CA_InstallWinUSB"
-                 Before="CA_InstallWinUSB"
-                 Sequence="execute"
-                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_WINUSB]mtkclient_winusb.inf&quot; /install" />
-    <CustomAction Id="CA_InstallWinUSB"
-                  BinaryKey="WixCA"
-                  DllEntry="WixQuietExec64"
-                  Execute="deferred"
-                  Return="ignore"
-                  Impersonate="no" />
-
-    <!-- ── 5. INSTALL: ADB / Bootloader / MTP driver (android_winusb.inf) ── -->
+    <!-- ── 4. INSTALL: ADB / Bootloader / MTP driver ── -->
     <SetProperty Id="CA_InstallADB"
                  Before="CA_InstallADB"
                  Sequence="execute"
@@ -221,11 +194,11 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── 6. INSTALL: Serial driver ── -->
+    <!-- ── 5. INSTALL: Serial driver ── -->
     <SetProperty Id="CA_InstallSerial"
                  Before="CA_InstallSerial"
                  Sequence="execute"
-                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_SERIAL]mtkclient_preloader.inf&quot; /install" />
+                 Value="&quot;[SystemFolder]pnputil.exe&quot; /add-driver &quot;[DIR_SERIAL]cdc-acm.inf&quot; /install" />
     <CustomAction Id="CA_InstallSerial"
                   BinaryKey="WixCA"
                   DllEntry="WixQuietExec64"
@@ -235,13 +208,9 @@
 
     <!-- ============================================================ -->
     <!--  Custom actions — UNINSTALL sequence                          -->
-    <!--                                                               -->
     <!--  Remove the test-signing certificate from both stores.        -->
-    <!--  Driver Store cleanup is not done because pnputil             -->
-    <!--  /delete-driver requires the OEM name assigned at install.    -->
     <!-- ============================================================ -->
 
-    <!-- ── UNINSTALL: Remove cert from Root ── -->
     <SetProperty Id="CA_RemoveCertRoot"
                  Before="CA_RemoveCertRoot"
                  Sequence="execute"
@@ -253,7 +222,6 @@
                   Return="ignore"
                   Impersonate="no" />
 
-    <!-- ── UNINSTALL: Remove cert from TrustedPublisher ── -->
     <SetProperty Id="CA_RemoveCertTP"
                  Before="CA_RemoveCertTP"
                  Sequence="execute"
@@ -269,15 +237,14 @@
     <!--  Sequence scheduling                                          -->
     <!-- ============================================================ -->
     <InstallExecuteSequence>
-      <!-- INSTALL: cleanup → cert → drivers (after InstallFiles, first install only) -->
+      <!-- INSTALL: cleanup → cert → ADB driver → Serial driver -->
       <Custom Action="CA_CleanupDrivers"  After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallCertRoot" After="CA_CleanupDrivers">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallCertTP"   After="CA_InstallCertRoot">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="CA_InstallWinUSB"   After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="CA_InstallADB"     After="CA_InstallWinUSB">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="CA_InstallADB"      After="CA_InstallCertTP">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CA_InstallSerial"   After="CA_InstallADB">NOT Installed AND NOT REMOVE</Custom>
 
-      <!-- UNINSTALL: remove certificate from stores (before RemoveFiles) -->
+      <!-- UNINSTALL: remove certificate from stores -->
       <Custom Action="CA_RemoveCertRoot"  Before="RemoveFiles">REMOVE="ALL"</Custom>
       <Custom Action="CA_RemoveCertTP"    After="CA_RemoveCertRoot">REMOVE="ALL"</Custom>
     </InstallExecuteSequence>
