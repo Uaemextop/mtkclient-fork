@@ -3,6 +3,9 @@ REM ============================================================
 REM  install_driver.bat – Install the mtkclient WinUSB driver
 REM  Must be run as Administrator on Windows 10/11 x64.
 REM
+REM  For test-signed drivers, this script also installs the test
+REM  certificate to the Trusted Root and Trusted Publisher stores.
+REM
 REM  Copyright (c) 2024-2025 mtkclient contributors – GPLv3
 REM ============================================================
 
@@ -26,6 +29,7 @@ if %errorlevel% neq 0 (
 REM --- Locate the INF file relative to this script ---
 set "SCRIPT_DIR=%~dp0"
 set "INF_PATH=%SCRIPT_DIR%driver\mtkclient.inf"
+set "CERT_PATH=%SCRIPT_DIR%output\mtkclient_test_cert.cer"
 
 if not exist "%INF_PATH%" (
     echo ERROR: Driver file not found at:
@@ -34,6 +38,31 @@ if not exist "%INF_PATH%" (
     echo Make sure you are running this script from the Setup\Windows directory.
     pause
     exit /b 1
+)
+
+REM --- Install test certificate if present ---
+if exist "%CERT_PATH%" (
+    echo Installing test signing certificate...
+    echo Certificate: %CERT_PATH%
+    echo.
+    certutil -addstore "Root" "%CERT_PATH%" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo   - Added to Trusted Root Certification Authorities
+    ) else (
+        echo   - WARNING: Could not add to Root store
+    )
+    certutil -addstore "TrustedPublisher" "%CERT_PATH%" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo   - Added to Trusted Publishers
+    ) else (
+        echo   - WARNING: Could not add to Trusted Publisher store
+    )
+    echo.
+) else (
+    echo NOTE: No test certificate found at %CERT_PATH%
+    echo       If the driver is test-signed, install mtkclient_test_cert.cer
+    echo       manually before installing the driver.
+    echo.
 )
 
 echo Installing WinUSB driver for MediaTek devices...

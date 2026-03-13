@@ -5,7 +5,13 @@ REM
 REM  Prerequisites:
 REM    - WiX Toolset v3.x (https://wixtoolset.org/releases/)
 REM      candle.exe and light.exe must be on PATH, or set WIX env.
-REM    - A valid .cat catalog file in driver\ (use signtool / inf2cat)
+REM    - PowerShell 5.1+ (for New-FileCatalog and code signing)
+REM
+REM  This script will:
+REM    1. Create a self-signed test certificate (if no cert provided)
+REM    2. Generate and sign the driver catalog (.cat)
+REM    3. Build the MSI installer
+REM    4. Sign the MSI installer
 REM
 REM  Copyright (c) 2024-2025 mtkclient contributors – GPLv3
 REM ============================================================
@@ -50,15 +56,34 @@ if not exist "%DRIVER_DIR%\mtkclient.inf" (
     exit /b 1
 )
 
-REM --- Create a placeholder .cat if it doesn't exist ---
-if not exist "%DRIVER_DIR%\mtkclient.cat" (
-    echo NOTE: Creating placeholder catalog file.
-    echo       For production, generate a proper .cat with inf2cat and sign it.
-    echo. > "%DRIVER_DIR%\mtkclient.cat"
-)
-
 REM --- Create output directory ---
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+
+REM --- Generate and sign driver catalog ---
+echo Generating and signing driver catalog...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$stagingDir = Join-Path $env:TEMP 'mtkclient_staging';" ^
+  "if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force };" ^
+  "New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null;" ^
+  "Copy-Item '%DRIVER_DIR%\mtkclient.inf' $stagingDir\;" ^
+  "$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1;" ^
+  "if (-not $cert) {" ^
+  "  Write-Host 'No code signing certificate found — creating self-signed test cert...';" ^
+  "  $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=mtkclient Test Signing Authority' -FriendlyName 'mtkclient Driver Test Certificate' -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5) -HashAlgorithm SHA256;" ^
+  "  Export-Certificate -Cert $cert -FilePath '%OUTPUT_DIR%\mtkclient_test_cert.cer' | Out-Null;" ^
+  "  Write-Host \"Exported test certificate to %OUTPUT_DIR%\mtkclient_test_cert.cer\";" ^
+  "};" ^
+  "New-FileCatalog -Path $stagingDir -CatalogFilePath (Join-Path $stagingDir 'mtkclient.cat') -CatalogVersion 2.0;" ^
+  "$sig = Set-AuthenticodeSignature -FilePath (Join-Path $stagingDir 'mtkclient.cat') -Certificate $cert -HashAlgorithm SHA256;" ^
+  "Write-Host \"Catalog signature: $($sig.Status)\";" ^
+  "Copy-Item (Join-Path $stagingDir 'mtkclient.cat') '%DRIVER_DIR%\' -Force;" ^
+  "Write-Host 'Signed catalog placed in driver directory';"
+
+if %errorlevel% neq 0 (
+    echo ERROR: Catalog generation/signing failed.
+    pause
+    exit /b 1
+)
 
 REM --- Create RTF license file for WiX UI ---
 if not exist "%SCRIPT_DIR%LICENSE.rtf" (
@@ -81,6 +106,15 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
+
+REM --- Sign the MSI ---
+echo Signing MSI installer...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1;" ^
+  "if ($cert) {" ^
+  "  $sig = Set-AuthenticodeSignature -FilePath '%OUTPUT_DIR%\mtkclient_driver.msi' -Certificate $cert -HashAlgorithm SHA256;" ^
+  "  Write-Host \"MSI signature: $($sig.Status)\";" ^
+  "} else { Write-Host 'WARNING: No signing certificate found, MSI is unsigned' };"
 
 echo.
 echo ========================================

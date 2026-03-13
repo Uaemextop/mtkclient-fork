@@ -168,28 +168,17 @@ AddReg = Dev_AddReg
 [Dev_AddReg]
 HKR,,DeviceInterfaceGUIDs,0x00010000,"{13EB360B-BC1E-46CB-B606-B4884B5E8B23}"
 
-[USB_Install.CoInstallers]
-AddReg    = CoInstallers_AddReg
-CopyFiles = CoInstallers_CopyFiles
-
-[CoInstallers_AddReg]
-HKR,,CoInstallers32,0x00010000,"WdfCoInstaller01011.dll,WdfCoInstaller"
-
-[CoInstallers_CopyFiles]
-WdfCoInstaller01011.dll
-
 [DestinationDirs]
-CoInstallers_CopyFiles = 11
+DefaultDestDir = 13  ; Driver store (DCH-compliant)
 
 ; ===========================================================================
-; Source media
+; Source media (no custom files — uses inbox WinUSB.sys and KMDF)
 ; ===========================================================================
 
 [SourceDisksNames]
 1 = %DiskName%
 
 [SourceDisksFiles]
-WdfCoInstaller01011.dll = 1
 
 ; ===========================================================================
 ; Strings

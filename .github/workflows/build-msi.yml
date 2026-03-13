@@ -2,6 +2,7 @@
 #
 # Runs on Windows with WiX Toolset v3 to compile the .wxs source into
 # an MSI installer for the WinUSB driver package.
+# Generates a self-signed test certificate to sign the driver catalog and MSI.
 
 name: Build MSI Installer
 
@@ -34,19 +35,70 @@ jobs:
           refreshenv
         shell: pwsh
 
-      - name: Prepare driver files
+      - name: Create code signing certificate
+        run: |
+          # Create self-signed code signing certificate for test signing
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=mtkclient Test Signing Authority" `
+            -FriendlyName "mtkclient Driver Test Certificate" `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -NotAfter (Get-Date).AddYears(5) `
+            -HashAlgorithm SHA256
+
+          # Store thumbprint for later steps
+          "CERT_THUMBPRINT=$($cert.Thumbprint)" | Out-File -Append $env:GITHUB_ENV
+
+          Write-Host "Created test signing certificate: $($cert.Thumbprint)"
+        shell: pwsh
+
+      - name: Prepare and sign driver files
         run: |
           $driverDir = "Setup\Windows\driver"
           $outputDir = "Setup\Windows\output"
+          $stagingDir = "$env:TEMP\driver_staging"
 
-          # Create output directory
+          # Create directories
           New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
-          # Create placeholder .cat catalog file (required by WXS)
-          if (-not (Test-Path "$driverDir\mtkclient.cat")) {
-            New-Item -ItemType File -Force -Path "$driverDir\mtkclient.cat" | Out-Null
-            Write-Host "Created placeholder mtkclient.cat"
+          # Stage only the INF for catalog generation (exclude src/ and any old .cat)
+          Copy-Item "$driverDir\mtkclient.inf" "$stagingDir\"
+
+          # Generate driver catalog from staged INF
+          New-FileCatalog -Path $stagingDir `
+            -CatalogFilePath "$stagingDir\mtkclient.cat" `
+            -CatalogVersion 2.0
+          Write-Host "Generated driver catalog"
+
+          # Sign the catalog with our test certificate
+          $cert = Get-ChildItem "Cert:\CurrentUser\My\$env:CERT_THUMBPRINT"
+          $sig = Set-AuthenticodeSignature `
+            -FilePath "$stagingDir\mtkclient.cat" `
+            -Certificate $cert `
+            -HashAlgorithm SHA256
+          Write-Host "Catalog signature status: $($sig.Status)"
+
+          if ($sig.Status -ne "Valid" -and $sig.Status -ne "UnknownError") {
+            throw "Catalog signing failed with unexpected status: $($sig.Status) — $($sig.StatusMessage)"
           }
+          if ($sig.Status -eq "UnknownError") {
+            Write-Host "NOTE: Status 'UnknownError' is expected for self-signed test certs (not in trusted store)"
+          }
+
+          # Copy signed catalog to driver directory
+          Copy-Item "$stagingDir\mtkclient.cat" "$driverDir\" -Force
+          Write-Host "Signed catalog placed at: $driverDir\mtkclient.cat"
+
+          # Export test certificate (public key only) for users to install
+          Export-Certificate -Cert $cert `
+            -FilePath "$outputDir\mtkclient_test_cert.cer" | Out-Null
+          Write-Host "Exported test certificate for user installation"
+
+          # Also copy signed driver package to output for standalone download
+          Copy-Item "$driverDir\mtkclient.inf" "$outputDir\"
+          Copy-Item "$driverDir\mtkclient.cat" "$outputDir\"
+          Write-Host "Signed driver package copied to output"
 
           # Create RTF version of LICENSE for WiX UI
           $licenseText = Get-Content -Path "LICENSE" -Raw
@@ -97,9 +149,48 @@ jobs:
           Get-Item "$outputDir\mtkclient_driver.msi" | Select-Object Name, Length
         shell: pwsh
 
+      - name: Sign MSI installer
+        run: |
+          $msiPath = "Setup\Windows\output\mtkclient_driver.msi"
+
+          # Find signtool from Windows SDK
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" `
+            -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
+
+          if ($signtool) {
+            Write-Host "Using signtool from: $($signtool.FullName)"
+            & $signtool.FullName sign /sha1 $env:CERT_THUMBPRINT /fd SHA256 /v $msiPath
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "signtool signing failed with exit code $LASTEXITCODE, falling back to PowerShell"
+            } else {
+              Write-Host "MSI signed successfully with signtool"
+              return
+            }
+          }
+
+          # Fallback: use PowerShell Set-AuthenticodeSignature
+          Write-Host "Signing MSI with Set-AuthenticodeSignature..."
+          $cert = Get-ChildItem "Cert:\CurrentUser\My\$env:CERT_THUMBPRINT"
+          $sig = Set-AuthenticodeSignature -FilePath $msiPath `
+            -Certificate $cert -HashAlgorithm SHA256
+          Write-Host "MSI signature status: $($sig.Status)"
+        shell: pwsh
+
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
           name: mtkclient-winusb-driver-msi
-          path: Setup/Windows/output/mtkclient_driver.msi
+          path: |
+            Setup/Windows/output/mtkclient_driver.msi
+            Setup/Windows/output/mtkclient_test_cert.cer
+          if-no-files-found: error
+
+      - name: Upload signed driver package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtkclient-winusb-signed-driver
+          path: |
+            Setup/Windows/output/mtkclient.inf
+            Setup/Windows/output/mtkclient.cat
+            Setup/Windows/output/mtkclient_test_cert.cer
           if-no-files-found: error
