@@ -1,0 +1,58 @@
+Using custom loader: lamu.bin
+Couldn't detect the device. Is it connected ?
+Status: Waiting for PreLoader VCOM, please reconnect mobile/iot device to brom mode
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Hint:
+
+Power off the phone before connecting.
+For brom mode, press and hold vol up, vol dwn, or all hw buttons and connect usb.
+For preloader mode, don't press any hw button and connect usb.
+If it is already connected and on, hold power for 10 seconds to reset.
+
+Hint:
+
+Power off the phone before connecting.
+For brom mode, press and hold vol up, vol dwn, or all hw buttons and connect usb.
+For preloader mode, don't press any hw button and connect usb.
+If it is already connected and on, hold power for 10 seconds to reset.
+
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Couldn't detect the device. Is it connected ?
+Hint:
+
+Power off the phone before connecting.
+For brom mode, press and hold vol up, vol dwn, or all hw buttons and connect usb.
+For preloader mode, don't press any hw button and connect usb.
+If it is already connected and on, hold power for 10 seconds to reset.
+
+Hint:
+
+Power off the phone before connecting.
+For brom mode, press and hold vol up, vol dwn, or all hw buttons and connect usb.
+For preloader mode, don't press any hw button and connect usb.
+If it is already connected and on, hold power for 10 seconds to reset.
+
+Couldn't detect the device. Is it connected ?
