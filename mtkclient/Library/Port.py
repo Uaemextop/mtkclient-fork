@@ -139,7 +139,12 @@ class Port(metaclass=LogBase):
         try:
             while i < length:
                 if ep_out(startcmd[i:i+1]):
-                    if ep_in(maxinsize)[-1] == ~(startcmd[i]) & 0xFF:
+                    try:
+                        resp = ep_in(maxinsize)
+                    except Exception:
+                        i = 0
+                        continue
+                    if len(resp) > 0 and resp[-1] == ~(startcmd[i]) & 0xFF:
                         i += 1
                     else:
                         i = 0
@@ -152,6 +157,9 @@ class Port(metaclass=LogBase):
 
     def handshake(self, maxtries=None, loop=0):
         counter = 0
+        is_windows = sys.platform.startswith('win32')
+        # On Windows, use shorter sleep to improve responsiveness
+        poll_sleep = 0.15 if is_windows else 0.3
 
         while not self.cdc.connected:
             try:
@@ -175,7 +183,7 @@ class Port(metaclass=LogBase):
                         sys.stdout.write('\n')
                         loop = 0
                     loop += 1
-                    time.sleep(0.3)
+                    time.sleep(poll_sleep)
                     sys.stdout.flush()
 
             except Exception as serr:
