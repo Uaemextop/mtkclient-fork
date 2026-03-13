@@ -223,14 +223,18 @@ HKR,,Icon,,-1
 ; =====================================================================
 ;  Install sections — inbox WinUSB, no CoInstallers needed on Win10+
 ;
+;  Architecture-decorated (.NTamd64) DDInstall sections required for
+;  Windows x64 to recognize the driver as compatible.
+;
 ;  Compared to Google r13 original:
 ;    - Removed CoInstallers (WdfCoInstaller, WinUSBCoInstaller2)
 ;    - Removed SourceDisksNames/SourceDisksFiles (no DLLs to ship)
-;    - Removed USB_Install.Wdf (inbox KMDF on Win10+)
 ;    - Added PnpLockdown=1 + DefaultDestDir=13 (DCH compliance)
 ;    - Added selective suspend disable + security ACL
+;    - Added .NTamd64 decorated DDInstall sections
 ; =====================================================================
 
+; --- Undecorated (fallback) ---
 [USB_Install]
 Include = winusb.inf
 Needs   = WINUSB.NT
@@ -239,6 +243,32 @@ Needs   = WINUSB.NT
 Include    = winusb.inf
 AddService = WinUSB,0x00000002,WinUSB_ServiceInstall
 
+[USB_Install.HW]
+AddReg = Dev_AddReg
+
+; --- x64 architecture-decorated (primary for Windows x64) ---
+[USB_Install.NTamd64]
+Include = winusb.inf
+Needs   = WINUSB.NT
+
+[USB_Install.NTamd64.Services]
+Include    = winusb.inf
+AddService = WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[USB_Install.NTamd64.HW]
+AddReg = Dev_AddReg
+
+; --- Wdf section (required for WinUSB KMDF binding) ---
+[USB_Install.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[USB_Install.NTamd64.Wdf]
+KmdfService = WINUSB, WinUSB_Install
+
+[WinUSB_Install]
+KmdfLibraryVersion = 1.9
+
+; --- Service install ---
 [WinUSB_ServiceInstall]
 DisplayName   = %WinUSB_SvcDesc%
 ServiceType   = 1
@@ -246,9 +276,7 @@ StartType     = 3
 ErrorControl  = 1
 ServiceBinary = %12%\WinUSB.sys
 
-[USB_Install.HW]
-AddReg = Dev_AddReg
-
+; --- Device registry settings ---
 [Dev_AddReg]
 ; Standard ADB DeviceInterfaceGUID — required for adb.exe to find the device.
 ; Modern ADB (1.0.32+) discovers devices via this GUID, not via adb_usb.ini.
