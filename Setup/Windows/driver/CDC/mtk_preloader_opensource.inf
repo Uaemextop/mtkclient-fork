@@ -2,6 +2,8 @@
 ; mtk_preloader_opensource.inf - CDC driver mapping for MediaTek loader interfaces
 ;
 ; Uses the Windows inbox usbser.sys (CDC ACM) driver.
+; No custom kernel binary required — this INF only binds MediaTek hardware
+; IDs to the existing Windows USB serial class driver.
 ;
 ; Copyright (c) MTK Loader Drivers Opensource contributors
 ; SPDX-License-Identifier: MIT
@@ -20,13 +22,10 @@ PnpLockdown=1
 DefaultDestDir=12
 
 [SourceDisksNames]
-1=%DiskName%,,,
+; No source disks needed — uses inbox usbser.sys
 
-[SourceDisksFiles.x86]
-usb2ser.sys=1
-
-[SourceDisksFiles.amd64]
-usb2ser.sys=1
+[SourceDisksFiles]
+; No files to copy — uses inbox usbser.sys
 
 ; ========================= Manufacturer ==========================
 
@@ -50,58 +49,51 @@ usb2ser.sys=1
 ; ========================= Install Sections ======================
 
 [MTK_CDC_Install.NT]
-CopyFiles=MTK_CDC_CopyFiles
+Include=mdmcpq.inf,msports.inf
+CopyFiles=FakeModemCopyFileSection
 AddReg=MTK_CDC_AddReg
 
 [MTK_CDC_Install.NTamd64]
-CopyFiles=MTK_CDC_CopyFiles
+Include=mdmcpq.inf,msports.inf
+CopyFiles=FakeModemCopyFileSection
 AddReg=MTK_CDC_AddReg
 
 [MTK_CDC_Install.NTx86]
-CopyFiles=MTK_CDC_CopyFiles
+Include=mdmcpq.inf,msports.inf
+CopyFiles=FakeModemCopyFileSection
 AddReg=MTK_CDC_AddReg
-
-; ========================= Copy Files ============================
-
-[MTK_CDC_CopyFiles]
-usb2ser.sys
 
 ; ========================= Service ===============================
 
 [MTK_CDC_Install.NT.Services]
-AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+AddService=usbser,0x00000002,MTK_CDC_Service_Inst
 
 [MTK_CDC_Install.NTamd64.Services]
-AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+AddService=usbser,0x00000002,MTK_CDC_Service_Inst
 
 [MTK_CDC_Install.NTx86.Services]
-AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+AddService=usbser,0x00000002,MTK_CDC_Service_Inst
 
 [MTK_CDC_Service_Inst]
 DisplayName=%ServiceName%
 ServiceType=1          ; SERVICE_KERNEL_DRIVER
 StartType=3            ; SERVICE_DEMAND_START
 ErrorControl=1         ; SERVICE_ERROR_NORMAL
-ServiceBinary=%12%\usb2ser.sys
+ServiceBinary=%12%\usbser.sys
 
 ; ========================= Registry ==============================
 
 [MTK_CDC_AddReg]
-HKR,,NTMPDriver,,usb2ser.sys
-HKR,,Installer32,,"MsPorts.Dll,SerialPortPropPageProvider"
+HKR,,Installer32,,"MsPorts.Dll,PortsClassInstaller"
 HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
 HKR,,PortSubClass,1,01
-HKR,,IdleTime,0x00010001,10
-HKR,,IdleEnable,0x00010001,0
-HKR,,IdleWWBinded,0x00010001,1
 
 ; ========================= Strings ===============================
 
 [Strings]
 ProviderName="MTK Loader Drivers Opensource"
 MfgName="MediaTek Inc."
-DiskName="MTK CDC Driver Installation Disk"
-ServiceName="MTK CDC USB-to-Serial Driver"
+ServiceName="USB Serial Driver (usbser)"
 BROM.DeviceDesc="MediaTek BROM USB Port (0003)"
 Preloader.DeviceDesc="MediaTek Preloader USB Port (2000)"
 DA.DeviceDesc="MediaTek DA USB Port (2001)"
