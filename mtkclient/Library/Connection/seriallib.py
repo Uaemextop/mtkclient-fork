@@ -248,6 +248,7 @@ class SerialClass(DeviceClass):
                         self.debug("write() returned {}, retrying".format(ctr))
                         i += 1
                         if i >= 3:
+                            self.connected = False
                             return False
                     else:
                         pos += ctr
@@ -258,6 +259,9 @@ class SerialClass(DeviceClass):
                     # time.sleep(0.01)
                     i += 1
                     if i == 3:
+                        # Mark as disconnected so serial_handshake() reconnects
+                        # instead of looping forever on a dead port.
+                        self.connected = False
                         return False
                     pass
         self.verify_data(bytearray(command), "TX:")
@@ -321,14 +325,29 @@ class SerialClass(DeviceClass):
         if timeout < 0.02:
             timeout = 0.02
         if resplen is None:
-            resplen = self.device.in_waiting
+            if self.device is None:
+                return b""
+            try:
+                resplen = self.device.in_waiting
+            except Exception as e:
+                self.debug("usbread: could not read in_waiting ({}); device disconnected".format(e))
+                self.connected = False
+                return b""
         # if resplen <= 0:
         #    self.info("Warning !")
         res = bytearray()
         loglevel = self.loglevel
         if self.device is None:
             return b""
-        self.device.timeout = timeout
+        try:
+            self.device.timeout = timeout
+        except Exception as e:
+            # Device disconnected: pyserial's SetCommTimeouts (Windows) or
+            # equivalent raises SerialException("Cannot configure port…") when
+            # the underlying COM handle is no longer valid.
+            self.debug("usbread: could not set timeout ({}); device disconnected".format(e))
+            self.connected = False
+            return b""
         epr = self.device.read
         q = self.queue
         extend = res.extend
