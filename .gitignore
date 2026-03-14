@@ -14,3 +14,19 @@ DA_*.bin
 # Pyinstaller stuff
 build
 dist
+
+# Windows driver build artifacts
+Setup/Windows/driver/opensource/x64/
+Setup/Windows/driver/opensource/Win32/
+Setup/Windows/driver/opensource/ARM64/
+Setup/Windows/driver/opensource/Debug/
+Setup/Windows/driver/opensource/Release/
+Setup/Windows/driver/opensource/.vs/
+Setup/Windows/installer/output/
+Setup/Windows/installer/build/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.tlog/
+*.lastbuildstate

@@ -2,6 +2,7 @@
 # MTK Flash Client (c) B.Kerler 2018-2025.
 # Licensed under GPLv3 License
 import os
+import sys
 import logging
 from struct import unpack
 from mtkclient.config.usb_ids import default_ids
@@ -35,6 +36,12 @@ class Mtk(metaclass=LogBase):
                                                                                   config.gui)
         self.eh = ErrorHandler()
         self.serialportname = serialportname
+        if serialportname is None and sys.platform == 'win32':
+            # On Windows, default to serial port auto-detection so mtkclient
+            # works with the custom KMDF driver (mtk_usb2ser) without
+            # requiring libusb or UsbDk installation.
+            self.serialportname = "DETECT"
+            serialportname = "DETECT"
         if preinit:
             self.setup(self.vid, self.pid, self.interface, serialportname)
 
@@ -152,11 +159,10 @@ class Mtk(metaclass=LogBase):
             interface = self.interface
         if vid != -1 and pid != -1:
             if interface == -1:
-                for dev in default_ids:
-                    if dev[0] == vid and dev[1] == pid:
-                        interface = dev[2]
-                        break
-            portconfig = [[vid, pid, interface]]
+                if vid in default_ids and isinstance(default_ids[vid], dict):
+                    if pid in default_ids[vid]:
+                        interface = default_ids[vid][pid]
+            portconfig = {vid: {pid: interface}}
         else:
             portconfig = default_ids
         self.port = Port(mtk=self, portconfig=portconfig, serialportname=serialportname, loglevel=self.__logger.level)

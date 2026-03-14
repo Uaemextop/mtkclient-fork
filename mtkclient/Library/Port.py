@@ -26,7 +26,7 @@ class Port(metaclass=LogBase):
                                                                                   loglevel, mtk.config.gui)
         self.config = mtk.config
         self.mtk = mtk
-        self.serialportname = None
+        self.serialportname = serialportname
         if serialportname is not None and serialportname != "":
             self.cdc = SerialClass(portconfig=portconfig, loglevel=loglevel, devclass=10)
             self.cdc.setportname(serialportname)

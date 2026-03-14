@@ -74,6 +74,9 @@ class SerialClass(DeviceClass):
     def set_fast_mode(self, enabled):
         pass
 
+    def get_interface_count(self):
+        return 0
+
     def change_baud(self):
         print("Changing Baudrate")
         self.write(b'\xD2' + b'\x02' + b'\x01')
@@ -89,30 +92,61 @@ class SerialClass(DeviceClass):
         self.write(b'\x5a')
         self.read(1)
 
+    # Time (seconds) to wait after USB reset for the device to re-enumerate.
+    # MTK devices typically re-enumerate within 1-1.5s after a USB bus reset;
+    # 2s provides margin for slower host controllers.  This matches the
+    # delay used in UsbClass.close(reset=True) in usblib.py.
+    USB_REENUM_DELAY_SEC = 2
+
     def close(self, reset=False):
         if self.connected:
-            self.device.close()
-            del self.device
-            self.device = None
-            self.connected = False
+            if reset:
+                # For speed upgrade reconnect: close the port and wait
+                # for device re-enumeration, then let connect() reopen it.
+                try:
+                    self.device.close()
+                except Exception:
+                    pass
+                del self.device
+                self.device = None
+                self.connected = False
+                time.sleep(self.USB_REENUM_DELAY_SEC)
+            else:
+                self.device.close()
+                del self.device
+                self.device = None
+                self.connected = False
 
     def detectdevices(self):
         ids = []
+        if not isinstance(self.portconfig, dict):
+            return ids
         for port in serial.tools.list_ports.comports():
+            if "ttyUSB" in port.device or "ttyACM" in port.device:
+                if port.device not in ids:
+                    ids.append(port.device)
+                continue
+            if port.vid is None:
+                continue
             for usbid in self.portconfig:
-                if "ttyUSB" in port.device or "ttyACM" in port.device:
-                    if port.device not in ids:
-                        ids.append(port.device)
-                elif port.vid == usbid and port.pid in self.portconfig[usbid]:
+                if not isinstance(self.portconfig.get(usbid), dict):
+                    continue
+                if port.vid == usbid and port.pid in self.portconfig[usbid]:
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
+                        ids.append(port.device)
+                elif sys.platform == 'win32' and port.vid == usbid:
+                    # On Windows with our custom serial driver (mtk_usb2ser),
+                    # devices appear as COM ports with VID matching MTK
+                    if port.device not in ids:
+                        self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                         ids.append(port.device)
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):
         self.device.baudrate = baudrate
         self.device.parity = parity
-        self.device.stopbbits = stopbits
+        self.device.stopbits = stopbits
         self.device.bytesize = databits
         self.debug("Linecoding set")
 
@@ -124,6 +158,68 @@ class SerialClass(DeviceClass):
         self.device.rts = rts
         self.device.dtr = dtr
         self.debug("Linecoding set")
+
+    def ctrl_transfer(self, bm_request_type, b_request, w_value=0, w_index=0, data_or_w_length=None):
+        """
+        Map USB CDC ACM control transfers to pyserial operations.
+        This allows code that calls cdc.ctrl_transfer() (e.g. kamakiri exploits)
+        to work over serial ports when using the KMDF driver instead of libusb.
+
+        CDC ACM class requests:
+          0x20 = SET_LINE_CODING (7-byte payload: baudrate LE32 + stop/parity/data)
+          0x21 = GET_LINE_CODING (returns 7-byte current settings)
+          0x22 = SET_CONTROL_LINE_STATE (wValue: bit0=DTR, bit1=RTS)
+          0x23 = SEND_BREAK (wValue = duration in ms)
+        """
+        import struct
+        import array
+
+        direction_in = (bm_request_type & 0x80) != 0
+
+        if b_request == 0x20:  # SET_LINE_CODING
+            if data_or_w_length is not None and len(data_or_w_length) >= 7:
+                data = bytes(data_or_w_length)
+                baudrate = struct.unpack_from('<I', data, 0)[0]
+                if baudrate > 0:
+                    self.device.baudrate = baudrate
+                stop_bits_map = {0: serial.STOPBITS_ONE, 1: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}
+                self.device.stopbits = stop_bits_map.get(data[4], serial.STOPBITS_ONE)
+                parity_map = {0: serial.PARITY_NONE, 1: serial.PARITY_ODD, 2: serial.PARITY_EVEN,
+                              3: serial.PARITY_MARK, 4: serial.PARITY_SPACE}
+                self.device.parity = parity_map.get(data[5], serial.PARITY_NONE)
+                if 5 <= data[6] <= 8:
+                    self.device.bytesize = data[6]
+            return len(data_or_w_length) if data_or_w_length else 0
+
+        elif b_request == 0x21:  # GET_LINE_CODING
+            baudrate = self.device.baudrate if self.device else 115200
+            stop_bits_rev = {serial.STOPBITS_ONE: 0, serial.STOPBITS_ONE_POINT_FIVE: 1, serial.STOPBITS_TWO: 2}
+            parity_rev = {serial.PARITY_NONE: 0, serial.PARITY_ODD: 1, serial.PARITY_EVEN: 2,
+                          serial.PARITY_MARK: 3, serial.PARITY_SPACE: 4}
+            stop = stop_bits_rev.get(self.device.stopbits, 0) if self.device else 0
+            parity = parity_rev.get(self.device.parity, 0) if self.device else 0
+            databits = self.device.bytesize if self.device else 8
+            result = struct.pack('<IBBB', baudrate, stop, parity, databits)
+            return array.array('B', result)
+
+        elif b_request == 0x22:  # SET_CONTROL_LINE_STATE
+            if self.device:
+                self.device.dtr = bool(w_value & 0x01)
+                self.device.rts = bool(w_value & 0x02)
+            return 0
+
+        elif b_request == 0x23:  # SEND_BREAK
+            if self.device:
+                self.device.send_break(duration=w_value / 1000.0 if w_value > 0 else 0.25)
+            return 0
+
+        else:
+            # Unsupported control transfer — return empty result
+            if direction_in:
+                if isinstance(data_or_w_length, int):
+                    return array.array('B', b'\x00' * data_or_w_length)
+                return array.array('B', b'')
+            return 0
 
     def write(self, command, pktsize=None):
         if pktsize is None:
@@ -151,7 +247,7 @@ class SerialClass(DeviceClass):
                     ctr = self.device.write(command[pos:pos + pktsize])
                     if ctr <= 0:
                         self.info(ctr)
-                    pos += pktsize
+                    pos += ctr
                 except Exception as err:
                     self.debug(str(err))
                     # print("Error while writing")
