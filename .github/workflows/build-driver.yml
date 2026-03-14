@@ -1,7 +1,17 @@
 # GitHub Actions Workflow: Build MTK USB Serial Driver + Installer
 # Compiles the KMDF driver (mtk_usb2ser.sys) from Setup/Windows/driver/opensource/
 # using WDK 10.0.26100, then builds an Inno Setup installer.
-# Driver source: https://github.com/Uaemextop/mtk-loader-drivers-opensource-win11
+#
+# Test-certificate flow (no secrets configured):
+#   1. New-SelfSignedCertificate creates a per-build SHA256 code-signing cert
+#   2. Cert is exported as mtk_test_cert.cer (DER) into the driver output dir
+#   3. mtk_test_cert.cer is bundled into the Inno Setup installer
+#   4. The installer imports the cert to Trusted Root CA + Trusted Publishers
+#      and enables Windows Test Signing (TESTSIGNING) mode so the driver loads
+#      on development machines without a reboot loop.
+#
+# Production-certificate flow (SIGNING_CERT_BASE64 secret set):
+#   Replace the self-signed cert with your EV code-signing cert PFX.
 
 name: Build MTK Windows Driver
 
@@ -18,6 +28,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Compile and sign the KMDF driver
+  # ---------------------------------------------------------------------------
   build-driver:
     name: Build Driver (${{ matrix.platform }})
     runs-on: windows-latest
@@ -49,9 +62,8 @@ jobs:
             $dirs = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -Directory -ErrorAction SilentlyContinue |
               Sort-Object Name -Descending
             foreach ($d in $dirs) {
-              $ntddk = Join-Path $d.FullName "km\ntddk.h"
-              if (Test-Path $ntddk) {
-                Write-Host "  WDK headers found: $ntddk"
+              if (Test-Path (Join-Path $d.FullName "km\ntddk.h")) {
+                Write-Host "  WDK headers found: $($d.Name)"
                 return $true
               }
             }
@@ -61,197 +73,234 @@ jobs:
           if (Test-WdkHeaders) {
             Write-Host "WDK kernel headers already present on runner!"
           } else {
-            Write-Host ""
             Write-Host "--- Method 1: winget ---"
             try {
-              & winget install --exact --id Microsoft.WindowsWDK.10.0.26100 `
+              winget install --exact --id Microsoft.WindowsWDK.10.0.26100 `
                 --source winget --silent `
                 --accept-source-agreements --accept-package-agreements 2>&1 |
                 ForEach-Object { Write-Host "  $_" }
-            } catch {
-              Write-Host "  winget exception: $_"
-            }
+            } catch { Write-Host "  winget exception: $_" }
           }
 
           if (-not (Test-WdkHeaders)) {
-            Write-Host ""
-            Write-Host "--- Method 2: Direct WDK online installer (all features) ---"
-            Write-Host "  Downloading WDK 10.0.26100 installer..."
+            Write-Host "--- Method 2: Direct WDK online installer ---"
             Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2272234" `
               -OutFile "$env:TEMP\wdksetup.exe" -UseBasicParsing
-
-            Write-Host "  Installing WDK with all features..."
-            $proc = Start-Process -FilePath "$env:TEMP\wdksetup.exe" `
-              -ArgumentList "/quiet", "/norestart", "/features", "+" `
-              -Wait -PassThru
+            $proc = Start-Process "$env:TEMP\wdksetup.exe" `
+              -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait -PassThru
             Write-Host "  WDK installer exit code: $($proc.ExitCode)"
           }
 
           if (-not (Test-WdkHeaders)) {
-            Write-Host ""
-            Write-Host "--- Method 3: Install SDK 10.0.26100 + retry WDK ---"
+            Write-Host "--- Method 3: SDK + WDK retry ---"
             try {
-              & winget install --exact --id Microsoft.WindowsSDK.10.0.26100 `
+              winget install --exact --id Microsoft.WindowsSDK.10.0.26100 `
                 --source winget --silent `
                 --accept-source-agreements --accept-package-agreements 2>&1 |
                 ForEach-Object { Write-Host "  $_" }
-
-              & winget install --exact --id Microsoft.WindowsWDK.10.0.26100 `
+              winget install --exact --id Microsoft.WindowsWDK.10.0.26100 `
                 --source winget --silent `
                 --accept-source-agreements --accept-package-agreements 2>&1 |
                 ForEach-Object { Write-Host "  $_" }
-            } catch {
-              Write-Host "  SDK+WDK winget exception: $_"
-            }
+            } catch { Write-Host "  Exception: $_" }
           }
 
           if (-not (Test-WdkHeaders)) {
-            Write-Host "::error::WDK kernel headers (ntddk.h) not found after all installation methods"
+            Write-Host "::error::WDK kernel headers not found after all installation methods"
             exit 1
           }
 
-          Write-Host ""
-          Write-Host "Configuring WDK environment..."
           $wdkRoot = "C:\Program Files (x86)\Windows Kits\10\"
-          $env:WDKContentRoot = $wdkRoot
           echo "WDKContentRoot=$wdkRoot" >> $env:GITHUB_ENV
-          Write-Host "  WDKContentRoot=$wdkRoot"
 
-          $sdkVersion = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -Directory -ErrorAction SilentlyContinue |
-            Where-Object { Test-Path (Join-Path $_.FullName "km\ntddk.h") } |
-            Sort-Object Name -Descending | Select-Object -First 1
-          if ($sdkVersion) {
-            Write-Host "  Detected WDK SDK version: $($sdkVersion.Name)"
-          }
-
-          Write-Host ""
-          Write-Host "Installing WDK VS extension..."
+          # Install WDK VS extension
           $vsixInstaller = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\VSIXInstaller.exe"
-          $vsixFiles = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Vsix" -Recurse -Filter "*.vsix" -ErrorAction SilentlyContinue
-          foreach ($vsix in $vsixFiles) {
-            Write-Host "  Installing VSIX: $($vsix.FullName)"
-            $p = Start-Process -FilePath $vsixInstaller -ArgumentList "/quiet", $vsix.FullName -Wait -PassThru
-            Write-Host "  VSIX exit code: $($p.ExitCode)"
-          }
+          Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Vsix" -Recurse -Filter "*.vsix" -ErrorAction SilentlyContinue |
+            ForEach-Object {
+              Write-Host "  Installing VSIX: $($_.FullName)"
+              Start-Process $vsixInstaller -ArgumentList "/quiet", $_.FullName -Wait
+            }
 
+          # Ensure InfVerif.dll is available
           $buildDir = "C:\Program Files (x86)\Windows Kits\10\build\10.0.26100.0"
           $infVerifSrc = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "InfVerif.dll" -ErrorAction SilentlyContinue |
             Where-Object { $_.Directory.Name -eq "x86" } | Select-Object -First 1
           if ($infVerifSrc) {
             $dstDir = Join-Path $buildDir "x86"
-            if (-not (Test-Path (Join-Path $dstDir "InfVerif.dll"))) {
-              New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
-              Copy-Item $infVerifSrc.FullName $dstDir -Force
-              Write-Host "  Copied InfVerif.dll to $dstDir"
-            }
+            New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+            Copy-Item $infVerifSrc.FullName $dstDir -Force
           }
 
       - name: Build driver
         run: |
           $projectPath = "${{ github.workspace }}\Setup\Windows\driver\opensource\mtk_usb2ser.vcxproj"
-          msbuild $projectPath /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /t:Build
+          msbuild $projectPath `
+            /p:Configuration=${{ matrix.configuration }} `
+            /p:Platform=${{ matrix.platform }} `
+            /t:Build `
+            /v:minimal
 
-      - name: Sign driver
+      # Generate a test certificate (or use the production one from secrets),
+      # export the public key as mtk_test_cert.cer for the installer to bundle,
+      # generate the .cat catalog with Inf2Cat, then sign both .sys and .cat.
+      - name: Sign driver and export test certificate
         run: |
-          $outDir = "Setup\Windows\driver\opensource\${{ matrix.platform }}\${{ matrix.configuration }}"
+          $outDir  = "Setup\Windows\driver\opensource\${{ matrix.platform }}\${{ matrix.configuration }}"
           $sysFile = Join-Path $outDir "mtk_usb2ser.sys"
-          $infFile = "Setup\Windows\driver\opensource\mtk_usb2ser.inf"
+          $infSrc  = "Setup\Windows\driver\opensource\mtk_usb2ser.inf"
 
           if (-not (Test-Path $sysFile)) {
-            Write-Host "::warning::Driver .sys not found at $sysFile, skipping signing"
+            Write-Host "::warning::Driver .sys not found at $sysFile — skipping signing"
             exit 0
           }
 
+          # Locate SDK tools
           $sdkBin = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
-                    Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
-                    Sort-Object Name -Descending | Select-Object -First 1
-          $signtool = Join-Path $sdkBin.FullName "x64\signtool.exe"
-          $inf2cat  = Join-Path $sdkBin.FullName "x86\Inf2Cat.exe"
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdkBin) { Write-Host "::error::SDK bin dir not found"; exit 1 }
 
+          $signtool     = Join-Path $sdkBin.FullName "x64\signtool.exe"
+          $inf2cat      = Join-Path $sdkBin.FullName "x86\Inf2Cat.exe"
+          $cerOutputPath = Join-Path $outDir "mtk_test_cert.cer"
+
+          Write-Host "signtool : $signtool"
+          Write-Host "inf2cat  : $inf2cat"
+
+          # ---- Choose / generate signing certificate --------------------------
           $hasProductionCert = ('${{ secrets.SIGNING_CERT_BASE64 }}' -ne '')
-          $certThumbprint = $null
+          $certThumbprint    = $null
+          $certStore         = "Cert:\CurrentUser\My"
 
           if ($hasProductionCert) {
-            Write-Host "Using production code signing certificate..."
+            Write-Host "=== Using production code-signing certificate ==="
             $pfxPath = Join-Path $env:TEMP "codesign.pfx"
             try {
-              $pfxBytes = [Convert]::FromBase64String('${{ secrets.SIGNING_CERT_BASE64 }}')
+              $pfxBytes   = [Convert]::FromBase64String('${{ secrets.SIGNING_CERT_BASE64 }}')
               [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
               $securePass = ConvertTo-SecureString '${{ secrets.SIGNING_CERT_PASSWORD }}' -AsPlainText -Force
-              $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePass
+              $cert       = Import-PfxCertificate -FilePath $pfxPath `
+                              -CertStoreLocation $certStore -Password $securePass
               $certThumbprint = $cert.Thumbprint
+              Write-Host "  Production cert thumbprint: $certThumbprint"
             } finally {
               if (Test-Path $pfxPath) { Remove-Item $pfxPath -Force }
             }
           } else {
-            Write-Host "No production certificate — using self-signed test certificate..."
+            Write-Host "=== Generating self-signed test certificate ==="
             $cert = New-SelfSignedCertificate `
-              -Subject "CN=MTK Driver" `
-              -Type CodeSigningCert `
-              -CertStoreLocation Cert:\CurrentUser\My `
-              -NotAfter (Get-Date).AddYears(1)
+              -Subject         "CN=MTK USB Driver Test, O=MTKClient Development" `
+              -FriendlyName    "MTK USB Driver Test Certificate" `
+              -Type            CodeSigningCert `
+              -HashAlgorithm   SHA256 `
+              -KeyLength       2048 `
+              -KeyExportPolicy Exportable `
+              -NotAfter        (Get-Date).AddYears(5) `
+              -CertStoreLocation $certStore
+
             $certThumbprint = $cert.Thumbprint
-            Write-Host "  Test certificate thumbprint: $certThumbprint"
+            Write-Host "  Thumbprint : $certThumbprint"
+            Write-Host "  Subject    : $($cert.Subject)"
+            Write-Host "  NotAfter   : $($cert.NotAfter)"
+
+            # Export public key as DER binary .cer for the installer to bundle
+            $certBytes = $cert.Export(
+              [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+            [IO.File]::WriteAllBytes($cerOutputPath, $certBytes)
+            Write-Host "  Exported test cert -> $cerOutputPath ($($certBytes.Length) bytes)"
           }
 
-          Write-Host "Generating catalog file..."
+          # ---- Assemble package directory for Inf2Cat -------------------------
+          # Both mtk_usb2ser.inf and mtk_usb2ser.sys must be in the same directory.
+          $destInf    = Join-Path $outDir "mtk_usb2ser.inf"
           $stampedInf = Join-Path $outDir "obj\mtk_usb2ser.inf"
           if (Test-Path $stampedInf) {
-            Copy-Item $stampedInf $outDir -Force
-          } else {
-            Copy-Item $infFile $outDir -Force
+            Copy-Item $stampedInf $destInf -Force
+            Write-Host "  Using stamped INF from obj/"
+          } elseif (-not (Test-Path $destInf)) {
+            Copy-Item $infSrc $destInf -Force
+            Write-Host "  Using source INF"
           }
+          # Remove stale WDK package subdirectory (confuses Inf2Cat)
           $pkgSubDir = Join-Path $outDir "mtk_usb2ser"
           if (Test-Path $pkgSubDir) { Remove-Item $pkgSubDir -Recurse -Force -ErrorAction SilentlyContinue }
-          Remove-Item $stampedInf -Force -ErrorAction SilentlyContinue
 
+          # ---- Generate catalog (.cat) ----------------------------------------
           $packagePath = (Resolve-Path $outDir).Path
           if (Test-Path $inf2cat) {
-            & $inf2cat /driver:$packagePath /os:10_X64 /verbose 2>&1 | ForEach-Object { Write-Host "  $_" }
+            Write-Host "=== Running Inf2Cat ==="
+            & $inf2cat /driver:$packagePath /os:10_X64 /verbose 2>&1 |
+              ForEach-Object { Write-Host "  $_" }
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::warning::Inf2Cat returned $LASTEXITCODE — .cat may be missing"
+            }
           } else {
-            Write-Host "::warning::Inf2Cat not found, skipping catalog generation"
+            Write-Host "::warning::Inf2Cat not found — skipping catalog generation"
           }
 
-          Write-Host "Signing driver files..."
-          $filesToSign = @($sysFile)
+          # ---- Sign driver files ----------------------------------------------
+          Write-Host "=== Signing driver files ==="
+          $filesToSign = [System.Collections.Generic.List[string]]::new()
+          $filesToSign.Add($sysFile)
           $catFile = Join-Path $outDir "mtk_usb2ser.cat"
-          if (Test-Path $catFile) { $filesToSign += $catFile }
+          if (Test-Path $catFile) { $filesToSign.Add($catFile) }
 
-          # RFC 3161 timestamp servers (HTTP only — HTTPS causes signtool errors)
-          $timestampServers = @(
+          # Timestamp servers — HTTP only (HTTPS causes signtool protocol errors)
+          $tsServers = @(
             "http://timestamp.digicert.com",
             "http://timestamp.sectigo.com",
             "http://timestamp.globalsign.com/tsa/r6advanced1"
           )
 
           foreach ($file in $filesToSign) {
+            Write-Host "  Signing: $(Split-Path $file -Leaf)"
             $signed = $false
-            foreach ($tsUrl in $timestampServers) {
-              & $signtool sign /sha1 $certThumbprint /fd SHA256 /tr $tsUrl /td SHA256 /v $file 2>&1 |
-                ForEach-Object { Write-Host "  $_" }
+
+            # Try each timestamp server
+            foreach ($ts in $tsServers) {
+              & $signtool sign /sha1 $certThumbprint /fd SHA256 /tr $ts /td SHA256 /v $file 2>&1 |
+                ForEach-Object { Write-Host "    $_" }
               if ($LASTEXITCODE -eq 0) { $signed = $true; break }
             }
+
             if (-not $signed) {
               if ($hasProductionCert) {
-                Write-Host "::error::Production signing failed for $file"
+                Write-Host "::error::Production signing failed for $(Split-Path $file -Leaf)"
                 exit 1
-              } else {
-                Write-Host "::warning::Test signing failed for $file (self-signed cert, expected) — continuing"
+              }
+              # Test cert: external TSAs won't timestamp it — sign without timestamp
+              Write-Host "  Timestamp failed — signing without timestamp (test cert)"
+              & $signtool sign /sha1 $certThumbprint /fd SHA256 /v $file 2>&1 |
+                ForEach-Object { Write-Host "    $_" }
+              if ($LASTEXITCODE -eq 0) { $signed = $true }
+              if (-not $signed) {
+                Write-Host "::warning::Signing failed for $(Split-Path $file -Leaf) (test cert on CI)"
               }
             }
           }
 
+          Write-Host ""
+          Write-Host "=== Output directory: $outDir ==="
+          Get-ChildItem $outDir -File | ForEach-Object {
+            Write-Host "  $($_.Name)  ($($_.Length) bytes)"
+          }
+
+      # Upload: sys + inf + cat + pdb + cer (test cert, if generated)
       - name: Upload driver artifacts
         uses: actions/upload-artifact@v4
         with:
           name: driver-${{ matrix.platform }}-${{ matrix.configuration }}
           path: |
-            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/*.sys
-            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/*.inf
-            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/*.cat
-            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/*.pdb
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.sys
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.inf
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.cat
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.pdb
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_test_cert.cer
           if-no-files-found: warn
 
+  # ---------------------------------------------------------------------------
+  # Job 2: Build the Inno Setup one-click installer
+  # ---------------------------------------------------------------------------
   build-installer:
     name: Build Installer
     runs-on: windows-latest
@@ -261,46 +310,76 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download x64 driver
-        uses: actions/download-artifact@v4.1.3
+      # Download the signed driver artifact into the directory setup.iss expects:
+      #   Setup/Windows/installer/build/x64/Release/
+      - name: Download x64 driver artifact
+        uses: actions/download-artifact@v4
         with:
           name: driver-x64-Release
           path: Setup/Windows/installer/build/x64/Release
-        continue-on-error: true
 
-      - name: Copy INF to installer build
+      # Ensure the INF is present (the artifact includes it; this is a safety net)
+      - name: Verify installer build directory
         run: |
-          Copy-Item "Setup\Windows\driver\opensource\mtk_usb2ser.inf" `
-            "Setup\Windows\installer\build\x64\Release\" -Force -ErrorAction SilentlyContinue
+          $buildDir = "Setup\Windows\installer\build\x64\Release"
+          New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+
+          $infDest = Join-Path $buildDir "mtk_usb2ser.inf"
+          if (-not (Test-Path $infDest)) {
+            Write-Host "INF not in artifact — copying from source tree..."
+            Copy-Item "Setup\Windows\driver\opensource\mtk_usb2ser.inf" $infDest -Force
+          }
+
+          Write-Host "=== Installer build directory ==="
+          Get-ChildItem $buildDir -File | ForEach-Object {
+            Write-Host "  $($_.Name)  ($($_.Length) bytes)"
+          }
 
       - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
+        run: choco install innosetup --yes --no-progress --limit-output
 
-      - name: Build installer
+      # Run ISCC from the installer directory so relative paths in setup.iss resolve
+      - name: Build installer with ISCC
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Setup\Windows\installer\setup.iss
-        continue-on-error: true
+          $issDir  = "${{ github.workspace }}\Setup\Windows\installer"
+          $issFile = Join-Path $issDir "setup.iss"
+          Set-Location $issDir
 
-      - name: Upload installer
+          Write-Host "=== Building Inno Setup installer ==="
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" $issFile
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::ISCC.exe failed (exit code $LASTEXITCODE)"
+            exit $LASTEXITCODE
+          }
+
+          Write-Host "=== Installer output ==="
+          Get-ChildItem "output" -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "  $($_.Name)  ($($_.Length) bytes)" }
+
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: MTK-USB-Driver-Installer
           path: Setup/Windows/installer/output/*.exe
           if-no-files-found: warn
 
-      - name: Upload portable package
+      - name: Upload portable driver package
         uses: actions/upload-artifact@v4
         with:
           name: MTK-USB-Driver-Portable
           path: |
-            Setup/Windows/driver/opensource/mtk_usb2ser.inf
-            Setup/Windows/driver/opensource/*.c
-            Setup/Windows/driver/opensource/*.h
+            Setup/Windows/installer/build/x64/Release/mtk_usb2ser.sys
+            Setup/Windows/installer/build/x64/Release/mtk_usb2ser.inf
+            Setup/Windows/installer/build/x64/Release/mtk_usb2ser.cat
+            Setup/Windows/installer/build/x64/Release/mtk_test_cert.cer
             Setup/Windows/installer/install_driver.ps1
             Setup/Windows/installer/uninstall_driver.ps1
             README.md
-            LICENSE
+          if-no-files-found: warn
 
+  # ---------------------------------------------------------------------------
+  # Job 3: Create GitHub Release (main branch pushes only)
+  # ---------------------------------------------------------------------------
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -308,22 +387,22 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
+
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4.1.3
+        uses: actions/download-artifact@v4
         with:
           path: release-assets
 
       - name: Prepare release files
         run: |
           mkdir -p release
-          find release-assets -name "*.sys" -exec cp {} release/ \;
-          find release-assets -name "*.inf" -exec cp {} release/ \;
-          find release-assets -name "*.cat" -exec cp {} release/ \;
-          find release-assets -name "*.pdb" -exec cp {} release/ \;
-          find release-assets -name "*.exe" -exec cp {} release/ \;
-          echo "Release assets:"
-          ls -la release/
+          find release-assets -type f \( \
+            -name "*.sys" -o -name "*.inf" -o -name "*.cat" \
+            -o -name "*.pdb" -o -name "*.exe" -o -name "*.cer" \
+          \) -exec cp {} release/ \;
+          echo "=== Release files ==="
+          ls -lh release/
 
       - name: Create or update release
         uses: softprops/action-gh-release@v2
@@ -334,14 +413,34 @@ jobs:
             Automated build from commit ${{ github.sha }}
 
             ## Contents
-            - **mtk_usb2ser.sys** (x64) — KMDF USB CDC ACM serial driver for Windows 10/11
-            - **mtk_usb2ser.inf** — Device INF with 100+ MediaTek hardware IDs
-            - **mtk_usb2ser.cat** — Signed catalog file
-            - **MTK_USB_Driver_Setup.exe** — Inno Setup one-click installer
+            | File | Description |
+            |------|-------------|
+            | `MTK_USB_Driver_Setup_*.exe` | **Recommended** — one-click installer for Windows 10/11 |
+            | `mtk_usb2ser.sys` | KMDF USB CDC ACM serial driver (x64) |
+            | `mtk_usb2ser.inf` | Device INF with 100+ MediaTek hardware IDs |
+            | `mtk_usb2ser.cat` | Signed driver catalog |
+            | `mtk_test_cert.cer` | Test code-signing certificate (development builds only) |
 
-            ## Installation
-            Run the installer as Administrator, or:
+            ## Quick Install
+            Run **`MTK_USB_Driver_Setup_*.exe`** as Administrator.
+            The installer will:
+            1. Install the test code-signing certificate (Trusted Root CA + Trusted Publishers)
+            2. Enable Windows **Test Signing** mode (`bcdedit /set testsigning on`)
+            3. Install the driver via `pnputil`
+            4. Prompt for a **reboot** (required after enabling Test Signing)
+
+            > ⚠️ **Test Signing** is only required for development/test builds signed with
+            > the auto-generated certificate. Production builds signed with an EV certificate
+            > do not require Test Signing mode.
+
+            ## Manual Install
             ```powershell
+            # 1. Install test certificate
+            certutil -addstore Root             mtk_test_cert.cer
+            certutil -addstore TrustedPublisher mtk_test_cert.cer
+            # 2. Enable test signing (requires reboot)
+            bcdedit /set testsigning on
+            # 3. Reboot, then install driver
             pnputil /add-driver mtk_usb2ser.inf /install
             ```
 
