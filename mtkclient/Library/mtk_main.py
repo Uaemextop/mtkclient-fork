@@ -317,29 +317,34 @@ class Main(metaclass=LogBase):
             dwords = length // 4
             if length % 4:
                 dwords += 1
-            if filename is not None:
-                wwf = open(filename, "wb")
             sdata = b""
             pg = progress(total=addr + length, prefix='Progress:')
             length = dwords * 4
             pos = 0
-            while dwords:
-                size = min(512 // 4, dwords)
-                if dwords == 1:
-                    data = pack("<I", mtk.preloader.read32(addr + pos, size))
-                else:
-                    data = b"".join(int.to_bytes(val, 4, 'little') for val in mtk.preloader.read32(addr + pos, size))
-                pg.update(len(data))
-                sdata += data
-                if filename is not None:
-                    wwf.write(data)
-                pos += len(data)
-                dwords = (length - pos) // 4
-            pg.done()
+            if filename is not None:
+                wwf = open(filename, "wb")
+            else:
+                wwf = None
+            try:
+                while dwords:
+                    size = min(512 // 4, dwords)
+                    if dwords == 1:
+                        data = pack("<I", mtk.preloader.read32(addr + pos, size))
+                    else:
+                        data = b"".join(int.to_bytes(val, 4, 'little') for val in mtk.preloader.read32(addr + pos, size))
+                    pg.update(len(data))
+                    sdata += data
+                    if wwf is not None:
+                        wwf.write(data)
+                    pos += len(data)
+                    dwords = (length - pos) // 4
+                pg.done()
+            finally:
+                if wwf is not None:
+                    wwf.close()
             if filename is None:
                 print(hexlify(sdata).decode('utf-8'))
             else:
-                wwf.close()
                 self.info(f"Data from {hex(addr)} with size of {hex(length)} was written to " + filename)
 
     def run(self, parser):

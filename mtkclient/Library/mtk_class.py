@@ -69,7 +69,8 @@ class Mtk(metaclass=LogBase):
                 if idx is None:
                     idx = -1
                 else:
-                    data[idx:idx + len(patchval)] = patchval
+                    patch = patchval[1]
+                    data[idx:idx + len(patch)] = patch
                     self.info(f'Patched "{patchval[2]}" in preloader')
                     patched = True
             else:
@@ -84,12 +85,6 @@ class Mtk(metaclass=LogBase):
             i += 1
         if not patched:
             self.warning("Failed to patch preloader security")
-        else:
-            # with open("preloader.patched", "wb") as wf:
-            #    wf.write(data)
-            #    print("Patched !")
-            # self.info(f"Patched preloader security: {hex(i)}")
-            data = data
         return data
 
     def patch_preloader_security_da2(self, data):
@@ -118,12 +113,6 @@ class Mtk(metaclass=LogBase):
             i += 1
         if not patched:
             self.warning("Failed to patch preloader security")
-        else:
-            # with open("preloader.patched", "wb") as wf:
-            #    wf.write(data)
-            #    print("Patched !")
-            # self.info(f"Patched preloader security: {hex(i)}")
-            data = data
         return data
 
     def parse_preloader(self, preloader):
