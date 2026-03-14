@@ -26,7 +26,7 @@ MinVersion=10.0.22000
 PrivilegesRequired=admin
 SetupIconFile=compiler:SetupClassicIcon.ico
 UninstallDisplayName={#AppName}
-LicenseFile=..\LICENSE
+LicenseFile=..\..\..\LICENSE
 OutputDir=output
 
 [Languages]
