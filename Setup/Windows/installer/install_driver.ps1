@@ -64,25 +64,7 @@ function Find-InfFile {
 
     $candidates = @(
         (Join-Path $BasePath "mtk_usb2ser.inf"),
-        (Join-Path $BasePath "driver\opensource\mtk_usb2ser.inf"),
-        (Join-Path $BasePath "driver\CDC\mtk_preloader_opensource.inf")
-    )
-
-    foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) {
-            return $candidate
-        }
-    }
-    return $null
-}
-
-function Find-CdcInfFile {
-    param([string]$BasePath)
-
-    $candidates = @(
-        (Join-Path $BasePath "CDC\mtk_preloader_opensource.inf"),
-        (Join-Path $BasePath "mtk_preloader_opensource.inf"),
-        (Join-Path $BasePath "driver\CDC\mtk_preloader_opensource.inf")
+        (Join-Path $BasePath "driver\opensource\mtk_usb2ser.inf")
     )
 
     foreach ($candidate in $candidates) {
@@ -210,7 +192,8 @@ function Install-MtkDriver {
             Write-Host "ERROR: The driver is signed with a test certificate that Windows does not trust." -ForegroundColor Red
             Write-Host "       (Error 0x800B0109: untrusted root certificate)" -ForegroundColor Red
             Write-Host ""
-            Write-Host "This is expected for community/CI builds. You have three options:" -ForegroundColor Yellow
+            Write-Host "This is expected for community/CI builds." -ForegroundColor Yellow
+            Write-Host "You must enable Windows Test Signing mode so the custom driver can load:" -ForegroundColor Yellow
             Write-Host ""
             Write-Host "  Option 1 - Enable test signing (persistent, requires reboot):" -ForegroundColor White
             Write-Host "    bcdedit /set testsigning on" -ForegroundColor Cyan
@@ -221,41 +204,17 @@ function Install-MtkDriver {
             Write-Host "    -> Startup Settings -> Restart -> Press 7" -ForegroundColor Cyan
             Write-Host "    Then run this installer again." -ForegroundColor White
             Write-Host ""
-            Write-Host "  Option 3 - Use the CDC-only driver (no signing needed):" -ForegroundColor White
-            Write-Host "    Uses Windows built-in usbser.sys — no custom binary, no certificate required." -ForegroundColor Cyan
-            Write-Host "    Works immediately without test signing or rebooting." -ForegroundColor Cyan
-            Write-Host ""
-
-            # Look for CDC INF fallback
-            $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-            $cdcInf = Find-CdcInfFile -BasePath $scriptDir
-            if (-not $cdcInf) {
-                $cdcInf = Find-CdcInfFile -BasePath (Get-Location).Path
-            }
 
             Write-Host "What would you like to do?" -ForegroundColor Yellow
-            if ($cdcInf) {
-                Write-Host "  [1] Enable test signing now (reboot required)" -ForegroundColor White
-                Write-Host "  [2] Install CDC-only driver instead (works now, no reboot)" -ForegroundColor White
-                Write-Host "  [3] Exit" -ForegroundColor White
-                $validOptions = @("1", "2", "3")
-                do {
-                    $response = Read-Host "Select option [1/2/3]"
-                    if ($response -notin $validOptions) {
-                        Write-Host "  Invalid selection. Please enter 1, 2, or 3." -ForegroundColor Yellow
-                    }
-                } while ($response -notin $validOptions)
-            } else {
-                Write-Host "  [1] Enable test signing now (reboot required)" -ForegroundColor White
-                Write-Host "  [2] Exit" -ForegroundColor White
-                $validOptions = @("1", "2")
-                do {
-                    $response = Read-Host "Select option [1/2]"
-                    if ($response -notin $validOptions) {
-                        Write-Host "  Invalid selection. Please enter 1 or 2." -ForegroundColor Yellow
-                    }
-                } while ($response -notin $validOptions)
-            }
+            Write-Host "  [1] Enable test signing now (reboot required)" -ForegroundColor White
+            Write-Host "  [2] Exit" -ForegroundColor White
+            $validOptions = @("1", "2")
+            do {
+                $response = Read-Host "Select option [1/2]"
+                if ($response -notin $validOptions) {
+                    Write-Host "  Invalid selection. Please enter 1 or 2." -ForegroundColor Yellow
+                }
+            } while ($response -notin $validOptions)
 
             if ($response -eq "1") {
                 if (-not (Test-TestSigningEnabled)) {
@@ -269,24 +228,6 @@ function Install-MtkDriver {
                     Write-Host "Test signing is already enabled. Please REBOOT if you haven't yet." -ForegroundColor Yellow
                     Read-Host "Press Enter to exit"
                     exit 0
-                }
-            } elseif ($response -eq "2" -and $cdcInf) {
-                Write-Host ""
-                Write-Host "Installing CDC-only driver (inbox usbser.sys)..." -ForegroundColor Yellow
-                Write-Host "  INF: $cdcInf" -ForegroundColor Gray
-                $cdcResult = & pnputil.exe /add-driver $cdcInf /install 2>&1
-                $cdcExitCode = $LASTEXITCODE
-                foreach ($line in $cdcResult) {
-                    Write-Host "  $line" -ForegroundColor Gray
-                }
-                if ($cdcExitCode -eq 0) {
-                    Write-Host ""
-                    Write-Host "CDC-only driver installed successfully!" -ForegroundColor Green
-                    Write-Host "This uses Windows built-in usbser.sys — fully functional for SP Flash Tool and mtkclient." -ForegroundColor White
-                } else {
-                    Write-Host ""
-                    Write-Host "CDC driver installation returned code $cdcExitCode." -ForegroundColor Yellow
-                    Write-Host "Try installing via Device Manager: right-click the device -> Update driver -> Browse -> select the CDC folder." -ForegroundColor Yellow
                 }
             } else {
                 Write-Host ""

@@ -53,9 +53,9 @@ Source: "..\docs\INSTALL.md"; DestDir: "{app}\docs"; Flags: ignoreversion
 Source: "install_driver.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "uninstall_driver.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
-; CDC-only INF (fallback — uses compiled mtk_usb2ser.sys installed as usb2ser.sys)
+; CDC INF with custom usb2ser.sys driver (compiled from mtk_usb2ser.sys)
 Source: "..\driver\CDC\mtk_preloader_opensource.inf"; DestDir: "{app}\CDC"; Flags: ignoreversion skipifsourcedoesntexist
-; The CDC INF needs the driver binary alongside it so pnputil can copy it
+; Driver binary that the CDC INF installs as usb2ser.sys
 Source: "build\x64\Release\mtk_usb2ser.sys"; DestDir: "{app}\CDC"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Run]
@@ -73,7 +73,7 @@ Filename: "certutil.exe"; \
     Check: CertificateExists
 
 ; Step 2: Install driver using pnputil after certificate is trusted
-; install_driver.ps1 handles test-signing prompts and CDC fallback interactively.
+; install_driver.ps1 installs the certificate and handles test-signing prompts.
 Filename: "powershell.exe"; \
     Parameters: "-ExecutionPolicy Bypass -File ""{app}\install_driver.ps1"" -InfPath ""{app}\mtk_usb2ser.inf"""; \
     StatusMsg: "Installing MediaTek USB Serial driver..."; \
