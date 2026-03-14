@@ -199,8 +199,12 @@ class UsbClass(DeviceClass):
         sbits = {1: 0, 1.5: 1, 2: 2}
         dbits = {5, 6, 7, 8, 16}
         pmodes = {0, 1, 2, 3, 4}
+        # Extended baud rate set: includes MTK high-speed DA rates (921600,
+        # 1152000, 3000000, 3686400) used during Legacy DA stage-1 speed
+        # negotiation (set_speed / set_speed_iot) and IoT UART baud changes.
         brates = {300, 600, 1200, 2400, 4800, 9600, 14400,
-                  19200, 28800, 38400, 57600, 115200, 230400, 460800, 921600}
+                  19200, 28800, 38400, 57600, 115200, 230400, 460800, 921600,
+                  1152000, 1500000, 2000000, 3000000, 3686400}
 
         if stopbits is not None:
             if stopbits not in sbits.keys():
@@ -228,12 +232,16 @@ class UsbClass(DeviceClass):
 
         if baudrate is not None:
             if baudrate not in brates:
-                brs = sorted(brates)
-                dif = [abs(br - baudrate) for br in brs]
-                best = brs[dif.index(min(dif))]
-                raise ValueError(
-                    f"Invalid baudrates, nearest valid is {best}")
+                # Accept any non-zero baudrate for device-specific use;
+                # only reject if it is definitely zero.
+                if baudrate == 0:
+                    raise ValueError("Baudrate must be non-zero")
+                # Use the requested rate as-is — the device will reject it
+                # via a CDC SET_LINE_CODING error if it is unsupported.
             self.baudrate = baudrate
+
+        if self.baudrate is None:
+            self.baudrate = 115200
 
         linecode = [
             self.baudrate & 0xff,

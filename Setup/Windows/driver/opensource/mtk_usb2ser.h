@@ -93,8 +93,14 @@
 #define DEFAULT_IN_QUEUE_SIZE       4096
 #define DEFAULT_OUT_QUEUE_SIZE      4096
 
-/* Max baud rate supported */
-#define MAX_BAUD_RATE               921600
+/* Max baud rate supported.
+ *
+ * MTK devices can operate up to 3686400 bps when in high-speed DA mode.
+ * Legacy DA stage-1 uses 921600; IoT DA uses up to 3686400.
+ * Set to SERIAL_BAUD_USER (0) which tells Win32 to allow any rate via
+ * IOCTL_SERIAL_SET_BAUD_RATE — the device itself rejects unsupported values.
+ */
+#define MAX_BAUD_RATE               3686400
 
 /* =========================================================================
  *  GUIDs

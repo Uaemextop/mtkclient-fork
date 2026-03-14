@@ -77,7 +77,26 @@ class SerialClass(DeviceClass):
         self.portname = portname
 
     def set_fast_mode(self, enabled):
-        pass
+        """Switch between normal and fast (high-throughput) read modes.
+
+        In fast mode (after DA stage 2 connects at USB high-speed):
+          - Raise the pyserial read timeout so large reads don't time out
+            mid-transfer.
+          - Raise the in-buffer to absorb burst writes from the DA.
+
+        In normal mode (Preloader / BROM communication at 115200 baud):
+          - Restore the conservative 500 ms timeout used during handshake.
+        """
+        if self.device is None:
+            return
+        if enabled:
+            # High-throughput mode: long timeout, generous inter-char gap
+            self.device.timeout  = 3.0      # 3 s total read deadline
+            self.device.inter_byte_timeout = None
+        else:
+            # Conservative mode: 500 ms timeout for command/response cycles
+            self.device.timeout  = 0.5
+            self.device.inter_byte_timeout = None
 
     def change_baud(self):
         print("Changing Baudrate")
@@ -135,11 +154,37 @@ class SerialClass(DeviceClass):
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):
-        self.device.baudrate = baudrate
-        self.device.parity = parity
-        self.device.stopbbits = stopbits
-        self.device.bytesize = databits
-        self.debug("Linecoding set")
+        """Apply line coding (baud, parity, data bits, stop bits) to the
+        pyserial port.
+
+        mtkclient passes integer parity codes matching CDC ACM convention:
+            0 = None, 1 = Odd, 2 = Even, 3 = Mark, 4 = Space, None = None
+        pyserial requires single-character strings for parity.
+        """
+        import serial as _serial
+        _parity_map = {
+            None: _serial.PARITY_NONE,
+            0:    _serial.PARITY_NONE,
+            1:    _serial.PARITY_ODD,
+            2:    _serial.PARITY_EVEN,
+            3:    _serial.PARITY_MARK,
+            4:    _serial.PARITY_SPACE,
+        }
+        _stop_map = {
+            None: _serial.STOPBITS_ONE,
+            0:    _serial.STOPBITS_ONE,          # CDC format 0 = 1 stop bit
+            1:    _serial.STOPBITS_ONE,
+            1.5:  _serial.STOPBITS_ONE_POINT_FIVE,
+            2:    _serial.STOPBITS_TWO,
+        }
+        if baudrate is not None and baudrate > 0:
+            self.device.baudrate = baudrate
+        self.device.parity   = _parity_map.get(parity,  _serial.PARITY_NONE)
+        self.device.stopbits = _stop_map.get(stopbits,  _serial.STOPBITS_ONE)
+        self.device.bytesize = databits if databits in (5, 6, 7, 8) else 8
+        self.debug("Linecoding set: baud={} parity={} data={} stop={}".format(
+            self.device.baudrate, self.device.parity,
+            self.device.bytesize, self.device.stopbits))
 
     def setbreak(self):
         self.device.send_break()

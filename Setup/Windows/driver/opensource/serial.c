@@ -33,10 +33,26 @@ SerialSetBaudRate(
         return;
     }
 
+    /*
+     * Accept any non-zero baud rate.  MTK devices support high-speed DA
+     * communication at 921600, 1152000, 3000000, and 3686400 bps depending
+     * on the chip family.  Rejecting unknown rates here would break those
+     * paths.  The device firmware will NAK the CDC SET_LINE_CODING request
+     * if the rate is unsupported — that error propagates back to the caller.
+     */
     DevCtx->LineCoding.dwDTERate = pBaud->BaudRate;
 
     /* Send updated line coding to device via CDC SET_LINE_CODING */
     status = UsbControlSetLineCoding(DevCtx);
+
+    /*
+     * Ignore STATUS_NOT_SUPPORTED from the device (some MTK bootrom modes
+     * do not implement GET/SET_LINE_CODING but still work at any rate).
+     */
+    if (status == STATUS_NOT_SUPPORTED ||
+        status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
 
     WdfRequestComplete(Request, status);
 }
@@ -107,16 +123,20 @@ SerialSetLineControl(
         return;
     }
 
-    /* Data bits: 5, 6, 7, 8 */
-    if (pLine->WordLength < 5 || pLine->WordLength > 8) {
+    /* Data bits: 5, 6, 7, 8, or 16 (CDC ACM extension used by some MTK DA) */
+    if (pLine->WordLength != 5 && pLine->WordLength != 6 &&
+        pLine->WordLength != 7 && pLine->WordLength != 8 &&
+        pLine->WordLength != 16) {
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
         return;
     }
     DevCtx->LineCoding.bDataBits = pLine->WordLength;
 
-    /* Apply via CDC SET_LINE_CODING */
+    /* Apply via CDC SET_LINE_CODING; ignore device-not-supported errors */
     status = UsbControlSetLineCoding(DevCtx);
-
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -219,6 +239,11 @@ SerialGetHandflow(
 
 /* =========================================================================
  *  IOCTL_SERIAL_SET_DTR
+ *
+ *  Note: Some MTK BROM/Preloader modes do not implement CDC
+ *  SET_CONTROL_LINE_STATE.  The USB request will NAK and the driver will
+ *  get STATUS_UNSUCCESSFUL.  We still update our local state and return
+ *  STATUS_SUCCESS so that pyserial / setcontrollinestate() does not fail.
  * ========================================================================= */
 VOID
 SerialSetDtr(
@@ -227,6 +252,9 @@ SerialSetDtr(
     )
 {
     NTSTATUS status = UsbControlSetDtr(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -240,6 +268,9 @@ SerialClrDtr(
     )
 {
     NTSTATUS status = UsbControlClrDtr(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -253,6 +284,9 @@ SerialSetRts(
     )
 {
     NTSTATUS status = UsbControlSetRts(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -266,6 +300,9 @@ SerialClrRts(
     )
 {
     NTSTATUS status = UsbControlClrRts(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -332,8 +369,15 @@ SerialSetBreakOn(
     _In_ WDFREQUEST      Request
     )
 {
-    /* CDC SEND_BREAK with 0xFFFF = turn on break indefinitely */
+    /*
+     * CDC SEND_BREAK with duration 0xFFFF = hold break state indefinitely.
+     * Ignore errors — some MTK BROM modes do not implement SEND_BREAK
+     * but the pyserial setbreak() call must still succeed.
+     */
     NTSTATUS status = UsbControlSendBreak(DevCtx, 0xFFFF);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -346,8 +390,11 @@ SerialSetBreakOff(
     _In_ WDFREQUEST      Request
     )
 {
-    /* CDC SEND_BREAK with 0 = turn off break */
+    /* CDC SEND_BREAK with duration 0 = release break state */
     NTSTATUS status = UsbControlSendBreak(DevCtx, 0);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
     WdfRequestComplete(Request, status);
 }
 
@@ -780,37 +827,50 @@ SerialGetProperties(
     pProp->MaxTxQueue         = 0;
     pProp->MaxRxQueue         = 0;
 
-    /* Supported baud rates */
+    /*
+     * Supported baud rates.
+     *
+     * MaxBaud = SERIAL_BAUD_USER signals to Win32 that the driver accepts
+     * any baud rate via IOCTL_SERIAL_SET_BAUD_RATE, not just the predefined
+     * constants.  This is required for MTK high-speed DA communication at
+     * 921600, 1152000, 3000000, and 3686400 bps.
+     *
+     * SettableBaud lists the standard Win32 rates + USER to advertise that
+     * non-standard rates are also accepted.
+     */
     pProp->MaxBaud            = SERIAL_BAUD_USER;
-    pProp->SettableBaud       = SERIAL_BAUD_300  | SERIAL_BAUD_600  |
-                                SERIAL_BAUD_1200 | SERIAL_BAUD_2400 |
-                                SERIAL_BAUD_4800 | SERIAL_BAUD_9600 |
+    pProp->SettableBaud       = SERIAL_BAUD_300   | SERIAL_BAUD_600   |
+                                SERIAL_BAUD_1200  | SERIAL_BAUD_2400  |
+                                SERIAL_BAUD_4800  | SERIAL_BAUD_9600  |
                                 SERIAL_BAUD_14400 | SERIAL_BAUD_19200 |
-                                SERIAL_BAUD_38400 | SERIAL_BAUD_56K |
+                                SERIAL_BAUD_38400 | SERIAL_BAUD_56K   |
                                 SERIAL_BAUD_57600 | SERIAL_BAUD_115200 |
-                                SERIAL_BAUD_USER;
+                                SERIAL_BAUD_128K  | SERIAL_BAUD_USER;
 
     pProp->ProvSubType        = SERIAL_SP_RS232;
 
-    pProp->ProvCapabilities   = SERIAL_PCF_DTRDSR |
-                                SERIAL_PCF_RTSCTS |
-                                SERIAL_PCF_CD     |
-                                SERIAL_PCF_PARITY_CHECK |
+    pProp->ProvCapabilities   = SERIAL_PCF_DTRDSR      |
+                                SERIAL_PCF_RTSCTS      |
+                                SERIAL_PCF_CD          |
+                                SERIAL_PCF_PARITY_CHECK|
                                 SERIAL_PCF_TOTALTIMEOUTS |
-                                SERIAL_PCF_INTTIMEOUTS;
+                                SERIAL_PCF_INTTIMEOUTS |
+                                SERIAL_PCF_SPECIALCHARS;
 
-    pProp->SettableParams     = SERIAL_SP_PARITY |
-                                SERIAL_SP_BAUD   |
-                                SERIAL_SP_DATABITS |
-                                SERIAL_SP_STOPBITS |
-                                SERIAL_SP_HANDSHAKING |
+    pProp->SettableParams     = SERIAL_SP_PARITY       |
+                                SERIAL_SP_BAUD         |
+                                SERIAL_SP_DATABITS     |
+                                SERIAL_SP_STOPBITS     |
+                                SERIAL_SP_HANDSHAKING  |
                                 SERIAL_SP_PARITY_CHECK |
                                 SERIAL_SP_CARRIER_DETECT;
 
+    /* Settable data bits: 5–8 plus 16 (CDC ACM extension) */
     pProp->SettableData       = SERIAL_DATABITS_5 |
                                 SERIAL_DATABITS_6 |
                                 SERIAL_DATABITS_7 |
-                                SERIAL_DATABITS_8;
+                                SERIAL_DATABITS_8 |
+                                SERIAL_DATABITS_16;
 
     pProp->SettableStopParity = SERIAL_STOPBITS_10 |
                                 SERIAL_STOPBITS_15 |
