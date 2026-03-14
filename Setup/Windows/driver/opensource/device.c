@@ -140,14 +140,26 @@ EvtDeviceD0Exit(
     _In_ WDF_POWER_DEVICE_STATE TargetState
     )
 {
+    PDEVICE_CONTEXT devCtx = GetDeviceContext(Device);
+
     PAGED_CODE();
-    UNREFERENCED_PARAMETER(Device);
     UNREFERENCED_PARAMETER(TargetState);
 
     /*
      * The WDF continuous readers are automatically stopped by the
      * framework when the device leaves D0.
+     *
+     * Drain pending read requests and purge the ring buffer so that
+     * stale data from the current power session doesn't leak into the
+     * next D0Entry.  This is important during mtkclient's USB speed
+     * upgrade reconnect cycle (close(reset=True) → USB reset → D0Exit
+     * → device re-enumerates → D0Entry) where old-speed data must
+     * not be delivered to new-speed reads.
      */
+    WdfIoQueuePurgeSynchronously(devCtx->PendingReadQueue);
+    WdfIoQueueStart(devCtx->PendingReadQueue);
+
+    RingBufferPurge(&devCtx->ReadBuffer);
 
     return STATUS_SUCCESS;
 }

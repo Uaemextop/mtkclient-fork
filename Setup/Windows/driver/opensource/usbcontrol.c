@@ -45,6 +45,7 @@ UsbControlSendCdcRequest(
     NTSTATUS                        status;
     WDF_USB_CONTROL_SETUP_PACKET    setupPacket;
     WDF_MEMORY_DESCRIPTOR           memDesc;
+    WDF_REQUEST_SEND_OPTIONS        sendOptions;
     ULONG                           bytesTransferred = 0;
 
     PAGED_CODE();
@@ -71,6 +72,16 @@ UsbControlSendCdcRequest(
         (USHORT)DevCtx->InterfaceNumber
         );
 
+    /*
+     * Set a 5-second timeout on synchronous control transfers.
+     * Without this, the thread blocks indefinitely if the device stalls
+     * (e.g. during mtkclient speed upgrade when the device is resetting).
+     * 5 seconds is generous enough for any legitimate CDC control request
+     * while preventing permanent thread hangs.
+     */
+    WDF_REQUEST_SEND_OPTIONS_INIT(&sendOptions, WDF_REQUEST_SEND_OPTION_TIMEOUT);
+    WDF_REQUEST_SEND_OPTIONS_SET_TIMEOUT(&sendOptions, WDF_REL_TIMEOUT_IN_SEC(5));
+
     if (TransferBuffer != NULL && TransferLength > 0) {
         WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&memDesc,
                                            TransferBuffer,
@@ -79,7 +90,7 @@ UsbControlSendCdcRequest(
         status = WdfUsbTargetDeviceSendControlTransferSynchronously(
             DevCtx->UsbDevice,
             WDF_NO_HANDLE,
-            NULL,       /* no send options (blocking) */
+            &sendOptions,
             &setupPacket,
             &memDesc,
             &bytesTransferred
@@ -88,7 +99,7 @@ UsbControlSendCdcRequest(
         status = WdfUsbTargetDeviceSendControlTransferSynchronously(
             DevCtx->UsbDevice,
             WDF_NO_HANDLE,
-            NULL,
+            &sendOptions,
             &setupPacket,
             NULL,       /* no memory descriptor for zero-length transfers */
             &bytesTransferred
