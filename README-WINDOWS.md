@@ -15,11 +15,39 @@ cd mtkclient
 pip3 install -r requirements.txt
 ```
 
-#### Get latest UsbDk 64-Bit
+#### Windows USB Driver (Recommended - No UsbDk Required)
+
+This project includes an open-source KMDF USB CDC ACM serial driver that replaces
+the proprietary MediaTek usb2ser.sys and eliminates the need for libusb and UsbDk.
+
+##### Option A: CDC-Only Driver (Easiest - No Signing Required)
+Uses Windows built-in usbser.sys. Works immediately:
+```cmd
+pnputil /add-driver Setup\Windows\driver\CDC\mtk_preloader_opensource.inf /install
+```
+
+##### Option B: Custom KMDF Driver (Full-Featured)
+Requires test signing for community builds:
+```cmd
+bcdedit /set testsigning on
+powershell -ExecutionPolicy Bypass -File Setup\Windows\installer\install_driver.ps1
+```
+
+##### Verify Installation
+After installation, Device Manager should show under Ports (COM and LPT):
+- MediaTek USB Port (BROM) - when device is in Boot ROM mode
+- MediaTek PreLoader USB VCOM Port - when device is in preloader mode
+- MediaTek DA USB VCOM Port - when download agent is active
+
+When using mtkclient with the serial driver, specify the COM port:
+```shell
+python mtk.py --serialport COMx
+```
+
+#### Legacy: UsbDk (No longer required)
 - Install normal MTK Serial Port driver (or use default Windows COM Port one, make sure no exclamation is seen)
 - Get usbdk installer (.msi) from [here](https://github.com/daynix/UsbDk/releases/) and install it
 - Test on device connect using "UsbDkController -n" if you see a device with 0x0E8D 0x0003
-- Works fine under Windows 10 and 11 :D
 
 #### Building wheel issues (creds to @Oyoh-Edmond)
 ##### Download and Install the Build Tools:

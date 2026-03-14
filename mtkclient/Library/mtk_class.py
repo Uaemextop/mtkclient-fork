@@ -152,11 +152,10 @@ class Mtk(metaclass=LogBase):
             interface = self.interface
         if vid != -1 and pid != -1:
             if interface == -1:
-                for dev in default_ids:
-                    if dev[0] == vid and dev[1] == pid:
-                        interface = dev[2]
-                        break
-            portconfig = [[vid, pid, interface]]
+                if vid in default_ids and isinstance(default_ids[vid], dict):
+                    if pid in default_ids[vid]:
+                        interface = default_ids[vid][pid]
+            portconfig = {vid: {pid: interface}}
         else:
             portconfig = default_ids
         self.port = Port(mtk=self, portconfig=portconfig, serialportname=serialportname, loglevel=self.__logger.level)

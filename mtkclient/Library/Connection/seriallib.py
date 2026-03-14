@@ -100,6 +100,10 @@ class SerialClass(DeviceClass):
         ids = []
         for port in serial.tools.list_ports.comports():
             for usbid in self.portconfig:
+                if not isinstance(self.portconfig, dict):
+                    break
+                if not isinstance(self.portconfig.get(usbid), dict):
+                    continue
                 if "ttyUSB" in port.device or "ttyACM" in port.device:
                     if port.device not in ids:
                         ids.append(port.device)
@@ -107,12 +111,18 @@ class SerialClass(DeviceClass):
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)
+                elif sys.platform == 'win32' and port.vid == usbid:
+                    # On Windows with our custom serial driver (mtk_usb2ser),
+                    # devices appear as COM ports with VID matching MTK
+                    if port.device not in ids:
+                        self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
+                        ids.append(port.device)
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):
         self.device.baudrate = baudrate
         self.device.parity = parity
-        self.device.stopbbits = stopbits
+        self.device.stopbits = stopbits
         self.device.bytesize = databits
         self.debug("Linecoding set")
 
@@ -151,7 +161,7 @@ class SerialClass(DeviceClass):
                     ctr = self.device.write(command[pos:pos + pktsize])
                     if ctr <= 0:
                         self.info(ctr)
-                    pos += pktsize
+                    pos += ctr
                 except Exception as err:
                     self.debug(str(err))
                     # print("Error while writing")
