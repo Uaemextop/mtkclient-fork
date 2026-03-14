@@ -5,6 +5,7 @@
 
 import copy
 import logging
+import logging.handlers
 import math
 import os
 import sys
@@ -155,7 +156,6 @@ class ColorFormatter(logging.Formatter):
         if new_record.levelno in self.LOG_COLORS:
             pad = ""
             if new_record.name != "root":
-                print(new_record.name)
                 pad = "[LIB]: "
             # we want levelname to be in different color, so let"s modify it
             new_record.msg = "{pad}{color_begin}{msg}{color_end}".format(
@@ -222,10 +222,23 @@ def logsetup(self, logger, loglevel, signal=None):
         self.warning = signal.emit
     if loglevel == logging.DEBUG:
         logfilename = os.path.join("logs", "log.txt")
-        if not os.path.exists(os.path.dirname(logfilename)):
-            os.makedirs(os.path.dirname(logfilename))
-        fh = logging.FileHandler(logfilename, encoding='utf-8')
-        logger.addHandler(fh)
+        logdir = os.path.dirname(logfilename)
+        if logdir and not os.path.exists(logdir):
+            os.makedirs(logdir)
+        # Rotate at 10 MB, keep last 3 backups so a single debug session
+        # cannot fill the disk.  Any existing handler pointing at the same
+        # file is reused to avoid duplicate log lines when several mtkclient
+        # classes are instantiated in the same process.
+        already_attached = any(
+            isinstance(h, logging.handlers.RotatingFileHandler) and
+            getattr(h, 'baseFilename', None) == os.path.abspath(logfilename)
+            for h in logger.handlers
+        )
+        if not already_attached:
+            fh = logging.handlers.RotatingFileHandler(
+                logfilename, encoding='utf-8',
+                maxBytes=10 * 1024 * 1024, backupCount=3)
+            logger.addHandler(fh)
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)

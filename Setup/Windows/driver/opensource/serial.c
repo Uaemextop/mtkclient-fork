@@ -780,18 +780,31 @@ SerialPurge(
 
     if (*pPurgeFlags & SERIAL_PURGE_TXABORT) {
         /*
-         * Abort all outstanding bulk-OUT (write) transfers.
+         * Abort all outstanding bulk-OUT (write) transfers, then reset the
+         * pipe to clear the USB endpoint halt/stall and data-toggle state.
          *
-         * WdfUsbTargetPipeAbortSynchronously sends an abort URB to the
-         * host controller which cancels all pending transfers on the pipe
-         * and resets the data toggle.  After the call, the pipe is in a
-         * clean state and ready to accept new transfers.
+         * WdfUsbTargetPipeAbortSynchronously cancels any pending transfers
+         * but leaves the endpoint's data toggle and potential stall condition
+         * intact.  A subsequent WdfUsbTargetPipeResetSynchronously sends a
+         * "Clear Feature: ENDPOINT_HALT" control request to the device and
+         * resets the host-side data toggle, restoring the pipe to a fully
+         * operational state for new transfers.
+         *
+         * Without the reset, repeated PurgeComm(PURGE_TXABORT) calls (as
+         * issued by pyserial's reset_output_buffer()) can leave the pipe in
+         * a stalled state where every subsequent WriteFile returns
+         * ERROR_BAD_COMMAND (STATUS_INVALID_DEVICE_REQUEST).
          *
          * Any write requests that were pending will be completed with
          * STATUS_CANCELLED by the completion callback.
          */
         if (DevCtx->BulkOutPipe != NULL) {
             WdfUsbTargetPipeAbortSynchronously(
+                DevCtx->BulkOutPipe,
+                WDF_NO_HANDLE,
+                NULL
+                );
+            WdfUsbTargetPipeResetSynchronously(
                 DevCtx->BulkOutPipe,
                 WDF_NO_HANDLE,
                 NULL

@@ -71,12 +71,16 @@ class Port(metaclass=LogBase):
         length = len(startcmd)
         try:
             while i < length:
-                if ep_out(int.to_bytes(startcmd[i], 1, 'little')):
-                    v = ep_in(1, timeout=20)  # Do not wait 1 sec, bootloader is only active for 0.3 sec.
-                    if len(v) == 1 and v[0] == ~(startcmd[i]) & 0xFF:
-                        i += 1
-                    else:
-                        i = 0
+                if not ep_out(int.to_bytes(startcmd[i], 1, 'little')):
+                    # Write failed (port dead / device disconnected).  Bail
+                    # out immediately so serial_handshake() can reconnect
+                    # instead of looping forever on a stale COM handle.
+                    return False
+                v = ep_in(1, timeout=20)  # Do not wait 1 sec, bootloader is only active for 0.3 sec.
+                if len(v) == 1 and v[0] == ~(startcmd[i]) & 0xFF:
+                    i += 1
+                else:
+                    i = 0
             self.info("Device detected :)")
             return True
         except Exception as serr:

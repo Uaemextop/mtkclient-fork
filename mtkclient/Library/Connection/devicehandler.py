@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # (c) B.Kerler 2018-2025
-import inspect
-import traceback
 import logging
+import logging.handlers
 import os
 from binascii import hexlify
 from mtkclient.Library.gui_utils import LogBase
@@ -37,8 +36,21 @@ class DeviceClass(metaclass=LogBase):
         self.__logger.setLevel(loglevel)
         if loglevel == logging.DEBUG:
             logfilename = os.path.join("logs", "log.txt")
-            fh = logging.FileHandler(logfilename, encoding='utf-8')
-            self.__logger.addHandler(fh)
+            logdir = os.path.dirname(logfilename)
+            if logdir and not os.path.exists(logdir):
+                os.makedirs(logdir)
+            # Avoid adding a duplicate handler when multiple DeviceClass
+            # instances are created in the same process.
+            already_attached = any(
+                isinstance(h, logging.handlers.RotatingFileHandler) and
+                getattr(h, 'baseFilename', None) == os.path.abspath(logfilename)
+                for h in self.__logger.handlers
+            )
+            if not already_attached:
+                fh = logging.handlers.RotatingFileHandler(
+                    logfilename, encoding='utf-8',
+                    maxBytes=10 * 1024 * 1024, backupCount=3)
+                self.__logger.addHandler(fh)
 
     def get_read_packetsize(self):
         raise NotImplementedError()
@@ -125,15 +137,6 @@ class DeviceClass(metaclass=LogBase):
         return self.usbread(count)
 
     def verify_data(self, data, pre="RX:"):
-        if self.__logger.level == logging.DEBUG:
-            frame = inspect.currentframe()
-            stack_trace = traceback.format_stack(frame)
-            td = []
-            for trace in stack_trace:
-                if "verify_data" not in trace and "Port" not in trace:
-                    td.append(trace)
-            self.debug(td[:-1])
-
         if isinstance(data, bytes) or isinstance(data, bytearray):
             if data[:5] == b"<?xml":
                 try:
