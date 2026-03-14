@@ -53,8 +53,10 @@ Source: "..\docs\INSTALL.md"; DestDir: "{app}\docs"; Flags: ignoreversion
 Source: "install_driver.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "uninstall_driver.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
-; CDC-only INF (fallback — uses inbox usbser.sys already signed by Microsoft)
+; CDC-only INF (fallback — uses compiled mtk_usb2ser.sys installed as usb2ser.sys)
 Source: "..\driver\CDC\mtk_preloader_opensource.inf"; DestDir: "{app}\CDC"; Flags: ignoreversion skipifsourcedoesntexist
+; The CDC INF needs the driver binary alongside it so pnputil can copy it
+Source: "build\x64\Release\mtk_usb2ser.sys"; DestDir: "{app}\CDC"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Run]
 ; Step 1: Install signing certificate into trusted stores (before driver installation)

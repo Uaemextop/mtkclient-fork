@@ -4,12 +4,13 @@
 ; Opensource Windows 11 driver for MediaTek Preloader / BROM DA / Meta Mode
 ; USB CDC ACM serial ports.
 ;
-; This INF maps MediaTek USB hardware IDs to the Windows inbox usbser.sys
-; (USB Serial) driver — no custom kernel binary is needed.
+; Uses the custom mtk_usb2ser.sys KMDF driver (built from source), installed
+; as %12%\usb2ser.sys (System32\drivers\usb2ser.sys).  Service name: wdm_usb.
+; x86: falls back to Windows inbox usbser.sys (no x86 KMDF binary available).
 ;
 ; Based on Capstone analysis of the proprietary usb2ser.sys (MediaTek SP
-; Driver 20160804).  Functionally equivalent: the proprietary driver is a
-; standard CDC ACM class driver and usbser.sys provides the same protocol.
+; Driver 20160804).  The opensource KMDF reimplementation provides an
+; equivalent CDC ACM serial interface.
 ;
 ; Copyright (c) 2026 — Released under MIT License
 ; Repository: github.com/Uaemextop/mtk-loader-drivers-opensource-win11
@@ -28,7 +29,8 @@ PnpLockdown = 1
 %ProviderName% = DeviceList, NTamd64, NTx86
 
 [DestinationDirs]
-DefaultDestDir = 12
+DefaultDestDir    = 12
+MTK_DriverCopyFiles = 12
 
 ; ==========================================================================
 ;  x64 Device List
@@ -287,16 +289,20 @@ DefaultDestDir = 12
 %MTK_ELT%         = MTK_CDC_Install, USB\VID_0E8D&PID_2064&MI_07
 
 ; ==========================================================================
-;  Source disk layout — NO custom binary needed, uses Windows inbox usbser.sys
+;  Source disk layout — custom mtk_usb2ser.sys (installed as usb2ser.sys)
+;  x86 uses inbox usbser.sys (no x86 KMDF binary)
 ; ==========================================================================
 [SourceDisksNames]
 1 = %DiskName%
 
-[SourceDisksFiles]
-; intentionally empty — no files to copy, usbser.sys is inbox
+[SourceDisksFiles.NTamd64]
+mtk_usb2ser.sys = 1
+
+[SourceDisksFiles.NT]
+; intentionally empty for x86 — uses inbox usbser.sys
 
 ; ==========================================================================
-;  Install section — x86 (32-bit)
+;  Install section — x86 (32-bit) — inbox usbser.sys fallback
 ; ==========================================================================
 [MTK_CDC_Install.NT]
 Include = mdmcpq.inf, usbser.inf
@@ -311,20 +317,37 @@ Needs      = UsbSer_Install.Services
 AddReg = MTK_CDC_HwAddReg
 
 ; ==========================================================================
-;  Install section — x64 (64-bit)
+;  Install section — x64 (64-bit) — custom usb2ser.sys from mtk_usb2ser.sys
 ; ==========================================================================
 [MTK_CDC_Install.NTamd64]
-; mdmcpq.inf provides modem/COM port registry settings, usbser.inf provides the inbox USB serial driver
-Include = mdmcpq.inf, usbser.inf
-Needs   = UsbSer_Install
-AddReg  = MTK_CDC_AddReg
+CopyFiles = MTK_DriverCopyFiles
+AddReg    = MTK_CDC_AddReg
 
 [MTK_CDC_Install.NTamd64.Services]
-Include    = usbser.inf
-Needs      = UsbSer_Install.Services
+AddService = wdm_usb, 2, MTK_Service
 
 [MTK_CDC_Install.NTamd64.HW]
 AddReg = MTK_CDC_HwAddReg
+
+; ==========================================================================
+;  Driver binary copy — rename mtk_usb2ser.sys -> usb2ser.sys
+; ==========================================================================
+[MTK_DriverCopyFiles]
+; destination-file,    source-file,       unused,  flags
+usb2ser.sys,           mtk_usb2ser.sys,,  2
+
+; ==========================================================================
+;  Service definition — custom WDM/KMDF USB CDC ACM serial driver
+; ==========================================================================
+[MTK_Service]
+DisplayName   = %ServiceDesc%
+ServiceType   = 1                       ; SERVICE_KERNEL_DRIVER
+StartType     = 3                       ; SERVICE_DEMAND_START
+ErrorControl  = 1                       ; SERVICE_ERROR_NORMAL
+ServiceBinary = %12%\usb2ser.sys
+
+[MTK_Service_AddReg]
+HKR,,NTMPDriver,,usb2ser.sys
 
 ; ==========================================================================
 ;  Registry settings
@@ -343,6 +366,7 @@ HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
 [Strings]
 ProviderName  = "MTK Loader Drivers Opensource"
 DiskName      = "MediaTek USB Driver Installation Disk"
+ServiceDesc   = "MediaTek USB Serial (CDC ACM)"
 MTK_BOOTROM   = "MediaTek USB Port (BROM)"
 MTK_PRELOADER = "MediaTek PreLoader USB VCOM Port"
 MTK_DA        = "MediaTek DA USB VCOM Port"
