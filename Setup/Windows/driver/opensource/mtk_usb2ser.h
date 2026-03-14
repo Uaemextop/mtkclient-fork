@@ -226,6 +226,23 @@ typedef struct _DEVICE_CONTEXT {
     BOOLEAN             IdleEnabled;
     BOOLEAN             IdleWWBound;
 
+    /* ---- Read Interval Timeout Timer ---- */
+    /*
+     * When SERIAL_TIMEOUTS.ReadIntervalTimeout is non-zero and non-MAXULONG,
+     * a timer fires ReadIntervalTimeout ms after the last byte was received.
+     * If there are pending read requests and data in the ring buffer, they
+     * are completed immediately by the timer callback; if the ring buffer
+     * still has no data the pending reads are completed with whatever is
+     * available (possibly 0 bytes) to satisfy the Win32 timeout contract.
+     *
+     * This is required for mtkclient: pyserial sets ReadIntervalTimeout to
+     * a finite value (20 ms default) and expects reads to return promptly
+     * once the inter-character gap is detected.
+     */
+    WDFTIMER            ReadIntervalTimer;
+    WDFSPINLOCK         ReadTimerLock;
+    BOOLEAN             ReadTimerArmed;
+
 } DEVICE_CONTEXT, *PDEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, GetDeviceContext)
@@ -267,6 +284,8 @@ NTSTATUS    QueueInitialize(_In_ WDFDEVICE Device);
 EVT_WDF_IO_QUEUE_IO_READ               EvtIoRead;
 EVT_WDF_IO_QUEUE_IO_WRITE              EvtIoWrite;
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL     EvtIoDeviceControl;
+EVT_WDF_TIMER                          EvtReadIntervalTimer;
+VOID    ReadIntervalTimerArm(_In_ PDEVICE_CONTEXT DevCtx);
 
 /* =========================================================================
  *  Function Prototypes — serial.c

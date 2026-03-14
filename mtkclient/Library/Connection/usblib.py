@@ -301,17 +301,35 @@ class UsbClass(DeviceClass):
         self.device = None
         self.EP_OUT = None
         self.EP_IN = None
-        devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
-        for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
-            if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
-                self.device = dev
-                self.vid = dev.idVendor
-                self.pid = dev.idProduct
-                self.interface = self.portconfig[dev.idVendor][dev.idProduct]
-                break
+
+        def _find_device(dc):
+            """Return first matching device for the given bDeviceClass."""
+            devices = usb.core.find(find_all=True, bDeviceClass=dc, backend=self.backend)
+            if devices is None:
+                return None
+            for dev in devices:
+                if dev.idVendor not in self.portconfig:
+                    continue
+                if dev.idProduct not in self.portconfig[dev.idVendor]:
+                    continue
+                return dev
+            return None
+
+        # 1st pass: CDC class devices (bDeviceClass=0x02)
+        self.device = _find_device(devclass)
+        # 2nd pass: composite devices expose bDeviceClass=0x00; the actual
+        # CDC interface is enumerated through usbccgp.sys on Windows.
+        if self.device is None:
+            self.device = _find_device(0x00)
+
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
             return False
+
+        self.vid = self.device.idVendor
+        self.pid = self.device.idProduct
+        self.interface = self.portconfig[self.vid][self.pid]
+
         try:
             self.configuration = self.device.get_active_configuration()
         except usb.core.USBError as e:

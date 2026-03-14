@@ -78,13 +78,119 @@ QueueInitialize(
 }
 
 /* =========================================================================
+ *  EvtReadIntervalTimer — fires ReadIntervalTimeout ms after last byte
+ *
+ *  Implements Win32 SERIAL_TIMEOUTS.ReadIntervalTimeout semantics.
+ *  When fired, all pending read requests are completed with whatever data
+ *  is currently in the ring buffer (possibly 0 bytes), satisfying the
+ *  "inter-character gap" timeout contract.
+ *
+ *  mtkclient uses pyserial which sets ReadIntervalTimeout = 20 ms by
+ *  default; without this timer, reads would block indefinitely waiting
+ *  for the full requested byte count.
+ * ========================================================================= */
+VOID
+EvtReadIntervalTimer(
+    _In_ WDFTIMER Timer
+    )
+{
+    WDFDEVICE           device  = WdfTimerGetParentObject(Timer);
+    PDEVICE_CONTEXT     devCtx  = GetDeviceContext(device);
+    NTSTATUS            status;
+    WDFREQUEST          readRequest;
+
+    /* Clear the armed flag */
+    WdfSpinLockAcquire(devCtx->ReadTimerLock);
+    devCtx->ReadTimerArmed = FALSE;
+    WdfSpinLockRelease(devCtx->ReadTimerLock);
+
+    /* Drain the pending-read queue, completing each request with whatever
+     * data is available (even 0 bytes). */
+    for (;;) {
+        status = WdfIoQueueRetrieveNextRequest(
+            devCtx->PendingReadQueue, &readRequest);
+        if (!NT_SUCCESS(status)) {
+            break;
+        }
+
+        {
+            PVOID   buf;
+            size_t  bufLen;
+            ULONG   got;
+
+            status = WdfRequestRetrieveOutputBuffer(
+                readRequest, 0, &buf, &bufLen);
+            if (!NT_SUCCESS(status)) {
+                WdfRequestComplete(readRequest, status);
+                continue;
+            }
+
+            got = RingBufferRead(
+                &devCtx->ReadBuffer,
+                (PUCHAR)buf,
+                (ULONG)bufLen
+                );
+
+            if (got > 0) {
+                devCtx->PerfStats.ReceivedCount += got;
+            }
+
+            /* Complete with however many bytes were available (may be 0) */
+            WdfRequestCompleteWithInformation(
+                readRequest, STATUS_SUCCESS, got);
+        }
+    }
+}
+
+/* =========================================================================
+ *  ReadIntervalTimerArm — arm/re-arm the read interval timer
+ *
+ *  Called from EvtIoRead (when queuing a read) and from
+ *  EvtUsbBulkInReadComplete (after new data arrives) to reset the
+ *  ReadIntervalTimeout countdown.
+ * ========================================================================= */
+VOID
+ReadIntervalTimerArm(
+    _In_ PDEVICE_CONTEXT DevCtx
+    )
+{
+    ULONG intervalMs = DevCtx->Timeouts.ReadIntervalTimeout;
+
+    /*
+     * Only arm if ReadIntervalTimeout is finite and non-zero.
+     *
+     * Special cases per Win32 spec:
+     *   0          — no interval timeout (do not arm)
+     *   MAXULONG   — return immediately (handled in EvtIoRead directly,
+     *                not via timer)
+     */
+    if (intervalMs == 0 || intervalMs == MAXULONG) {
+        return;
+    }
+
+    WdfSpinLockAcquire(DevCtx->ReadTimerLock);
+    DevCtx->ReadTimerArmed = TRUE;
+    WdfSpinLockRelease(DevCtx->ReadTimerLock);
+
+    /*
+     * WdfTimerStart uses 100-ns units; convert ms → 100-ns.
+     * Use a relative (negative) due time.
+     */
+    WdfTimerStart(
+        DevCtx->ReadIntervalTimer,
+        WDF_REL_TIMEOUT_IN_MS(intervalMs)
+        );
+}
+
+/* =========================================================================
  *  EvtIoRead — handle read requests
  *  Equivalent to the original DispatchRead (section 7)
  *
  *  Strategy:
  *    1. Try to satisfy the request from the ring buffer immediately
- *    2. If MAXULONG interval timeout, return whatever is available (or 0)
+ *    2. If MAXULONG interval timeout + zero total timeout → return 0 bytes
  *    3. If no data, forward to the pending-read queue for later completion
+ *       and arm the ReadIntervalTimeout timer (if configured)
  * ========================================================================= */
 VOID
 EvtIoRead(
@@ -140,18 +246,18 @@ EvtIoRead(
         return;
     }
 
-    /*
-     * Check for MAXULONG special case: ReadIntervalTimeout=MAXULONG,
-     * ReadTotalTimeoutMultiplier=MAXULONG, ReadTotalTimeoutConstant>0
-     * means "wait at most ReadTotalTimeoutConstant ms for any data".
-     * For now, queue and let the continuous reader complete it.
-     */
-
     /* No data — queue the request for later completion */
     status = WdfRequestForwardToIoQueue(Request, devCtx->PendingReadQueue);
     if (!NT_SUCCESS(status)) {
         WdfRequestComplete(Request, status);
+        return;
     }
+
+    /*
+     * Arm the read-interval timer so the request completes even if no
+     * more data arrives within ReadIntervalTimeout ms.
+     */
+    ReadIntervalTimerArm(devCtx);
 }
 
 /* =========================================================================

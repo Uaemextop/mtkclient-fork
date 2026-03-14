@@ -323,3 +323,72 @@ class SerialClass(DeviceClass):
         self.device.flush()
         res = self.usbread(resplen)
         return res
+
+    def ctrl_transfer(self, bm_request_type, b_request, w_value=0, w_index=0, data_or_w_length=None):
+        """
+        Translate USB CDC class-specific control requests to pyserial calls.
+
+        Exploit code (kamakiri, kamakiripl) calls cdc.device.ctrl_transfer()
+        directly.  When running on Windows via the KMDF driver the device
+        object is a pyserial Serial instance, not a pyusb Device, so we
+        intercept those calls here and map the most important CDC ACM
+        commands to the equivalent pyserial operations.
+
+        Requests that cannot be meaningfully mapped (e.g. raw descriptor
+        fetches used by kamakiri's exploit path) are silently ignored — the
+        exploit is inherently a libusb/USB-raw-access operation and does not
+        work over a COM port; callers should check is_serial before using it.
+        """
+        bmRT = bm_request_type & 0xFF
+        direction_in = bool(bmRT & 0x80)
+
+        CDC_SET_LINE_CODING = 0x20
+        CDC_GET_LINE_CODING = 0x21
+        CDC_SET_CONTROL_LINE_STATE = 0x22
+        CDC_SEND_BREAK = 0x23
+
+        if b_request == CDC_GET_LINE_CODING and direction_in:
+            # Return current line coding (7 bytes: dwDTERate LE32, bCharFormat, bParityType, bDataBits)
+            from struct import pack
+            br = self.device.baudrate if self.device else 115200
+            return bytearray(pack('<IBBB', br, 0, 0, 8))
+
+        if b_request == CDC_SET_LINE_CODING and not direction_in:
+            # Apply line coding
+            if data_or_w_length is not None and len(data_or_w_length) >= 7:
+                from struct import unpack_from
+                baud = unpack_from('<I', data_or_w_length, 0)[0]
+                stop = data_or_w_length[4]
+                parity = data_or_w_length[5]
+                databits = data_or_w_length[6]
+                if self.device and baud > 0:
+                    self.device.baudrate = baud
+                    import serial as _serial
+                    parity_map = {0: _serial.PARITY_NONE, 1: _serial.PARITY_ODD,
+                                  2: _serial.PARITY_EVEN, 3: _serial.PARITY_MARK,
+                                  4: _serial.PARITY_SPACE}
+                    stop_map = {0: _serial.STOPBITS_ONE, 1: _serial.STOPBITS_ONE_POINT_FIVE,
+                                2: _serial.STOPBITS_TWO}
+                    self.device.parity = parity_map.get(parity, _serial.PARITY_NONE)
+                    self.device.stopbits = stop_map.get(stop, _serial.STOPBITS_ONE)
+                    self.device.bytesize = databits if databits in (5, 6, 7, 8) else 8
+            return bytearray()
+
+        if b_request == CDC_SET_CONTROL_LINE_STATE and not direction_in:
+            # w_value bit0 = DTR, bit1 = RTS
+            if self.device:
+                self.device.dtr = bool(w_value & 0x01)
+                self.device.rts = bool(w_value & 0x02)
+            return bytearray()
+
+        if b_request == CDC_SEND_BREAK and not direction_in:
+            if self.device:
+                self.device.send_break()
+            return bytearray()
+
+        # All other requests (descriptor fetches, vendor-specific, etc.) are
+        # not meaningful over a COM port — return empty data.
+        if direction_in:
+            size = data_or_w_length if isinstance(data_or_w_length, int) else 0
+            return bytearray(size)
+        return bytearray()

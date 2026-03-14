@@ -72,6 +72,50 @@ EvtDevicePrepareHardware(
     /* Configure selective suspend / idle power policy */
     PowerConfigureIdleSettings(devCtx);
 
+    /*
+     * Create the read-interval timeout timer.
+     *
+     * This one-shot timer is armed by EvtUsbBulkInReadComplete after data
+     * arrives.  When it fires (ReadIntervalTimeout ms after the last byte),
+     * it completes all pending read requests with whatever data is in the
+     * ring buffer — even if they asked for more bytes.
+     *
+     * This implements the Win32 ReadIntervalTimeout semantics:
+     *   "The maximum time allowed to elapse between the arrival of two
+     *    characters on the communications line."
+     *
+     * mtkclient's pyserial backend configures this timeout (20 ms default)
+     * and expects reads to return promptly once the inter-character gap is
+     * detected.  Without this timer, reads with a finite interval timeout
+     * would block until the full requested byte count is received.
+     */
+    {
+        WDF_TIMER_CONFIG    timerConfig;
+        WDF_OBJECT_ATTRIBUTES timerAttrs;
+
+        WDF_TIMER_CONFIG_INIT(&timerConfig, EvtReadIntervalTimer);
+        timerConfig.AutomaticSerialization = FALSE;
+        timerConfig.Period                 = 0;   /* One-shot */
+        timerConfig.TolerableDelay         = 0;
+
+        WDF_OBJECT_ATTRIBUTES_INIT(&timerAttrs);
+        timerAttrs.ParentObject = Device;
+
+        status = WdfTimerCreate(&timerConfig, &timerAttrs,
+                                &devCtx->ReadIntervalTimer);
+        if (!NT_SUCCESS(status)) {
+            return status;
+        }
+
+        status = WdfSpinLockCreate(WDF_NO_OBJECT_ATTRIBUTES,
+                                   &devCtx->ReadTimerLock);
+        if (!NT_SUCCESS(status)) {
+            return status;
+        }
+
+        devCtx->ReadTimerArmed = FALSE;
+    }
+
     devCtx->DeviceStarted = TRUE;
 
     return STATUS_SUCCESS;

@@ -286,6 +286,17 @@ EvtUsbBulkInReadComplete(
 
     /* Try to complete any pending read requests from the ring buffer */
     UsbTransferProcessPendingReads(devCtx);
+
+    /*
+     * Re-arm the read-interval timer.
+     * This resets the inter-character gap countdown after each USB
+     * bulk-IN completion, so the timer fires ReadIntervalTimeout ms
+     * after the *last* byte of this transfer — matching Win32 semantics.
+     *
+     * ReadIntervalTimerArm is a no-op if ReadIntervalTimeout == 0 or
+     * MAXULONG (those cases are handled directly in EvtIoRead).
+     */
+    ReadIntervalTimerArm(devCtx);
 }
 
 /* =========================================================================
