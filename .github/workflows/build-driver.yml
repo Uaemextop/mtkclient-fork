@@ -214,7 +214,8 @@ jobs:
           Write-Host "  Exported public certificate -> $cerOutputPath"
 
           # ---- Assemble package directory for Inf2Cat -------------------------
-          # Both mtk_usb2ser.inf and mtk_usb2ser.sys must be in the same directory.
+          # Pick the best available INF: prefer the stampinf-processed copy from
+          # obj\ (has correct DriverVer date/version) over the source INF.
           $destInf    = Join-Path $outDir "mtk_usb2ser.inf"
           $stampedInf = Join-Path $outDir "obj\mtk_usb2ser.inf"
           if (Test-Path $stampedInf) {
@@ -224,23 +225,37 @@ jobs:
             Copy-Item $infSrc $destInf -Force
             Write-Host "  Using source INF"
           }
-          # Remove subdirectories that confuse Inf2Cat:
-          #   obj\  — contains a second copy of the stamped INF; Inf2Cat would try
-          #           to validate it and fail because mtk_usb2ser.sys is not there.
-          #   mtk_usb2ser\ — stale WDK package subdir (same problem).
-          $objSubDir = Join-Path $outDir "obj"
-          if (Test-Path $objSubDir) { Remove-Item $objSubDir -Recurse -Force -ErrorAction SilentlyContinue }
-          $pkgSubDir = Join-Path $outDir "mtk_usb2ser"
-          if (Test-Path $pkgSubDir) { Remove-Item $pkgSubDir -Recurse -Force -ErrorAction SilentlyContinue }
 
-          # ---- Generate catalog (.cat) ----------------------------------------
-          $packagePath = (Resolve-Path $outDir).Path
+          # ---- Generate catalog (.cat) via a clean staging directory ----------
+          # Inf2Cat scans the *entire* directory tree it is given, including all
+          # subdirectories.  The WDK build places a second copy of the stamped INF
+          # in obj\ but does NOT place mtk_usb2ser.sys there, so Inf2Cat fails the
+          # signability test (error 22.9.1) when it encounters obj\mtk_usb2ser.inf.
+          #
+          # Workaround: stage only the two files Inf2Cat needs into a fresh temp
+          # directory that has no subdirectories, run Inf2Cat there, then copy the
+          # generated .cat back into $outDir.
+          $catFile = Join-Path $outDir "mtk_usb2ser.cat"
           if (Test-Path $inf2cat) {
             Write-Host "=== Running Inf2Cat ==="
-            & $inf2cat /driver:$packagePath /os:10_X64 /verbose 2>&1 |
-              ForEach-Object { Write-Host "  $_" }
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "::warning::Inf2Cat returned $LASTEXITCODE — .cat may be missing"
+            $stageDir = Join-Path $env:TEMP "inf2cat_stage_${PID}_$([System.IO.Path]::GetRandomFileName())"
+            New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+            try {
+              Copy-Item $destInf  (Join-Path $stageDir "mtk_usb2ser.inf") -Force
+              Copy-Item $sysFile  (Join-Path $stageDir "mtk_usb2ser.sys") -Force
+              $stagePath = (Resolve-Path $stageDir).Path
+              & $inf2cat /driver:$stagePath /os:10_X64 /verbose 2>&1 |
+                ForEach-Object { Write-Host "  $_" }
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "::warning::Inf2Cat returned $LASTEXITCODE — .cat may be missing"
+              }
+              $stageCat = Join-Path $stageDir "mtk_usb2ser.cat"
+              if (Test-Path $stageCat) {
+                Copy-Item $stageCat $catFile -Force
+                Write-Host "  Catalog written -> $catFile"
+              }
+            } finally {
+              Remove-Item $stageDir -Recurse -Force -ErrorAction SilentlyContinue
             }
           } else {
             Write-Host "::warning::Inf2Cat not found — skipping catalog generation"
