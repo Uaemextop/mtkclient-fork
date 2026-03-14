@@ -60,10 +60,16 @@ class SerialClass(DeviceClass):
             else:
                 port = ports[0]
             self.debug("Got port: {}, initializing".format(port))
-            self.device = serial.Serial(port=port, baudrate=115200, bytesize=serial.EIGHTBITS,
+            # Construct Serial with port=None so pyserial does NOT open (and
+            # therefore does NOT call reset_input_buffer) during __init__.
+            # We patch _reset_input_buffer to a no-op first, then open, so
+            # any bytes that arrived before we opened (pre-queued by the OS)
+            # are preserved for the handshake.
+            self.device = serial.Serial(port=None, baudrate=115200, bytesize=serial.EIGHTBITS,
                                         parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                                         timeout=0.5,
                                         xonxoff=False, dsrdtr=False, rtscts=False)
+            self.device.port = port
             self.portname = port
         else:
             return False
@@ -255,11 +261,13 @@ class SerialClass(DeviceClass):
                         return False
                     pass
         self.verify_data(bytearray(command), "TX:")
-        try:
-            self.device.reset_output_buffer()
-        except Exception:
-            pass
-        # timeout = 0
+        # Do NOT call reset_output_buffer() here: on Windows that maps to
+        # PurgeComm(PURGE_TXABORT|PURGE_TXCLEAR) which discards bytes that
+        # have been queued but not yet transmitted — causing the device to
+        # never receive the data.  usbwrite() calls flush() after us, which
+        # waits for the bytes to be sent.  For direct write() callers
+        # (e.g. run_serial_handshake), the 5 ms sleep below is enough time
+        # for a single byte at any baud rate to leave the OS TX buffer.
         time.sleep(0.005)
         """
         while self.device.in_waiting == 0:
