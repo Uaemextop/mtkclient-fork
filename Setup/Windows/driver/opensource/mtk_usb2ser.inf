@@ -1,0 +1,132 @@
+;
+; mtk_usb2ser.inf - KMDF USB-to-Serial driver for MediaTek loader interfaces
+;
+; Copyright (c) MTK Loader Drivers Opensource contributors
+; SPDX-License-Identifier: MIT
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Ports
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%ProviderName%
+DriverVer=03/13/2026,2.0.0.0
+CatalogFile=mtk_usb2ser.cat
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir=13
+
+[SourceDisksNames]
+1=%DiskName%,,,
+
+[SourceDisksFiles]
+mtk_usb2ser.sys=1
+
+; ========================= Manufacturer ==========================
+
+[Manufacturer]
+%MfgName%=MTK_Devices,NTamd64,NTx86
+
+[MTK_Devices.NTamd64]
+%BROM.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_0003
+%Preloader.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2000
+%DA.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2001
+%VCOM.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2006&MI_02
+%VCOM2.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2007
+
+[MTK_Devices.NTx86]
+%BROM.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_0003
+%Preloader.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2000
+%DA.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2001
+%VCOM.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2006&MI_02
+%VCOM2.DeviceDesc%=MTK_Install,USB\VID_0E8D&PID_2007
+
+; ========================= Install Sections ======================
+
+[MTK_Install.NT]
+CopyFiles=MTK_CopyFiles
+AddReg=MTK_AddReg
+
+[MTK_Install.NT.HW]
+AddReg=MTK_HW_AddReg
+
+[MTK_Install.NTamd64]
+CopyFiles=MTK_CopyFiles
+AddReg=MTK_AddReg
+
+[MTK_Install.NTamd64.HW]
+AddReg=MTK_HW_AddReg
+
+[MTK_Install.NTx86]
+CopyFiles=MTK_CopyFiles
+AddReg=MTK_AddReg
+
+[MTK_Install.NTx86.HW]
+AddReg=MTK_HW_AddReg
+
+; ========================= Copy Files ============================
+
+[MTK_CopyFiles]
+mtk_usb2ser.sys
+
+; ========================= Service ===============================
+
+[MTK_Install.NT.Services]
+AddService=mtk_usb2ser,0x00000002,MTK_Service_Inst
+
+[MTK_Install.NTamd64.Services]
+AddService=mtk_usb2ser,0x00000002,MTK_Service_Inst
+
+[MTK_Install.NTx86.Services]
+AddService=mtk_usb2ser,0x00000002,MTK_Service_Inst
+
+[MTK_Service_Inst]
+DisplayName=%ServiceName%
+ServiceType=1          ; SERVICE_KERNEL_DRIVER
+StartType=3            ; SERVICE_DEMAND_START
+ErrorControl=1         ; SERVICE_ERROR_NORMAL
+ServiceBinary=%13%\mtk_usb2ser.sys
+
+; ========================= KMDF ==================================
+
+[MTK_Install.NT.Wdf]
+KmdfService=mtk_usb2ser,MTK_wdfsect
+
+[MTK_Install.NTamd64.Wdf]
+KmdfService=mtk_usb2ser,MTK_wdfsect
+
+[MTK_Install.NTx86.Wdf]
+KmdfService=mtk_usb2ser,MTK_wdfsect
+
+[MTK_wdfsect]
+KmdfLibraryVersion=1.33
+
+; ========================= HW Section ============================
+
+[MTK_HW_AddReg]
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;WD)"
+
+; ========================= Registry ==============================
+
+[MTK_AddReg]
+HKR,,NTMPDriver,,mtk_usb2ser.sys
+HKR,,Installer32,,"MsPorts.Dll,SerialPortPropPageProvider"
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+HKR,,PortSubClass,1,01
+HKR,,IdleTime,0x00010001,10
+HKR,,IdleEnable,0x00010001,0
+HKR,,IdleWWBinded,0x00010001,1
+
+; ========================= Strings ===============================
+
+[Strings]
+ProviderName="MTK Loader Drivers Opensource"
+MfgName="MediaTek Inc."
+DiskName="MTK USB2SER Driver Installation Disk"
+ServiceName="MTK USB-to-Serial KMDF Driver"
+BROM.DeviceDesc="MediaTek BROM USB Port (0003)"
+Preloader.DeviceDesc="MediaTek Preloader USB Port (2000)"
+DA.DeviceDesc="MediaTek DA USB Port (2001)"
+VCOM.DeviceDesc="MediaTek VCOM USB Port (2006 MI_02)"
+VCOM2.DeviceDesc="MediaTek VCOM USB Port (2007)"

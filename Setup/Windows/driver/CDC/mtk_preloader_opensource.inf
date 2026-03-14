@@ -1,0 +1,109 @@
+;
+; mtk_preloader_opensource.inf - CDC driver mapping for MediaTek loader interfaces
+;
+; Uses the Windows inbox usbser.sys (CDC ACM) driver.
+;
+; Copyright (c) MTK Loader Drivers Opensource contributors
+; SPDX-License-Identifier: MIT
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Ports
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%ProviderName%
+DriverVer=03/13/2026,1.0.0.0
+CatalogFile=mtk_preloader_opensource.cat
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir=12
+
+[SourceDisksNames]
+1=%DiskName%,,,
+
+[SourceDisksFiles.x86]
+usb2ser.sys=1
+
+[SourceDisksFiles.amd64]
+usb2ser.sys=1
+
+; ========================= Manufacturer ==========================
+
+[Manufacturer]
+%MfgName%=MTK_CDC_Devices,NTamd64,NTx86
+
+[MTK_CDC_Devices.NTamd64]
+%BROM.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_0003
+%Preloader.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2000
+%DA.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2001
+%VCOM.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2006&MI_02
+%VCOM2.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2007
+
+[MTK_CDC_Devices.NTx86]
+%BROM.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_0003
+%Preloader.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2000
+%DA.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2001
+%VCOM.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2006&MI_02
+%VCOM2.DeviceDesc%=MTK_CDC_Install,USB\VID_0E8D&PID_2007
+
+; ========================= Install Sections ======================
+
+[MTK_CDC_Install.NT]
+CopyFiles=MTK_CDC_CopyFiles
+AddReg=MTK_CDC_AddReg
+
+[MTK_CDC_Install.NTamd64]
+CopyFiles=MTK_CDC_CopyFiles
+AddReg=MTK_CDC_AddReg
+
+[MTK_CDC_Install.NTx86]
+CopyFiles=MTK_CDC_CopyFiles
+AddReg=MTK_CDC_AddReg
+
+; ========================= Copy Files ============================
+
+[MTK_CDC_CopyFiles]
+usb2ser.sys
+
+; ========================= Service ===============================
+
+[MTK_CDC_Install.NT.Services]
+AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+
+[MTK_CDC_Install.NTamd64.Services]
+AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+
+[MTK_CDC_Install.NTx86.Services]
+AddService=wdm_usb,0x00000002,MTK_CDC_Service_Inst
+
+[MTK_CDC_Service_Inst]
+DisplayName=%ServiceName%
+ServiceType=1          ; SERVICE_KERNEL_DRIVER
+StartType=3            ; SERVICE_DEMAND_START
+ErrorControl=1         ; SERVICE_ERROR_NORMAL
+ServiceBinary=%12%\usb2ser.sys
+
+; ========================= Registry ==============================
+
+[MTK_CDC_AddReg]
+HKR,,NTMPDriver,,usb2ser.sys
+HKR,,Installer32,,"MsPorts.Dll,SerialPortPropPageProvider"
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+HKR,,PortSubClass,1,01
+HKR,,IdleTime,0x00010001,10
+HKR,,IdleEnable,0x00010001,0
+HKR,,IdleWWBinded,0x00010001,1
+
+; ========================= Strings ===============================
+
+[Strings]
+ProviderName="MTK Loader Drivers Opensource"
+MfgName="MediaTek Inc."
+DiskName="MTK CDC Driver Installation Disk"
+ServiceName="MTK CDC USB-to-Serial Driver"
+BROM.DeviceDesc="MediaTek BROM USB Port (0003)"
+Preloader.DeviceDesc="MediaTek Preloader USB Port (2000)"
+DA.DeviceDesc="MediaTek DA USB Port (2001)"
+VCOM.DeviceDesc="MediaTek VCOM USB Port (2006 MI_02)"
+VCOM2.DeviceDesc="MediaTek VCOM USB Port (2007)"
