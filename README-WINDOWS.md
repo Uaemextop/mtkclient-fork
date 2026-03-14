@@ -10,16 +10,23 @@ Download and install [here](https://winfsp.dev/rel/)
 
 #### Grab files and install
 ```shell
-git clone https://github.com/bkerler/mtkclient
+git clone https://github.com/Uaemextop/mtkclient-fork
 cd mtkclient
 pip3 install -r requirements.txt
 ```
 
-#### Get latest UsbDk 64-Bit
-- Install normal MTK Serial Port driver (or use default Windows COM Port one, make sure no exclamation is seen)
-- Get usbdk installer (.msi) from [here](https://github.com/daynix/UsbDk/releases/) and install it
-- Test on device connect using "UsbDkController -n" if you see a device with 0x0E8D 0x0003
-- Works fine under Windows 10 and 11 :D
+#### Install the integrated open-source MTK driver package
+- This repository now includes an open-source Windows driver integration under `Setup/Windows`.
+- Install the CDC INF directly if you want a fast setup without a custom kernel binary:
+  ```powershell
+  pnputil /add-driver Setup\Windows\driver\CDC\mtk_preloader_opensource.inf /install
+  ```
+- Or use the integrated installer script for the KMDF driver package:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File Setup\Windows\installer\install_driver.ps1
+  ```
+- Driver build automation for the bundled package is available in `.github/workflows/build-windows-driver.yml`.
+- Full Windows installation instructions are documented in `Setup/Windows/docs/INSTALL.md`.
 
 #### Building wheel issues (creds to @Oyoh-Edmond)
 ##### Download and Install the Build Tools:

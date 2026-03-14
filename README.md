@@ -8,7 +8,7 @@
 ![Logo](mtkclient/gui/images/logo_256.png)
 
 Just some mtk tool for exploitation, reading/writing flash and doing crazy stuff. 
-For windows, you need to install the stock mtk port and the usbdk driver (see instructions below).
+For Windows, install the open-source MediaTek serial driver package from `Setup/Windows` so mtkclient can work over the COM port without requiring UsbDk.
 For linux, a patched kernel is only needed when using old kamakiri (see Setup folder) (except for read/write flash).
 
 Once the mtk script is running, boot into brom mode by powering off device, press and hold either

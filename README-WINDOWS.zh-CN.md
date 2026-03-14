@@ -14,16 +14,23 @@
 
 #### 获取文件并安装
 ```
-git clone https://github.com/bkerler/mtkclient
+git clone https://github.com/Uaemextop/mtkclient-fork
 cd mtkclient
 pip3 install -r requirements.txt
 ```
 
-#### 获取最新的 UsbDk 64位 驱动
-- 安装 MTK 串口驱动 (或使用默认的 Windows COM 端口驱动程序，请确保没有感叹号显示)
-- 下载 [UsbDk驱动 安装程序 (.msi) ](https://github.com/daynix/UsbDk/releases/) 并手动安装。
-- 使用 "UsbDkController -n" 命令测试设备连接，如果看到设备地址为 0x0E8D 0x0003
-- 在 Windows 10 和 11 系统上完美运行 :D
+#### 安装仓库中集成的开源 MTK 驱动包
+- 本仓库已经在 `Setup/Windows` 中集成了开源 Windows 驱动与安装资源。
+- 如果你想快速安装且不使用自定义内核驱动，可直接安装 CDC INF：
+  ```powershell
+  pnputil /add-driver Setup\Windows\driver\CDC\mtk_preloader_opensource.inf /install
+  ```
+- 如果你要使用完整的 KMDF 驱动包，可运行集成安装脚本：
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File Setup\Windows\installer\install_driver.ps1
+  ```
+- 用于编译驱动和安装包的 CI 工作流位于 `.github/workflows/build-windows-driver.yml`。
+- 详细安装说明请查看 `Setup/Windows/docs/INSTALL.md`。
 
 #### 解决编译 wheel 报错的问题 (感谢 @Oyoh-Edmond)
 ##### 下载并安装构建工具:
