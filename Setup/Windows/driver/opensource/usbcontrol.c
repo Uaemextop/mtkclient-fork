@@ -210,12 +210,18 @@ UsbControlSetDtr(
 
     PAGED_CODE();
 
+    /*
+     * Protect DTR/RTS state with WriteLock to prevent races when
+     * mtkclient toggles DTR and RTS in rapid succession during
+     * the boot handshake protocol.
+     */
+    WdfSpinLockAcquire(DevCtx->WriteLock);
     DevCtx->DtrState = TRUE;
-
     value = CDC_CTL_DTR;
     if (DevCtx->RtsState) {
         value |= CDC_CTL_RTS;
     }
+    WdfSpinLockRelease(DevCtx->WriteLock);
 
     return UsbControlSetControlLineState(DevCtx, value);
 }
@@ -233,11 +239,12 @@ UsbControlClrDtr(
 
     PAGED_CODE();
 
+    WdfSpinLockAcquire(DevCtx->WriteLock);
     DevCtx->DtrState = FALSE;
-
     if (DevCtx->RtsState) {
         value |= CDC_CTL_RTS;
     }
+    WdfSpinLockRelease(DevCtx->WriteLock);
 
     return UsbControlSetControlLineState(DevCtx, value);
 }
@@ -255,12 +262,13 @@ UsbControlSetRts(
 
     PAGED_CODE();
 
+    WdfSpinLockAcquire(DevCtx->WriteLock);
     DevCtx->RtsState = TRUE;
-
     value = CDC_CTL_RTS;
     if (DevCtx->DtrState) {
         value |= CDC_CTL_DTR;
     }
+    WdfSpinLockRelease(DevCtx->WriteLock);
 
     return UsbControlSetControlLineState(DevCtx, value);
 }
@@ -278,11 +286,12 @@ UsbControlClrRts(
 
     PAGED_CODE();
 
+    WdfSpinLockAcquire(DevCtx->WriteLock);
     DevCtx->RtsState = FALSE;
-
     if (DevCtx->DtrState) {
         value |= CDC_CTL_DTR;
     }
+    WdfSpinLockRelease(DevCtx->WriteLock);
 
     return UsbControlSetControlLineState(DevCtx, value);
 }

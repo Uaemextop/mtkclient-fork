@@ -412,6 +412,12 @@ UsbTransferSerialStateNotify(
     /* CTS is always asserted for CDC ACM (virtual port) */
     newModemStatus |= SERIAL_MSR_CTS;
 
+    /*
+     * Protect ModemStatus update with EventLock to prevent races
+     * with SerialGetModemStatus and WAIT_ON_MASK completion.
+     */
+    WdfSpinLockAcquire(DevCtx->EventLock);
+
     prevModemStatus = DevCtx->ModemStatus;
     DevCtx->ModemStatus = newModemStatus;
 
@@ -448,6 +454,10 @@ UsbTransferSerialStateNotify(
             DevCtx->PerfStats.SerialOverrunErrorCount++;
         }
     }
+
+    /* Release EventLock before calling SerialCompleteWaitOnMask
+     * which acquires EventLock internally */
+    WdfSpinLockRelease(DevCtx->EventLock);
 
     /* Complete pending WAIT_ON_MASK if events match */
     if (events != 0) {
@@ -496,9 +506,13 @@ EvtWriteRequestComplete(
             /*
              * Queue a work item to send ZLP at PASSIVE_LEVEL.
              * Store the request so we can complete it after ZLP.
+             * Protected by WriteLock to prevent races when multiple
+             * writes complete simultaneously (mtkclient DA transfers).
              */
+            WdfSpinLockAcquire(devCtx->WriteLock);
             devCtx->PendingZlpCompleteRequest = Request;
             devCtx->ZlpBytesWritten = bytesWritten;
+            WdfSpinLockRelease(devCtx->WriteLock);
             WdfWorkItemEnqueue(devCtx->ZlpWorkItem);
             return;
         }
@@ -527,11 +541,12 @@ EvtZlpWorkItem(
     WDFREQUEST          request;
     ULONG_PTR           bytesWritten;
 
+    WdfSpinLockAcquire(devCtx->WriteLock);
     request      = devCtx->PendingZlpCompleteRequest;
     bytesWritten = devCtx->ZlpBytesWritten;
-
     devCtx->PendingZlpCompleteRequest = NULL;
     devCtx->ZlpBytesWritten           = 0;
+    WdfSpinLockRelease(devCtx->WriteLock);
 
     if (request == NULL) {
         return;

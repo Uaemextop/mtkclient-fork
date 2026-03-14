@@ -36,12 +36,15 @@ SerialSetBaudRate(
     DevCtx->LineCoding.dwDTERate = pBaud->BaudRate;
 
     /*
-     * Purge the ring buffer on baud rate change.
+     * Purge the ring buffer and cancel pending reads on baud rate change.
      * mtkclient switches baud rate dynamically (e.g. 115200 → 921600)
      * during DA upload. Any data received at the old baud rate would be
-     * garbage at the new rate, so flush it.
+     * garbage at the new rate, so flush it. Also cancel pending reads
+     * so they don't return mixed-speed data.
      */
     RingBufferPurge(&DevCtx->ReadBuffer);
+    WdfIoQueuePurgeSynchronously(DevCtx->PendingReadQueue);
+    WdfIoQueueStart(DevCtx->PendingReadQueue);
 
     /* Send updated line coding to device via CDC SET_LINE_CODING */
     status = UsbControlSetLineCoding(DevCtx);
@@ -326,7 +329,10 @@ SerialGetModemStatus(
         return;
     }
 
+    /* Read ModemStatus under EventLock for consistency with interrupt updates */
+    WdfSpinLockAcquire(DevCtx->EventLock);
     *pStatus = DevCtx->ModemStatus;
+    WdfSpinLockRelease(DevCtx->EventLock);
 
     WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, sizeof(ULONG));
 }
