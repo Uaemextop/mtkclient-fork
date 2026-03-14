@@ -176,7 +176,7 @@ class SerialClass(DeviceClass):
                     ctr = self.device.write(command[pos:pos + pktsize])
                     if ctr <= 0:
                         self.info(ctr)
-                    pos += ctr if ctr and ctr > 0 else pktsize
+                    pos += ctr if ctr > 0 else pktsize
                 except Exception as err:
                     self.debug(str(err))
                     # print("Error while writing")
@@ -297,6 +297,7 @@ class SerialClass(DeviceClass):
                 if len(val) == 0:
                     break
                 extend(val)
+                # res is bytearray; res[-1] returns int — compare to 0, not b"\x00"
                 if res[-1] == 0:
                     break
             except Exception as e:

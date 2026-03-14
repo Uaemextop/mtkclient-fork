@@ -685,14 +685,38 @@ SerialPurge(
     }
 
     if (*pPurgeFlags & SERIAL_PURGE_TXCLEAR) {
-        /* Nothing to clear for TX (data already submitted to USB) */
+        /*
+         * Nothing to clear for TX: data has already been submitted to the USB
+         * host controller and cannot be recalled without aborting the entire
+         * pipe.  TXCLEAR means "discard the driver's TX queue"; since we use
+         * KMDF WdfUsbTargetPipeFormatRequestForWrite and send directly (no
+         * driver-side TX queue), this is a no-op.
+         */
     }
 
     if (*pPurgeFlags & SERIAL_PURGE_TXABORT) {
         /*
-         * For TX abort, we would need to cancel outstanding USB writes.
-         * The USB stack will cancel them on pipe reset if needed.
+         * Abort all outstanding bulk-OUT (write) transfers.
+         *
+         * WdfUsbTargetPipeAbortSynchronously sends an abort URB to the
+         * host controller which cancels all pending transfers on the pipe
+         * and resets the data toggle.  After the call, the pipe is in a
+         * clean state and ready to accept new transfers.
+         *
+         * Any write requests that were pending will be completed with
+         * STATUS_CANCELLED by the completion callback.
          */
+        if (DevCtx->BulkOutPipe != NULL) {
+            WdfUsbTargetPipeAbortSynchronously(
+                DevCtx->BulkOutPipe,
+                WDF_NO_HANDLE,
+                NULL
+                );
+        }
+
+        /* Also discard any pending ZLP work item */
+        DevCtx->PendingZlpCompleteRequest = NULL;
+        DevCtx->ZlpBytesWritten           = 0;
     }
 
     WdfRequestComplete(Request, STATUS_SUCCESS);

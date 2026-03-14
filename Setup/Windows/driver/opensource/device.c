@@ -419,31 +419,38 @@ DeviceConfigureUsbDevice(
      */
     {
         USB_DEVICE_DESCRIPTOR   devDesc;
-        USHORT                  strLen;
 
         WdfUsbTargetDeviceGetDeviceDescriptor(DevCtx->UsbDevice, &devDesc);
 
         if (devDesc.iSerialNumber != 0) {
             WCHAR   serBuf[64];
-            USHORT  serBufBytes = sizeof(serBuf);
+            /*
+             * WdfUsbTargetDeviceQueryString uses CHARACTER count, not bytes.
+             * Pass the buffer size in WCHARs; on return it holds the number
+             * of characters written (not including null-terminator).
+             */
+            USHORT  serBufChars = (USHORT)(sizeof(serBuf) / sizeof(WCHAR));
+            NTSTATUS srStatus;
 
             RtlZeroMemory(serBuf, sizeof(serBuf));
 
-            status = WdfUsbTargetDeviceQueryString(
+            srStatus = WdfUsbTargetDeviceQueryString(
                 DevCtx->UsbDevice,
-                NULL,               /* no request — synchronous */
-                WDF_NO_SEND_OPTIONS,
+                NULL,               /* no request — synchronous internal */
+                NULL,               /* no send options */
                 serBuf,
-                &serBufBytes,
+                &serBufChars,
                 devDesc.iSerialNumber,
                 0x0409              /* English */
                 );
 
-            if (NT_SUCCESS(status) && serBufBytes > 0) {
-                strLen = (serBufBytes < sizeof(DevCtx->UsbSerialBuf))
-                    ? serBufBytes : (USHORT)(sizeof(DevCtx->UsbSerialBuf) - sizeof(WCHAR));
-                RtlCopyMemory(DevCtx->UsbSerialBuf, serBuf, strLen);
-                DevCtx->UsbSerialLen = strLen;
+            if (NT_SUCCESS(srStatus) && serBufChars > 0) {
+                USHORT copyBytes = (USHORT)(serBufChars * sizeof(WCHAR));
+                if (copyBytes > sizeof(DevCtx->UsbSerialBuf) - sizeof(WCHAR)) {
+                    copyBytes = (USHORT)(sizeof(DevCtx->UsbSerialBuf) - sizeof(WCHAR));
+                }
+                RtlCopyMemory(DevCtx->UsbSerialBuf, serBuf, copyBytes);
+                DevCtx->UsbSerialLen = copyBytes;
             }
         }
     }
@@ -726,9 +733,8 @@ DeviceCreateSymbolicLink(
             }
         }
 
-        /* hRawKey stays valid until after symbolic link creation */
+        /* Close the key; write-back is done in a separate block below */
         if (hRawKey != NULL) {
-            /* We'll write back below if we assigned a new name */
             ZwClose(hRawKey);
         }
     }
