@@ -107,6 +107,11 @@ class SerialClass(DeviceClass):
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)
+                elif sys.platform == "win32" and port.vid is not None and port.vid == 0x0E8D:
+                    # Windows: detect MTK devices via KMDF/CDC driver (COM port)
+                    self.info(f"Detected MediaTek device at: {port.device} (VID={hex(port.vid)}, PID={hex(port.pid)})")
+                    if port.device not in ids:
+                        ids.append(port.device)
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):
