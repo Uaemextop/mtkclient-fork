@@ -2,6 +2,7 @@
 # MTK Flash Client (c) B.Kerler 2018-2025.
 # Licensed under GPLv3 License
 import os
+import sys
 import logging
 from struct import unpack
 from mtkclient.config.usb_ids import default_ids
@@ -35,8 +36,11 @@ class Mtk(metaclass=LogBase):
                                                                                   config.gui)
         self.eh = ErrorHandler()
         self.serialportname = serialportname
+        if self.serialportname is None and sys.platform == "win32":
+            # On Windows, auto-detect COM port via usb2ser.sys driver
+            self.serialportname = "DETECT"
         if preinit:
-            self.setup(self.vid, self.pid, self.interface, serialportname)
+            self.setup(self.vid, self.pid, self.interface, self.serialportname)
 
     def patch_preloader_security_da1(self, data):
         patched = False
