@@ -102,10 +102,17 @@ EvtDriverDeviceAdd(
 
     /* Configure PnP/Power callbacks */
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpCallbacks);
-    pnpCallbacks.EvtDevicePrepareHardware = EvtDevicePrepareHardware;
-    pnpCallbacks.EvtDeviceReleaseHardware = EvtDeviceReleaseHardware;
-    pnpCallbacks.EvtDeviceD0Entry         = EvtDeviceD0Entry;
-    pnpCallbacks.EvtDeviceD0Exit          = EvtDeviceD0Exit;
+    pnpCallbacks.EvtDevicePrepareHardware   = EvtDevicePrepareHardware;
+    pnpCallbacks.EvtDeviceReleaseHardware   = EvtDeviceReleaseHardware;
+    pnpCallbacks.EvtDeviceD0Entry           = EvtDeviceD0Entry;
+    pnpCallbacks.EvtDeviceD0Exit            = EvtDeviceD0Exit;
+    /*
+     * EvtDeviceSurpriseRemoval fires when the device is unexpectedly
+     * disconnected (e.g. during Preloader → DA mode switch).
+     * It cancels all pending I/O requests so that userspace (mtkclient)
+     * receives STATUS_CANCELLED immediately rather than timing out.
+     */
+    pnpCallbacks.EvtDeviceSurpriseRemoval   = EvtDeviceSurpriseRemoval;
     WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpCallbacks);
 
     /* Configure File Object callbacks (Create/Close/Cleanup) */

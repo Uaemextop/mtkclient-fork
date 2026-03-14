@@ -34,6 +34,9 @@ DefaultDestDir      = 13
 ; ---- Core Preloader / BROM / DA ----
 %MTK_BOOTROM%     = MTK_Install, USB\VID_0E8D&PID_0003
 %MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_2000
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_20FF
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_3000
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_6000
 %MTK_DA%          = MTK_Install, USB\VID_0E8D&PID_2001
 
 ; ---- VCOM (Meta Mode / Composite) ----
@@ -162,6 +165,9 @@ DefaultDestDir      = 13
 ; ---- Core Preloader / BROM / DA ----
 %MTK_BOOTROM%     = MTK_Install, USB\VID_0E8D&PID_0003
 %MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_2000
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_20FF
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_3000
+%MTK_PRELOADER%   = MTK_Install, USB\VID_0E8D&PID_6000
 %MTK_DA%          = MTK_Install, USB\VID_0E8D&PID_2001
 
 ; ---- VCOM (Meta Mode / Composite) ----
@@ -355,6 +361,10 @@ AddReg = MTK_HwAddReg
 [MTK_HwAddReg]
 HKR,,DriverInfo,,"MediaTek USB CDC ACM Serial Port (KMDF)"
 HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
+; Allow surprise removal without a pop-up error dialog.
+; Required for Preloader→DA mode switch where the device re-enumerates
+; with a different PID without physically disconnecting the cable.
+HKR,,SurpriseRemovalOK,0x00010001,1
 
 ; ==========================================================================
 ;  Driver copy and registry

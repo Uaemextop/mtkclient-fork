@@ -42,8 +42,13 @@ class SerialClass(DeviceClass):
         if ports:
             if self.portname != "DETECT":
                 if self.portname not in ports:
-                    self.info("{} not in detected ports: {}".format(self.portname, ports))
-                    return False
+                    # The device re-enumerated (e.g. Preloader→DA mode switch)
+                    # and may have been assigned a different COM port number.
+                    # Fall back to auto-detection instead of failing hard.
+                    self.info(
+                        "{} not in detected ports {}, falling back to "
+                        "auto-detect".format(self.portname, ports))
+                    port = ports[0]
                 else:
                     port = ports[ports.index(self.portname)]
             else:
@@ -95,6 +100,12 @@ class SerialClass(DeviceClass):
             del self.device
             self.device = None
             self.connected = False
+        if reset:
+            # reset=True signals a mode-switch (e.g. Preloader → DA).
+            # The device will re-enumerate with a different PID and may
+            # receive a different COM port number, so clear the cached port
+            # name so that the next connect() call uses auto-detection.
+            self.portname = "DETECT"
 
     def detectdevices(self):
         ids = []

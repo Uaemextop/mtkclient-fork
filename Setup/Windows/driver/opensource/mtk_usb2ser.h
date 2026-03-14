@@ -166,6 +166,15 @@ typedef struct _DEVICE_CONTEXT {
     /* USB interface number (wIndex for CDC control requests) */
     UCHAR               InterfaceNumber;
 
+    /*
+     * USB serial number string (iSerialNumber descriptor).
+     * Used to provide stable COM port assignment across PID changes
+     * (e.g. Preloader PID_2000 → DA PID_2001 mode switch).
+     * The same physical device always gets the same COMx port.
+     */
+    WCHAR               UsbSerialBuf[64];
+    USHORT              UsbSerialLen;           /* bytes, 0 = not available */
+
     /* ---- Ring Buffer for Incoming Data ---- */
     RING_BUFFER         ReadBuffer;
 
@@ -266,6 +275,7 @@ EVT_WDF_DEVICE_PREPARE_HARDWARE     EvtDevicePrepareHardware;
 EVT_WDF_DEVICE_RELEASE_HARDWARE     EvtDeviceReleaseHardware;
 EVT_WDF_DEVICE_D0_ENTRY             EvtDeviceD0Entry;
 EVT_WDF_DEVICE_D0_EXIT              EvtDeviceD0Exit;
+EVT_WDF_DEVICE_SURPRISE_REMOVAL     EvtDeviceSurpriseRemoval;
 EVT_WDF_DEVICE_FILE_CREATE           EvtDeviceFileCreate;
 EVT_WDF_FILE_CLOSE                   EvtFileClose;
 EVT_WDF_FILE_CLEANUP                 EvtFileCleanup;
