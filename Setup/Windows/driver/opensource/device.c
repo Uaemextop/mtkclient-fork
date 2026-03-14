@@ -270,6 +270,11 @@ DeviceConfigureUsbDevice(
     /*
      * Select default configuration. Use MULTIPLE_INTERFACES to handle
      * CDC ACM devices that expose separate Communication and Data interfaces.
+     *
+     * For composite interface nodes (e.g. Meta/ETS/Modem PIDs with MI_xx),
+     * usbccgp.sys has already selected the configuration.  In that case
+     * WdfUsbTargetDeviceSelectConfig returns STATUS_INVALID_DEVICE_STATE,
+     * which we treat as success and continue with pipe enumeration.
      */
     WDF_USB_DEVICE_SELECT_CONFIG_PARAMS_INIT_MULTIPLE_INTERFACES(
         &configParams,
@@ -282,6 +287,11 @@ DeviceConfigureUsbDevice(
         WDF_NO_OBJECT_ATTRIBUTES,
         &configParams
         );
+
+    if (status == STATUS_INVALID_DEVICE_STATE) {
+        /* Composite device — already configured by usbccgp.sys, proceed. */
+        status = STATUS_SUCCESS;
+    }
 
     return status;
 }
@@ -299,6 +309,13 @@ DeviceConfigureUsbPipes(
     BYTE                        numInterfaces;
     BYTE                        interfaceIdx, pipeIdx;
     WDF_USB_PIPE_INFORMATION    pipeInfo;
+    /*
+     * CommInterfaceNumber tracks the interface that hosts the interrupt
+     * (CDC communication) endpoint.  This is the correct wIndex value for
+     * CDC class-specific control requests (SET_LINE_CODING, etc.).
+     * It is set to 0xFF until a communication interface is found.
+     */
+    UCHAR                       commIfaceNumber = 0xFF;
 
     PAGED_CODE();
 
@@ -339,8 +356,14 @@ DeviceConfigureUsbPipes(
             } else if (pipeInfo.PipeType == WdfUsbPipeTypeInterrupt) {
                 if (USB_ENDPOINT_DIRECTION_IN(pipeInfo.EndpointAddress)) {
                     if (DevCtx->InterruptPipe == NULL) {
-                        DevCtx->InterruptPipe    = pipe;
-                        DevCtx->InterfaceNumber  =
+                        DevCtx->InterruptPipe = pipe;
+                        /*
+                         * Record the communication interface number (the
+                         * interface that has the interrupt/notification
+                         * endpoint).  This is used as wIndex in CDC
+                         * class-specific control requests.
+                         */
+                        commIfaceNumber =
                             WdfUsbInterfaceGetInterfaceNumber(usbInterface);
                     }
                 }
@@ -353,10 +376,19 @@ DeviceConfigureUsbPipes(
     }
 
     /*
-     * If no interrupt pipe found, use the interface number from the
-     * data interface (for devices using single-interface layout).
+     * Determine the interface number for CDC control requests (wIndex).
+     *
+     * Priority:
+     *   1. Communication interface (interrupt pipe) — the correct wIndex for
+     *      standard two-interface CDC ACM (comm = 0, data = 1) or for
+     *      composite devices where comm = MI_N, data = MI_{N+1}.
+     *   2. Data interface (bulk in pipe) — used only for single-interface
+     *      devices (e.g. BROM PID 0x0003) that have no interrupt endpoint.
+     *      Since the only interface IS interface 0, wIndex=0 is correct.
      */
-    if (DevCtx->InterruptPipe == NULL && DevCtx->UsbInterface != NULL) {
+    if (commIfaceNumber != 0xFF) {
+        DevCtx->InterfaceNumber = commIfaceNumber;
+    } else if (DevCtx->UsbInterface != NULL) {
         DevCtx->InterfaceNumber =
             WdfUsbInterfaceGetInterfaceNumber(DevCtx->UsbInterface);
     }

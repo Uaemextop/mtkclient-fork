@@ -98,12 +98,26 @@ class SerialClass(DeviceClass):
 
     def detectdevices(self):
         ids = []
+        # Build a normalised VID→{PID→iface} lookup regardless of whether
+        # portconfig was passed as a dict {vid:{pid:iface}} or as a list of
+        # triples [[vid, pid, iface], ...].
+        if isinstance(self.portconfig, dict):
+            vid_pid_map = self.portconfig
+        else:
+            vid_pid_map = {}
+            for entry in self.portconfig:
+                if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                    vid, pid = int(entry[0]), int(entry[1])
+                    iface = entry[2] if len(entry) > 2 else -1
+                    vid_pid_map.setdefault(vid, {})[pid] = iface
+
         for port in serial.tools.list_ports.comports():
-            for usbid in self.portconfig:
-                if "ttyUSB" in port.device or "ttyACM" in port.device:
-                    if port.device not in ids:
-                        ids.append(port.device)
-                elif port.vid == usbid and port.pid in self.portconfig[usbid]:
+            if "ttyUSB" in port.device or "ttyACM" in port.device:
+                if port.device not in ids:
+                    ids.append(port.device)
+            elif port.vid is not None and port.pid is not None:
+                # Windows/macOS: match against known VID/PID table
+                if port.vid in vid_pid_map and port.pid in vid_pid_map[port.vid]:
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)
@@ -151,7 +165,7 @@ class SerialClass(DeviceClass):
                     ctr = self.device.write(command[pos:pos + pktsize])
                     if ctr <= 0:
                         self.info(ctr)
-                    pos += pktsize
+                    pos += ctr if ctr and ctr > 0 else pktsize
                 except Exception as err:
                     self.debug(str(err))
                     # print("Error while writing")
@@ -272,7 +286,7 @@ class SerialClass(DeviceClass):
                 if len(val) == 0:
                     break
                 extend(val)
-                if res[-1] == b"\x00":
+                if res[-1] == 0:
                     break
             except Exception as e:
                 error = str(e)
