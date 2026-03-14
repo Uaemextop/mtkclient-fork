@@ -224,7 +224,12 @@ jobs:
             Copy-Item $infSrc $destInf -Force
             Write-Host "  Using source INF"
           }
-          # Remove stale WDK package subdirectory (confuses Inf2Cat)
+          # Remove subdirectories that confuse Inf2Cat:
+          #   obj\  — contains a second copy of the stamped INF; Inf2Cat would try
+          #           to validate it and fail because mtk_usb2ser.sys is not there.
+          #   mtk_usb2ser\ — stale WDK package subdir (same problem).
+          $objSubDir = Join-Path $outDir "obj"
+          if (Test-Path $objSubDir) { Remove-Item $objSubDir -Recurse -Force -ErrorAction SilentlyContinue }
           $pkgSubDir = Join-Path $outDir "mtk_usb2ser"
           if (Test-Path $pkgSubDir) { Remove-Item $pkgSubDir -Recurse -Force -ErrorAction SilentlyContinue }
 
