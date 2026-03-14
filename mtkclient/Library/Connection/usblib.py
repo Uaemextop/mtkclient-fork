@@ -136,12 +136,11 @@ class UsbClass(DeviceClass):
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
             else:
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
+        # Do not call libusb_set_option(ctx, LIBUSB_OPTION_USE_USBDK=1).
+        # Forcing UsbDk is not required — libusb uses WinUSB by default on
+        # Windows when a WinUSB or custom KMDF driver (e.g. mtk_usb2ser.sys)
+        # is installed.  Removing this call removes the hard dependency on
+        # UsbDk being present on the host.
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)

@@ -2,6 +2,7 @@
 # MTK Flash Client (c) B.Kerler 2018-2025.
 # Licensed under GPLv3 License
 import os
+import sys
 import logging
 from struct import unpack
 from mtkclient.config.usb_ids import default_ids
@@ -35,6 +36,13 @@ class Mtk(metaclass=LogBase):
                                                                                   config.gui)
         self.eh = ErrorHandler()
         self.serialportname = serialportname
+        # On Windows, prefer the COM-port interface exposed by the custom KMDF
+        # driver (mtk_usb2ser.sys).  Setting serialportname to 'DETECT' causes
+        # Port to use SerialClass which calls pyserial and auto-discovers the
+        # MTK COM port — no libusb or UsbDk required.
+        if sys.platform == 'win32' and serialportname is None:
+            self.serialportname = 'DETECT'
+            serialportname = 'DETECT'
         if preinit:
             self.setup(self.vid, self.pid, self.interface, serialportname)
 
