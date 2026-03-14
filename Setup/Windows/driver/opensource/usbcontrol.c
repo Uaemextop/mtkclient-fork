@@ -30,6 +30,14 @@
  *
  * For OUT requests (host -> device), the data is in TransferBuffer.
  * For no-data requests, TransferBuffer is NULL and TransferLength is 0.
+ *
+ * Returns STATUS_SUCCESS on success, or a USB/NTSTATUS error.
+ * The following device-side failures are treated as "device doesn't
+ * implement this optional CDC request" and are normalised to
+ * STATUS_NOT_SUPPORTED so callers can silently ignore them:
+ *   STATUS_UNSUCCESSFUL  — USB STALL on control pipe
+ *   STATUS_PIPE_DISCONNECTED — device disconnected mid-transfer
+ *   STATUS_DEVICE_NOT_CONNECTED — device removed
  */
 static
 NTSTATUS
@@ -50,6 +58,14 @@ UsbControlSendCdcRequest(
     PAGED_CODE();
 
     /*
+     * Guard: if the device has been surprise-removed or is not yet started,
+     * do not attempt to talk to it — just return failure immediately.
+     */
+    if (!DevCtx->DeviceStarted || DevCtx->UsbDevice == NULL) {
+        return STATUS_DEVICE_NOT_CONNECTED;
+    }
+
+    /*
      * Build a class-specific, interface-directed setup packet.
      *
      * bmRequestType:
@@ -57,10 +73,10 @@ UsbControlSendCdcRequest(
      *   Type:      Class (01)
      *   Recipient: Interface (01)
      *
-     * For SET_LINE_CODING:       OUT, class, interface, request=0x20
-     * For GET_LINE_CODING:       IN,  class, interface, request=0x21
+     * For SET_LINE_CODING:        OUT, class, interface, request=0x20
+     * For GET_LINE_CODING:        IN,  class, interface, request=0x21
      * For SET_CONTROL_LINE_STATE: OUT, class, interface, request=0x22
-     * For SEND_BREAK:            OUT, class, interface, request=0x23
+     * For SEND_BREAK:             OUT, class, interface, request=0x23
      */
     WDF_USB_CONTROL_SETUP_PACKET_INIT_CLASS(
         &setupPacket,
@@ -93,6 +109,18 @@ UsbControlSendCdcRequest(
             NULL,       /* no memory descriptor for zero-length transfers */
             &bytesTransferred
             );
+    }
+
+    /*
+     * Normalise "device STALLed the control pipe" errors.
+     * STATUS_UNSUCCESSFUL is what KMDF maps a USB STALL to.
+     * Some MTK BROM/Preloader modes do not implement optional CDC requests
+     * (GET/SET_LINE_CODING, SET_CONTROL_LINE_STATE, SEND_BREAK) —
+     * they respond with a STALL.  Return STATUS_NOT_SUPPORTED so callers
+     * can choose to silently ignore these failures.
+     */
+    if (status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_NOT_SUPPORTED;
     }
 
     return status;

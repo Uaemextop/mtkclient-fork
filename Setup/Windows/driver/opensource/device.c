@@ -281,7 +281,27 @@ EvtDeviceFileCreate(
     /* Reset performance statistics */
     RtlZeroMemory(&devCtx->PerfStats, sizeof(SERIALPERF_STATS));
 
-    /* Set DTR and RTS (via CDC SET_CONTROL_LINE_STATE) */
+    /*
+     * Sync line coding FROM the device.
+     *
+     * When the device is first opened after enumeration, the device firmware
+     * may have a different baud rate than our default 115200 (e.g. BROM at
+     * 115200, Preloader also at 115200, DA at 921600 after a mode switch).
+     * Reading GET_LINE_CODING ensures our DevCtx->LineCoding reflects the
+     * actual device state, so that subsequent SET_LINE_CODING calls compute
+     * diffs correctly and pyserial reads back the right value from
+     * IOCTL_SERIAL_GET_BAUD_RATE.
+     *
+     * Non-fatal: BROM/Preloader devices that don't implement GET_LINE_CODING
+     * will STALL the pipe; we tolerate STATUS_NOT_SUPPORTED.
+     */
+    {
+        NTSTATUS lcStatus = UsbControlGetLineCoding(devCtx);
+        UNREFERENCED_PARAMETER(lcStatus);
+    }
+
+    /* Assert DTR and RTS (via CDC SET_CONTROL_LINE_STATE).
+     * pyserial by default opens with DTR asserted; match that behaviour. */
     UsbControlSetDtr(devCtx);
     UsbControlSetRts(devCtx);
 

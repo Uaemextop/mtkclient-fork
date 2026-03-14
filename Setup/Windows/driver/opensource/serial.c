@@ -529,9 +529,46 @@ SerialSetQueueSize(
     }
 
     /*
-     * Store requested queue sizes. The actual ring buffer size is fixed,
-     * but we report these values back for compatibility.
+     * Resize the ring buffer when the caller requests more than the current
+     * allocation.  This matters during DA stage-2 communication at 921600
+     * baud where mtkclient may send IOCTL_SERIAL_SET_QUEUE_SIZE with a large
+     * InSize (e.g. 4096 or 65536) to avoid dropping received data.
+     *
+     * We only grow the buffer, never shrink it, and only if the device is
+     * not currently open (shrinking while open would lose data and is unsafe).
      */
+    if (pSize->InSize > DevCtx->ReadBuffer.Size && !DevCtx->DeviceOpen) {
+        ULONG   newSize  = pSize->InSize;
+        PUCHAR  newBuf;
+
+        /*
+         * Align upwards to the next power of two, minimum 4KB.
+         * Large allocations (>= 64KB) are capped at 256KB to avoid
+         * exhausting non-paged pool on low-memory systems.
+         */
+        if (newSize < 4096) {
+            newSize = 4096;
+        } else if (newSize > (256 * 1024)) {
+            newSize = 256 * 1024;
+        }
+
+        newBuf = (PUCHAR)ExAllocatePool2(POOL_FLAG_NON_PAGED,
+                                          newSize, MTK_POOL_TAG);
+        if (newBuf != NULL) {
+            /* Swap in the new buffer under the ring-buffer lock */
+            WdfSpinLockAcquire(DevCtx->ReadBuffer.Lock);
+
+            ExFreePoolWithTag(DevCtx->ReadBuffer.Buffer, MTK_POOL_TAG);
+            DevCtx->ReadBuffer.Buffer      = newBuf;
+            DevCtx->ReadBuffer.Size        = newSize;
+            DevCtx->ReadBuffer.ReadOffset  = 0;
+            DevCtx->ReadBuffer.WriteOffset = 0;
+            DevCtx->ReadBuffer.DataLength  = 0;
+
+            WdfSpinLockRelease(DevCtx->ReadBuffer.Lock);
+        }
+    }
+
     if (pSize->InSize > 0) {
         DevCtx->InQueueSize = pSize->InSize;
     }

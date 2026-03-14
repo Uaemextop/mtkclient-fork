@@ -32,6 +32,12 @@ class SerialClass(DeviceClass):
         self.is_serial = True
         self.device = None
         self.queue = Queue()
+        # vid/pid are populated by detectdevices() for the first matched port;
+        # Port.py may read self.cdc.pid to distinguish BROM (0x0003) from
+        # Preloader/DA.  On COM port paths this is 0 unless detectdevices()
+        # finds an exact VID/PID match.
+        self.vid = 0
+        self.pid = 0
 
     def connect(self, ep_in=-1, ep_out=-1):
         if self.connected:
@@ -56,7 +62,7 @@ class SerialClass(DeviceClass):
             self.debug("Got port: {}, initializing".format(port))
             self.device = serial.Serial(port=port, baudrate=115200, bytesize=serial.EIGHTBITS,
                                         parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
-                                        timeout=500,
+                                        timeout=0.5,
                                         xonxoff=False, dsrdtr=False, rtscts=False)
             self.portname = port
         else:
@@ -151,6 +157,11 @@ class SerialClass(DeviceClass):
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)
+                        # Track VID/PID of the first matched device so that
+                        # callers (e.g. Port.run_handshake) can query them.
+                        if self.vid == 0:
+                            self.vid = port.vid
+                            self.pid = port.pid
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):
@@ -219,9 +230,16 @@ class SerialClass(DeviceClass):
             while pos < len(command):
                 try:
                     ctr = self.device.write(command[pos:pos + pktsize])
-                    if ctr <= 0:
-                        self.info(ctr)
-                    pos += ctr if ctr > 0 else pktsize
+                    if ctr is None or ctr <= 0:
+                        # Write returned nothing written — treat as error,
+                        # retry up to 3 times then give up.
+                        self.debug("write() returned {}, retrying".format(ctr))
+                        i += 1
+                        if i >= 3:
+                            return False
+                    else:
+                        pos += ctr
+                        i = 0      # reset error counter on success
                 except Exception as err:
                     self.debug(str(err))
                     # print("Error while writing")
@@ -231,7 +249,10 @@ class SerialClass(DeviceClass):
                         return False
                     pass
         self.verify_data(bytearray(command), "TX:")
-        self.device.flushOutput()
+        try:
+            self.device.reset_output_buffer()
+        except Exception:
+            pass
         # timeout = 0
         time.sleep(0.005)
         """
@@ -265,10 +286,20 @@ class SerialClass(DeviceClass):
         return 0x200
 
     def flush(self):
-        if self.get_device() is not None:
-            self.device.flushOutput()
-        return self.device.flush()
+        if self.device is not None:
+            try:
+                self.device.reset_output_buffer()
+            except Exception:
+                pass
+            try:
+                return self.device.flush()
+            except Exception:
+                pass
+        return None
 
+    def get_interface_count(self):
+        # A COM port presents as a single serial interface.
+        return 1
     def usbread(self, resplen=None, maxtimeout=0, timeout=0, w_max_packet_size=None):
         # print("Reading {} bytes".format(resplen))
         if timeout == 0 and maxtimeout != 0:
