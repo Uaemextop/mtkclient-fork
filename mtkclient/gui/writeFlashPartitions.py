@@ -62,7 +62,6 @@ class WriteFlashWindow(QObject):
         self.parent.timeEst.init()
         self.parent.timeEstTotal.init()
         self.sendToLogSignal = toolkit.sendToLogSignal
-        toolkit.sendToLogSignal.emit("test")
         # partitionname = args.partitionname
         # parttype = args.parttype
         # filename = args.filename
@@ -123,12 +122,12 @@ class WriteFlashWindow(QObject):
             if self.mtkClass.daloader.daconfig.storage.flashtype == "ufs":
                 self.flashsize = self.mtkClass.daloader.daconfig.storage.ufs.lu1_size
             else:
-                self.flashsize = self.mtkClass.daloader.daconfig.storage.emmc.boot1size
+                self.flashsize = self.mtkClass.daloader.daconfig.storage.emmc.boot1_size
         elif parttype == "boot2":
             if self.mtkClass.daloader.daconfig.storage.flashtype == "ufs":
                 self.flashsize = self.mtkClass.daloader.daconfig.storage.ufs.lu2_size
             else:
-                self.flashsize = self.mtkClass.daloader.daconfig.storage.emmc.boot2size
+                self.flashsize = self.mtkClass.daloader.daconfig.storage.emmc.boot2_size
         self.parttype = parttype
         self.parent.Status["totalsize"] = self.flashsize
         self.parent.Status["currentPartitionSize"] = self.flashsize
