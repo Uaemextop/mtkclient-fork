@@ -92,6 +92,12 @@ class SerialClass(DeviceClass):
         self.write(b'\x5a')
         self.read(1)
 
+    # Time (seconds) to wait after USB reset for the device to re-enumerate.
+    # MTK devices typically re-enumerate within 1-1.5s after a USB bus reset;
+    # 2s provides margin for slower host controllers.  This matches the
+    # delay used in UsbClass.close(reset=True) in usblib.py.
+    USB_REENUM_DELAY_SEC = 2
+
     def close(self, reset=False):
         if self.connected:
             if reset:
@@ -104,7 +110,7 @@ class SerialClass(DeviceClass):
                 del self.device
                 self.device = None
                 self.connected = False
-                time.sleep(2)
+                time.sleep(self.USB_REENUM_DELAY_SEC)
             else:
                 self.device.close()
                 del self.device
@@ -113,9 +119,9 @@ class SerialClass(DeviceClass):
 
     def detectdevices(self):
         ids = []
+        if not isinstance(self.portconfig, dict):
+            return ids
         for port in serial.tools.list_ports.comports():
-            if not isinstance(self.portconfig, dict):
-                break
             if "ttyUSB" in port.device or "ttyACM" in port.device:
                 if port.device not in ids:
                     ids.append(port.device)

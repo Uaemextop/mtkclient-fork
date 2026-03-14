@@ -700,9 +700,12 @@ SerialPurge(
 
     if (*pPurgeFlags & SERIAL_PURGE_TXCLEAR) {
         /*
-         * Cancel pending ZLP work item if any — prevents completing
-         * a stale write request after the application has purged TX.
+         * Flush any in-progress ZLP work item so it completes or is
+         * canceled before we clear the request pointer.  Then clear
+         * the pending ZLP state under WriteLock.
          */
+        WdfWorkItemFlush(DevCtx->ZlpWorkItem);
+
         WdfSpinLockAcquire(DevCtx->WriteLock);
         DevCtx->PendingZlpCompleteRequest = NULL;
         DevCtx->ZlpBytesWritten = 0;
