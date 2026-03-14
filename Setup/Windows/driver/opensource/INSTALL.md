@@ -16,15 +16,20 @@ serial emulation with idle-power management and WMI support.
 
 *Requires building with Visual Studio + WDK, or using a pre-built `.sys` file.*
 
-### Option B — CDC-only INF (Windows inbox `usbser.sys`)
+### Option B — CDC INF with custom `usb2ser.sys`
 
-A lightweight INF-only approach located in `Setup/Windows/driver/CDC/`.  It maps
-the same hardware IDs to the Windows built-in `usbser.sys` CDC ACM class driver.
-**No compilation required** — just install the INF.
+Located in `Setup/Windows/driver/CDC/`.  This INF maps all MediaTek USB hardware
+IDs (100+ device modes) to the custom `usb2ser.sys` kernel driver — MediaTek's
+WDM CDC ACM implementation with enhanced buffer management, reordering, and
+idle/selective-suspend support specific to MTK chipsets.
 
-> Use Option B if you cannot build a kernel driver or do not want to enable test
-> signing.  It covers the most common use-cases; Option A adds lower-level
-> control (custom idle policy, WMI counters, etc.).
+The `usb2ser.sys` binary must be placed alongside the INF (in `x64/` and/or
+`x86/` subdirectories).  The INF's `SourceDisksFiles` section specifies
+`usb2ser.sys=1` which tells Windows to copy the driver from the installation
+media.
+
+> **Note:** On Windows, mtkclient **automatically** detects the COM port created
+> by either driver and uses its serial backend — no `--serialport` flag required.
 
 ---
 
@@ -120,23 +125,29 @@ Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match 'MediaTek' }
 
 ## 6 — Using with mtkclient
 
-With the driver installed the device appears as a standard COM port.  mtkclient
-auto-detects it — no libusb or UsbDk needed.
+With the `usb2ser.sys` or `mtk_usb2ser.sys` driver installed, the MTK device
+appears as a standard COM port under **Ports (COM & LPT)**.  On Windows,
+mtkclient **automatically** uses its serial backend — no libusb, UsbDk, or
+`--serialport` flag required.
 
 ```bash
-# mtkclient auto-detects the COM port
+# mtkclient auto-detects the COM port on Windows (no extra flags needed)
 python mtk.py printgpt
 
-# Run multiple commands in sequence (device re-enumerates between stages)
+# Run multiple commands in sequence without disconnecting the device
 python mtk.py rl out --skip userdata
 python mtk.py reset
 ```
 
-mtkclient uses `serial.tools.list_ports` (PySerial) to discover MediaTek COM
-ports automatically.  If auto-detection fails, specify the port manually:
+**How it works:** On Windows, mtkclient detects that the platform is `win32` and
+automatically switches to `SerialClass` with auto-detection mode.  It uses
+PySerial's `serial.tools.list_ports` to scan for devices with MediaTek VID
+`0x0E8D`, or by driver description containing "MediaTek" or "MTK".
+
+If auto-detection fails, specify the port manually:
 
 ```bash
-python mtk.py printgpt --port COM3
+python mtk.py printgpt --serialport COM3
 ```
 
 ---
