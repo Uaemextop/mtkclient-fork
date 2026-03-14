@@ -317,10 +317,7 @@ jobs:
       # Download the signed driver artifact into the directory setup.iss expects:
       #   Setup/Windows/installer/build/x64/Release/
       - name: Download x64 driver artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: driver-x64-Release
-          path: Setup/Windows/installer/build/x64/Release
+        uses: actions/download-artifact@v4.1.3
 
       # Ensure the INF is present (the artifact includes it; this is a safety net)
       - name: Verify installer build directory
@@ -394,9 +391,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-assets
+        uses: actions/download-artifact@v4.1.3
 
       - name: Prepare release files
         run: |
