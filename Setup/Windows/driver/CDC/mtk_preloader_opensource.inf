@@ -5,8 +5,7 @@
 ; USB CDC ACM serial ports.
 ;
 ; This INF maps MediaTek USB hardware IDs to the Windows inbox usbser.sys
-; (USB Serial) driver — a fully open, signature-free approach that requires
-; no custom kernel binary.
+; (USB Serial) driver — no custom kernel binary is needed.
 ;
 ; Based on Capstone analysis of the proprietary usb2ser.sys (MediaTek SP
 ; Driver 20160804).  Functionally equivalent: the proprietary driver is a
@@ -29,8 +28,7 @@ PnpLockdown = 1
 %ProviderName% = DeviceList, NTamd64, NTx86
 
 [DestinationDirs]
-DefaultDestDir      = 12
-MTK_DriverCopyFiles = 12
+DefaultDestDir = 12
 
 ; ==========================================================================
 ;  x64 Device List
@@ -289,29 +287,25 @@ MTK_DriverCopyFiles = 12
 %MTK_ELT%         = MTK_CDC_Install, USB\VID_0E8D&PID_2064&MI_07
 
 ; ==========================================================================
-;  Source disk layout — uses MediaTek custom usb2ser.sys kernel driver
-;  (NOT the Windows inbox usbser.sys — MTK's driver is a custom WDM CDC
-;  ACM implementation with enhanced buffer management, reordering, and
-;  idle/selective-suspend support specific to MTK chipsets)
+;  Source disk layout — NO custom binary needed, uses Windows inbox usbser.sys
 ; ==========================================================================
-[SourceDisksFiles.x86]
-usb2ser.sys = 1,.\x86
-
-[SourceDisksFiles.amd64]
-usb2ser.sys = 1,.\x64
-
 [SourceDisksNames]
 1 = %DiskName%
+
+[SourceDisksFiles]
+; intentionally empty — no files to copy, usbser.sys is inbox
 
 ; ==========================================================================
 ;  Install section — x86 (32-bit)
 ; ==========================================================================
 [MTK_CDC_Install.NT]
-CopyFiles = MTK_DriverCopyFiles
-AddReg    = MTK_CDC_AddReg
+Include = mdmcpq.inf, usbser.inf
+Needs   = UsbSer_Install
+AddReg  = MTK_CDC_AddReg
 
 [MTK_CDC_Install.NT.Services]
-AddService = wdm_usb, 2, MTK_Service
+Include    = usbser.inf
+Needs      = UsbSer_Install.Services
 
 [MTK_CDC_Install.NT.HW]
 AddReg = MTK_CDC_HwAddReg
@@ -320,39 +314,28 @@ AddReg = MTK_CDC_HwAddReg
 ;  Install section — x64 (64-bit)
 ; ==========================================================================
 [MTK_CDC_Install.NTamd64]
-CopyFiles = MTK_DriverCopyFiles
-AddReg    = MTK_CDC_AddReg
+; mdmcpq.inf provides modem/COM port registry settings, usbser.inf provides the inbox USB serial driver
+Include = mdmcpq.inf, usbser.inf
+Needs   = UsbSer_Install
+AddReg  = MTK_CDC_AddReg
 
 [MTK_CDC_Install.NTamd64.Services]
-AddService = wdm_usb, 2, MTK_Service
+Include    = usbser.inf
+Needs      = UsbSer_Install.Services
 
 [MTK_CDC_Install.NTamd64.HW]
 AddReg = MTK_CDC_HwAddReg
 
 ; ==========================================================================
-;  Service definition — MediaTek custom WDM USB-to-Serial driver
+;  Registry settings
 ; ==========================================================================
-[MTK_Service]
-DisplayName   = %ServiceDesc%
-ServiceType   = 1                       ; SERVICE_KERNEL_DRIVER
-StartType     = 3                       ; SERVICE_DEMAND_START
-ErrorControl  = 1                       ; SERVICE_ERROR_NORMAL
-ServiceBinary = %12%\usb2ser.sys
-
-[MTK_DriverCopyFiles]
-usb2ser.sys,,,2
-
 [MTK_CDC_HwAddReg]
 HKR,,DriverInfo,,"USB to Com Port registry key"
 HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)(A;;GRGWGX;;;RC)"
 
 [MTK_CDC_AddReg]
-HKR,,NTMPDriver,,usb2ser.sys
 HKR,,Installer32,,"MsPorts.Dll,PortsClassInstaller"
 HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
-HKR,,IdleTime,0x00010001,"10"
-HKR,,IdleEnable,0x00010001,"0"
-HKR,,IdleWWBinded,0x00010001,"1"
 
 ; ==========================================================================
 ;  Strings
@@ -360,7 +343,6 @@ HKR,,IdleWWBinded,0x00010001,"1"
 [Strings]
 ProviderName  = "MTK Loader Drivers Opensource"
 DiskName      = "MediaTek USB Driver Installation Disk"
-ServiceDesc   = "MediaTek USB RS-232 Emulation Driver"
 MTK_BOOTROM   = "MediaTek USB Port (BROM)"
 MTK_PRELOADER = "MediaTek PreLoader USB VCOM Port"
 MTK_DA        = "MediaTek DA USB VCOM Port"

@@ -190,6 +190,12 @@ class SerialClass(DeviceClass):
         }
         if baudrate is not None and baudrate > 0:
             self.device.baudrate = baudrate
+        if parity not in _parity_map:
+            self.debug("set_line_coding: unknown parity code {!r}, defaulting to NONE".format(parity))
+        if stopbits not in _stop_map:
+            self.debug("set_line_coding: unknown stopbits value {!r}, defaulting to 1".format(stopbits))
+        if databits not in (5, 6, 7, 8):
+            self.debug("set_line_coding: invalid databits {!r}, defaulting to 8".format(databits))
         self.device.parity   = _parity_map.get(parity,  _serial.PARITY_NONE)
         self.device.stopbits = _stop_map.get(stopbits,  _serial.STOPBITS_ONE)
         self.device.bytesize = databits if databits in (5, 6, 7, 8) else 8

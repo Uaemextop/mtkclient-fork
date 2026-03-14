@@ -4,14 +4,14 @@
 #
 # Test-certificate flow (no secrets configured):
 #   1. New-SelfSignedCertificate creates a per-build SHA256 code-signing cert
-#   2. Cert is exported as mtk_test_cert.cer (DER) into the driver output dir
-#   3. mtk_test_cert.cer is bundled into the Inno Setup installer
+#   2. Export-Certificate exports it as mtk_usb2ser.cer into the driver output dir
+#   3. mtk_usb2ser.cer is bundled into the Inno Setup installer
 #   4. The installer imports the cert to Trusted Root CA + Trusted Publishers
-#      and enables Windows Test Signing (TESTSIGNING) mode so the driver loads
-#      on development machines without a reboot loop.
+#      before calling pnputil — install_driver.ps1 offers TESTSIGNING + CDC fallback.
 #
 # Production-certificate flow (SIGNING_CERT_BASE64 secret set):
-#   Replace the self-signed cert with your EV code-signing cert PFX.
+#   The PFX public key is still exported as mtk_usb2ser.cer so the installer can
+#   trust it on machines that don't already have the CA in their stores.
 
 name: Build MTK Windows Driver
 
@@ -141,7 +141,7 @@ jobs:
             /v:minimal
 
       # Generate a test certificate (or use the production one from secrets),
-      # export the public key as mtk_test_cert.cer for the installer to bundle,
+      # sign the driver + catalog, export the public key as mtk_usb2ser.cer,
       # generate the .cat catalog with Inf2Cat, then sign both .sys and .cat.
       - name: Sign driver and export test certificate
         run: |
@@ -162,7 +162,9 @@ jobs:
 
           $signtool     = Join-Path $sdkBin.FullName "x64\signtool.exe"
           $inf2cat      = Join-Path $sdkBin.FullName "x86\Inf2Cat.exe"
-          $cerOutputPath = Join-Path $outDir "mtk_test_cert.cer"
+          # Certificate is always exported as mtk_usb2ser.cer (matches driver name,
+          # consistent with upstream repo and install_driver.ps1 lookup logic).
+          $cerOutputPath = Join-Path $outDir "mtk_usb2ser.cer"
 
           Write-Host "signtool : $signtool"
           Write-Host "inf2cat  : $inf2cat"
@@ -189,11 +191,11 @@ jobs:
           } else {
             Write-Host "=== Generating self-signed test certificate ==="
             $cert = New-SelfSignedCertificate `
-              -Subject         "CN=MTK USB Driver Test, O=MTKClient Development" `
-              -FriendlyName    "MTK USB Driver Test Certificate" `
+              -Subject         "CN=MTK Loader Drivers Opensource, O=MTK Loader Drivers Opensource" `
               -Type            CodeSigningCert `
+              -KeyAlgorithm    RSA `
+              -KeyLength       4096 `
               -HashAlgorithm   SHA256 `
-              -KeyLength       2048 `
               -KeyExportPolicy Exportable `
               -NotAfter        (Get-Date).AddYears(5) `
               -CertStoreLocation $certStore
@@ -202,13 +204,14 @@ jobs:
             Write-Host "  Thumbprint : $certThumbprint"
             Write-Host "  Subject    : $($cert.Subject)"
             Write-Host "  NotAfter   : $($cert.NotAfter)"
-
-            # Export public key as DER binary .cer for the installer to bundle
-            $certBytes = $cert.Export(
-              [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
-            [IO.File]::WriteAllBytes($cerOutputPath, $certBytes)
-            Write-Host "  Exported test cert -> $cerOutputPath ($($certBytes.Length) bytes)"
           }
+
+          # Always export the public key as DER .cer — both for test and production
+          # builds — so the installer can add it to the user's certificate stores.
+          Export-Certificate `
+            -Cert (Get-ChildItem "${certStore}\${certThumbprint}") `
+            -FilePath $cerOutputPath | Out-Null
+          Write-Host "  Exported public certificate -> $cerOutputPath"
 
           # ---- Assemble package directory for Inf2Cat -------------------------
           # Both mtk_usb2ser.inf and mtk_usb2ser.sys must be in the same directory.
@@ -249,7 +252,8 @@ jobs:
           $tsServers = @(
             "http://timestamp.digicert.com",
             "http://timestamp.sectigo.com",
-            "http://timestamp.globalsign.com/tsa/r6advanced1"
+            "http://timestamp.globalsign.com/tsa/r6advanced1",
+            "http://timestamp.identrust.com"
           )
 
           foreach ($file in $filesToSign) {
@@ -295,7 +299,7 @@ jobs:
             Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.inf
             Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.cat
             Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.pdb
-            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_test_cert.cer
+            Setup/Windows/driver/opensource/${{ matrix.platform }}/${{ matrix.configuration }}/mtk_usb2ser.cer
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
@@ -371,7 +375,7 @@ jobs:
             Setup/Windows/installer/build/x64/Release/mtk_usb2ser.sys
             Setup/Windows/installer/build/x64/Release/mtk_usb2ser.inf
             Setup/Windows/installer/build/x64/Release/mtk_usb2ser.cat
-            Setup/Windows/installer/build/x64/Release/mtk_test_cert.cer
+            Setup/Windows/installer/build/x64/Release/mtk_usb2ser.cer
             Setup/Windows/installer/install_driver.ps1
             Setup/Windows/installer/uninstall_driver.ps1
             README.md
@@ -419,7 +423,7 @@ jobs:
             | `mtk_usb2ser.sys` | KMDF USB CDC ACM serial driver (x64) |
             | `mtk_usb2ser.inf` | Device INF with 100+ MediaTek hardware IDs |
             | `mtk_usb2ser.cat` | Signed driver catalog |
-            | `mtk_test_cert.cer` | Test code-signing certificate (development builds only) |
+            | `mtk_usb2ser.cer` | Test code-signing certificate (development builds only) |
 
             ## Quick Install
             Run **`MTK_USB_Driver_Setup_*.exe`** as Administrator.
@@ -436,8 +440,8 @@ jobs:
             ## Manual Install
             ```powershell
             # 1. Install test certificate
-            certutil -addstore Root             mtk_test_cert.cer
-            certutil -addstore TrustedPublisher mtk_test_cert.cer
+            certutil -addstore Root             mtk_usb2ser.cer
+            certutil -addstore TrustedPublisher mtk_usb2ser.cer
             # 2. Enable test signing (requires reboot)
             bcdedit /set testsigning on
             # 3. Reboot, then install driver
