@@ -8,7 +8,7 @@
 ![Logo](mtkclient/gui/images/logo_256.png)
 
 这是一款用于联发科芯片的调试工具，支持读写分区、利用漏洞对设备进行底层操作。
-在Windows系统下使用需要安装MTK串口驱动和UsbDk驱动 (详见下方说明)。
+在 Windows 系统下，请安装 `Setup/Windows` 中集成的开源 MediaTek 串口驱动包，这样 mtkclient 可以直接通过 COM 口工作，而不再依赖 UsbDk。
 在Linux系统下，如果你使用的是旧版的kamakiri内核则需要使用内核补丁 (参见Setup目录)，但读写分区等操作则不需要补丁。
 
 打开 MTKClient, 在设备完全关机的情况下按住音量上键+电源键或音量下键+电源键进入Brom模式，待工具检测到设备后松手。

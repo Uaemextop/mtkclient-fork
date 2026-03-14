@@ -2,6 +2,7 @@
 # MTK Flash Client (c) B.Kerler 2018-2025.
 # Licensed under GPLv3 License
 import os
+import sys
 import logging
 from struct import unpack
 from mtkclient.config.usb_ids import default_ids
@@ -34,9 +35,11 @@ class Mtk(metaclass=LogBase):
         self.__logger, self.info, self.debug, self.warning, self.error = logsetup(self, self.__logger, loglevel,
                                                                                   config.gui)
         self.eh = ErrorHandler()
+        if sys.platform == "win32" and not serialportname:
+            serialportname = "DETECT"
         self.serialportname = serialportname
         if preinit:
-            self.setup(self.vid, self.pid, self.interface, serialportname)
+            self.setup(self.vid, self.pid, self.interface, self.serialportname)
 
     def patch_preloader_security_da1(self, data):
         patched = False
@@ -151,12 +154,9 @@ class Mtk(metaclass=LogBase):
         if interface is None:
             interface = self.interface
         if vid != -1 and pid != -1:
-            if interface == -1:
-                for dev in default_ids:
-                    if dev[0] == vid and dev[1] == pid:
-                        interface = dev[2]
-                        break
-            portconfig = [[vid, pid, interface]]
+            if interface == -1 and vid in default_ids and pid in default_ids[vid]:
+                interface = default_ids[vid][pid]
+            portconfig = {vid: {pid: interface}}
         else:
             portconfig = default_ids
         self.port = Port(mtk=self, portconfig=portconfig, serialportname=serialportname, loglevel=self.__logger.level)

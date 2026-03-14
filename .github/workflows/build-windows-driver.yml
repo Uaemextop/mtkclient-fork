@@ -1,0 +1,194 @@
+name: Build Windows Driver and Installer
+
+on:
+  push:
+    branches: [main, copilot/*]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-driver:
+    name: Build driver
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install WDK
+        shell: pwsh
+        run: |
+          function Test-WdkHeaders {
+            Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -Directory -ErrorAction SilentlyContinue |
+              Where-Object { Test-Path (Join-Path $_.FullName "km\ntddk.h") } |
+              Select-Object -First 1
+          }
+
+          if (-not (Test-WdkHeaders)) {
+            try {
+              winget install --exact --id Microsoft.WindowsSDK.10.0.26100 --source winget --silent --accept-source-agreements --accept-package-agreements
+            } catch {
+              Write-Host "Windows SDK install via winget failed: $($_.Exception.Message)"
+            }
+          }
+
+          if (-not (Test-WdkHeaders)) {
+            try {
+              winget install --exact --id Microsoft.WindowsWDK.10.0.26100 --source winget --silent --accept-source-agreements --accept-package-agreements
+            } catch {
+              Write-Host "WDK install via winget failed: $($_.Exception.Message)"
+            }
+          }
+
+          if (-not (Test-WdkHeaders)) {
+            Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2272234" -OutFile "$env:TEMP\wdksetup.exe"
+            $process = Start-Process -FilePath "$env:TEMP\wdksetup.exe" -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait -PassThru
+            if ($process.ExitCode -ne 0) {
+              throw "WDK installer failed with exit code $($process.ExitCode)"
+            }
+          }
+
+          if (-not (Test-WdkHeaders)) {
+            throw "WDK kernel headers were not found after installation."
+          }
+
+      - name: Build driver
+        shell: pwsh
+        run: |
+          msbuild "${{ github.workspace }}\Setup\Windows\driver\opensource\mtk_usb2ser.vcxproj" /p:Configuration=Release /p:Platform=x64 /t:Build
+
+      - name: Sign driver package
+        shell: pwsh
+        run: |
+          $outDir = "Setup\Windows\driver\opensource\x64\Release"
+          $sysFile = Join-Path $outDir "mtk_usb2ser.sys"
+          $infFile = "Setup\Windows\driver\opensource\mtk_usb2ser.inf"
+          if (-not (Test-Path $sysFile)) {
+            throw "Driver output not found: $sysFile"
+          }
+
+          $sdkBin = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+            Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          $signtool = Join-Path $sdkBin.FullName "x64\signtool.exe"
+          $inf2cat = Join-Path $sdkBin.FullName "x86\Inf2Cat.exe"
+
+          $hasProductionCert = ('${{ secrets.SIGNING_CERT_BASE64 }}' -ne '')
+          if ($hasProductionCert) {
+            $pfxPath = Join-Path $env:TEMP "codesign.pfx"
+            try {
+              [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String('${{ secrets.SIGNING_CERT_BASE64 }}'))
+              $securePass = ConvertTo-SecureString '${{ secrets.SIGNING_CERT_PASSWORD }}' -AsPlainText -Force
+              $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePass
+            } finally {
+              if (Test-Path $pfxPath) { Remove-Item $pfxPath -Force }
+            }
+          } else {
+            $cert = New-SelfSignedCertificate -Subject "CN=MTK Loader Drivers Opensource, O=MTK Loader Drivers Opensource" -Type CodeSigningCert -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5) -KeyAlgorithm RSA -KeyLength 4096 -HashAlgorithm SHA256
+          }
+
+          $certThumbprint = $cert.Thumbprint
+          Export-Certificate -Cert (Get-ChildItem Cert:\CurrentUser\My\$certThumbprint) -FilePath (Join-Path $outDir "mtk_usb2ser.cer") | Out-Null
+          Copy-Item $infFile $outDir -Force
+
+          if (Test-Path $inf2cat) {
+            & $inf2cat /driver:$((Resolve-Path $outDir).Path) /os:10_X64 /verbose
+          }
+
+          $filesToSign = @($sysFile)
+          $catFile = Join-Path $outDir "mtk_usb2ser.cat"
+          if (Test-Path $catFile) {
+            $filesToSign += $catFile
+          }
+
+          $timestampServers = @(
+            "http://timestamp.digicert.com",
+            "http://timestamp.sectigo.com",
+            "http://timestamp.globalsign.com/tsa/r6advanced1",
+            "http://timestamp.identrust.com"
+          )
+
+          foreach ($file in $filesToSign) {
+            $signed = $false
+            foreach ($tsUrl in $timestampServers) {
+              & $signtool sign /sha1 $certThumbprint /fd SHA256 /tr $tsUrl /td SHA256 /v $file
+              if ($LASTEXITCODE -eq 0) {
+                $signed = $true
+                break
+              }
+            }
+            if (-not $signed -and $hasProductionCert) {
+              throw "Production signing failed for $file"
+            }
+          }
+
+      - name: Upload driver artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-driver-x64-release
+          path: |
+            Setup/Windows/driver/opensource/x64/Release/*.sys
+            Setup/Windows/driver/opensource/x64/Release/*.inf
+            Setup/Windows/driver/opensource/x64/Release/*.cat
+            Setup/Windows/driver/opensource/x64/Release/*.pdb
+            Setup/Windows/driver/opensource/x64/Release/*.cer
+          if-no-files-found: warn
+
+  build-installer:
+    name: Build installer
+    runs-on: windows-latest
+    needs: build-driver
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download driver artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-driver-x64-release
+          path: Setup/Windows/installer/build/x64/Release
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Setup\Windows\installer\setup.iss
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-driver-installer
+          path: Setup/Windows/installer/output/*.exe
+          if-no-files-found: warn
+
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-driver-portable
+          path: |
+            Setup/Windows/driver/opensource/mtk_usb2ser.inf
+            Setup/Windows/driver/opensource/*.c
+            Setup/Windows/driver/opensource/*.h
+            Setup/Windows/driver/opensource/*.rc
+            Setup/Windows/driver/opensource/*.vcxproj
+            Setup/Windows/driver/opensource/*.sln
+            Setup/Windows/driver/opensource/Makefile.wdk
+            Setup/Windows/driver/CDC/mtk_preloader_opensource.inf
+            Setup/Windows/installer/install_driver.ps1
+            Setup/Windows/installer/uninstall_driver.ps1
+            Setup/Windows/installer/setup.iss
+            Setup/Windows/docs/INSTALL.md
+            Setup/Windows/LICENSE.mtk-loader-drivers-opensource-win11
+          if-no-files-found: warn
