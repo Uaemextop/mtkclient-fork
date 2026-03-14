@@ -1230,7 +1230,8 @@ class DaHandler(metaclass=LogBase):
     def da_poke(self, addr: int, data: str, filename: str):
         if filename is not None:
             if os.path.exists(filename):
-                data = open(filename, "rb").read()
+                with open(filename, "rb") as _rf:
+                    data = _rf.read()
         else:
             if "0x" in data:
                 data = pack("<I", int(data, 16))
