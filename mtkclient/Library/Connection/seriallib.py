@@ -74,6 +74,9 @@ class SerialClass(DeviceClass):
     def set_fast_mode(self, enabled):
         pass
 
+    def get_interface_count(self):
+        return 0
+
     def change_baud(self):
         print("Changing Baudrate")
         self.write(b'\xD2' + b'\x02' + b'\x01')
@@ -111,15 +114,18 @@ class SerialClass(DeviceClass):
     def detectdevices(self):
         ids = []
         for port in serial.tools.list_ports.comports():
+            if not isinstance(self.portconfig, dict):
+                break
+            if "ttyUSB" in port.device or "ttyACM" in port.device:
+                if port.device not in ids:
+                    ids.append(port.device)
+                continue
+            if port.vid is None:
+                continue
             for usbid in self.portconfig:
-                if not isinstance(self.portconfig, dict):
-                    break
                 if not isinstance(self.portconfig.get(usbid), dict):
                     continue
-                if "ttyUSB" in port.device or "ttyACM" in port.device:
-                    if port.device not in ids:
-                        ids.append(port.device)
-                elif port.vid == usbid and port.pid in self.portconfig[usbid]:
+                if port.vid == usbid and port.pid in self.portconfig[usbid]:
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)

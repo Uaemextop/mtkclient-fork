@@ -58,6 +58,13 @@ EvtDriverCleanup(
 {
     PAGED_CODE();
     UNREFERENCED_PARAMETER(DriverObject);
+
+    /*
+     * Reset the global device counter so device names (\Device\mtkcdcacmN)
+     * are reusable if the driver is unloaded and reloaded without a reboot
+     * (e.g. during mtkclient driver development or pnputil reinstall).
+     */
+    InterlockedExchange(&g_DeviceCount, 0);
 }
 
 /* =========================================================================

@@ -699,14 +699,34 @@ SerialPurge(
     }
 
     if (*pPurgeFlags & SERIAL_PURGE_TXCLEAR) {
-        /* Nothing to clear for TX (data already submitted to USB) */
+        /*
+         * Cancel pending ZLP work item if any — prevents completing
+         * a stale write request after the application has purged TX.
+         */
+        WdfSpinLockAcquire(DevCtx->WriteLock);
+        DevCtx->PendingZlpCompleteRequest = NULL;
+        DevCtx->ZlpBytesWritten = 0;
+        WdfSpinLockRelease(DevCtx->WriteLock);
     }
 
     if (*pPurgeFlags & SERIAL_PURGE_TXABORT) {
         /*
-         * For TX abort, we would need to cancel outstanding USB writes.
-         * The USB stack will cancel them on pipe reset if needed.
+         * Abort outstanding writes by stopping and restarting the
+         * bulk OUT pipe I/O target.  WdfIoTargetStop with
+         * WdfIoTargetCancelSentIo cancels all in-flight URBs, which
+         * is the CDC ACM equivalent of a TX abort.  This is needed
+         * when mtkclient switches baud rate mid-transfer or aborts
+         * a DA upload.
          */
+        if (DevCtx->BulkOutPipe != NULL) {
+            WdfIoTargetStop(
+                WdfUsbTargetPipeGetIoTarget(DevCtx->BulkOutPipe),
+                WdfIoTargetCancelSentIo
+                );
+            WdfIoTargetStart(
+                WdfUsbTargetPipeGetIoTarget(DevCtx->BulkOutPipe)
+                );
+        }
     }
 
     WdfRequestComplete(Request, STATUS_SUCCESS);
