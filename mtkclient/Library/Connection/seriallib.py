@@ -107,6 +107,18 @@ class SerialClass(DeviceClass):
                     self.info(f"Detected {hex(port.vid)}:{hex(port.pid)} device at: {port.device}")
                     if port.device not in ids:
                         ids.append(port.device)
+                elif sys.platform == "win32" and port.vid is not None and port.vid == 0x0E8D:
+                    # Windows: detect MTK devices via usb2ser.sys / mtk_usb2ser.sys driver (COM port)
+                    self.info(f"Detected MediaTek device at: {port.device} (VID={hex(port.vid)}, PID={hex(port.pid)})")
+                    if port.device not in ids:
+                        ids.append(port.device)
+            # Also detect by driver description on Windows (usb2ser / mtk_usb2ser loaded)
+            if sys.platform == "win32" and port.device not in ids:
+                desc = (port.description or "").lower()
+                mfg = (port.manufacturer or "").lower()
+                if "mediatek" in desc or "mediatek" in mfg or "mtk" in desc:
+                    self.info(f"Detected MediaTek device by description at: {port.device} ({port.description})")
+                    ids.append(port.device)
         return sorted(ids)
 
     def set_line_coding(self, baudrate=None, parity=0, databits=8, stopbits=1):

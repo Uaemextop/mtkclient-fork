@@ -760,8 +760,8 @@ class Main(metaclass=LogBase):
             if self.args.metamode:
                 mtk.port.run_handshake()
                 mtk.preloader.jump_bl()
-                mtk.port.close(reset=True)
+                mtk.port.close(reset=False)
                 meta = META(mtk, self.__logger.level)
                 if meta.init(metamode=self.args.metamode, display=True):
                     self.info(f"Successfully set meta mode : {self.args.metamode}")
-        mtk.port.close(reset=True)
+        mtk.port.close(reset=False)

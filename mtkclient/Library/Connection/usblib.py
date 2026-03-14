@@ -16,7 +16,6 @@ import usb.backend.libusb1
 from struct import pack, calcsize
 from enum import Enum
 from binascii import hexlify
-from ctypes import c_void_p, c_int
 
 from mtkclient.Library.DA.xmlflash.xml_param import max_xml_data_length
 from mtkclient.Library.utils import write_object
@@ -136,12 +135,8 @@ class UsbClass(DeviceClass):
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
             else:
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
+        if self.backend is None:
+            self.debug("Warning: libusb backend not found")
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
@@ -302,13 +297,20 @@ class UsbClass(DeviceClass):
         self.device = None
         self.EP_OUT = None
         self.EP_IN = None
-        devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
-        for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
-            if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
-                self.device = dev
-                self.vid = dev.idVendor
-                self.pid = dev.idProduct
-                self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+        # 2-pass detection: first try CDC class (bDeviceClass=0x2), then all devices
+        for dc in [devclass, None]:
+            if dc is not None:
+                devices = usb.core.find(find_all=True, bDeviceClass=dc, backend=self.backend)
+            else:
+                devices = usb.core.find(find_all=True, backend=self.backend)
+            for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
+                if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
+                    self.device = dev
+                    self.vid = dev.idVendor
+                    self.pid = dev.idProduct
+                    self.interface = self.portconfig[dev.idVendor][dev.idProduct]
+                    break
+            if self.device is not None:
                 break
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
@@ -433,7 +435,7 @@ class UsbClass(DeviceClass):
                     self.debug(str(err))
                     if 'No such device' in str(err):
                         self.error(str(err))
-                        sys.exit(1)
+                        raise OSError("Device disconnected")
                     # print("Error while writing")
                     # time.sleep(0.01)
                     i += 1
@@ -522,7 +524,7 @@ class UsbClass(DeviceClass):
                     return b""
                 elif "No such device" in error:
                     self.error("Device disconnected")
-                    sys.exit(1)
+                    raise OSError("Device disconnected")
                 else:
                     self.info(repr(e))
                     return b""

@@ -28,8 +28,16 @@ class Port(metaclass=LogBase):
         self.mtk = mtk
         self.serialportname = None
         if serialportname is not None and serialportname != "":
+            self.serialportname = serialportname
             self.cdc = SerialClass(portconfig=portconfig, loglevel=loglevel, devclass=10)
             self.cdc.setportname(serialportname)
+        elif sys.platform == "win32":
+            # On Windows, prefer serial port via usb2ser.sys / mtk_usb2ser.sys driver.
+            # This avoids the need for libusb or UsbDk — the device appears as a
+            # native COM port and mtkclient talks to it through pyserial directly.
+            self.serialportname = "DETECT"
+            self.cdc = SerialClass(portconfig=portconfig, loglevel=loglevel, devclass=10)
+            self.cdc.setportname("DETECT")
         else:
             self.cdc = UsbClass(portconfig=portconfig, loglevel=loglevel, devclass=10)
         self.usbread = self.cdc.usbread
