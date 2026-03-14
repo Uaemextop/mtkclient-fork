@@ -77,19 +77,19 @@ class ArgHandler(metaclass=LogBase):
         except AttributeError:
             pass
         try:
-            if args.da_address is not None:
-                config.chipconfig.da_payload_addr = getint(args.da_address)
-                self.info("O:DA offset:\t\t\t" + args.da_address)
+            if args.da_addr is not None:
+                config.chipconfig.da_payload_addr = getint(args.da_addr)
+                self.info("O:DA offset:\t\t\t" + args.da_addr)
         except AttributeError:
             pass
         try:
-            if args.brom_address is not None:
-                config.chipconfig.brom_payload_addr = getint(args.brom_address)
-                self.info("O:Payload offset:\t\t" + args.brom_address)
+            if args.brom_addr is not None:
+                config.chipconfig.brom_payload_addr = getint(args.brom_addr)
+                self.info("O:Payload offset:\t\t" + args.brom_addr)
         except AttributeError:
             pass
         try:
-            if args.watchdog_address is not None:
+            if args.wdt is not None:
                 config.chipconfig.watchdog = getint(args.wdt)
                 self.info("O:Watchdog addr:\t\t" + args.wdt)
         except AttributeError:
@@ -100,13 +100,13 @@ class ArgHandler(metaclass=LogBase):
         except AttributeError:
             pass
         try:
-            if args.uart_address is not None:
-                config.chipconfig.uart = getint(args.uart_address)
-                self.info("O:Uart addr:\t\t" + args.uart_address)
+            if args.uart_addr is not None:
+                config.chipconfig.uart = getint(args.uart_addr)
+                self.info("O:Uart addr:\t\t" + args.uart_addr)
         except AttributeError:
             pass
         try:
-            if args.preloader is not None:
+            if args.var1 is not None:
                 config.chipconfig.var1 = getint(args.var1)
                 self.info("O:Var1:\t\t" + hex(config.chipconfig.var1))
         except AttributeError:
@@ -171,11 +171,15 @@ class ArgHandler(metaclass=LogBase):
 
 class Main(metaclass=LogBase):
     def __init__(self, args):
+        # args.loglevel is the raw --loglevel string ("0"/"2"/None); it is NOT
+        # a logging level constant.  Use args.debugmode (bool flag) to decide
+        # the actual level so logsetup receives the right integer.
+        loglevel = logging.DEBUG if (hasattr(args, 'debugmode') and args.debugmode) else logging.INFO
         self.__logger, self.info, self.debug, self.warning, self.error = logsetup(self, self.__logger,
-                                                                                  args.loglevel, None)
+                                                                                  loglevel, None)
         self.eh = None
         self.args = args
-        if args.loglevel == logging.DEBUG:
+        if loglevel == logging.DEBUG:
             if not os.path.exists("logs"):
                 os.mkdir("logs")
 
@@ -317,29 +321,34 @@ class Main(metaclass=LogBase):
             dwords = length // 4
             if length % 4:
                 dwords += 1
-            if filename is not None:
-                wwf = open(filename, "wb")
             sdata = b""
             pg = progress(total=addr + length, prefix='Progress:')
             length = dwords * 4
             pos = 0
-            while dwords:
-                size = min(512 // 4, dwords)
-                if dwords == 1:
-                    data = pack("<I", mtk.preloader.read32(addr + pos, size))
-                else:
-                    data = b"".join(int.to_bytes(val, 4, 'little') for val in mtk.preloader.read32(addr + pos, size))
-                pg.update(len(data))
-                sdata += data
-                if filename is not None:
-                    wwf.write(data)
-                pos += len(data)
-                dwords = (length - pos) // 4
-            pg.done()
+            if filename is not None:
+                wwf = open(filename, "wb")
+            else:
+                wwf = None
+            try:
+                while dwords:
+                    size = min(512 // 4, dwords)
+                    if dwords == 1:
+                        data = pack("<I", mtk.preloader.read32(addr + pos, size))
+                    else:
+                        data = b"".join(int.to_bytes(val, 4, 'little') for val in mtk.preloader.read32(addr + pos, size))
+                    pg.update(len(data))
+                    sdata += data
+                    if wwf is not None:
+                        wwf.write(data)
+                    pos += len(data)
+                    dwords = (length - pos) // 4
+                pg.done()
+            finally:
+                if wwf is not None:
+                    wwf.close()
             if filename is None:
                 print(hexlify(sdata).decode('utf-8'))
             else:
-                wwf.close()
                 self.info(f"Data from {hex(addr)} with size of {hex(length)} was written to " + filename)
 
     def run(self, parser):
@@ -387,11 +396,17 @@ class Main(metaclass=LogBase):
         mtk = Mtk(config=config, loglevel=loglevel, serialportname=serialport)
         config.set_peek(mtk.daloader.peek)
         if mtk.config.debugmode:
+            import logging.handlers as _lh
             logfilename = os.path.join("logs", "log.txt")
-            if os.path.exists(logfilename):
-                os.remove(logfilename)
-            fh = logging.FileHandler(logfilename, encoding='utf-8')
-            self.__logger.addHandler(fh)
+            already_attached = any(
+                isinstance(h, _lh.RotatingFileHandler) and
+                getattr(h, 'baseFilename', None) == os.path.abspath(logfilename)
+                for h in self.__logger.handlers
+            )
+            if not already_attached:
+                fh = _lh.RotatingFileHandler(logfilename, encoding='utf-8',
+                                             maxBytes=10 * 1024 * 1024, backupCount=3)
+                self.__logger.addHandler(fh)
 
         self.debug(" ".join(sys.argv))
         # DA / Flash commands start here
@@ -463,7 +478,7 @@ class Main(metaclass=LogBase):
                 rmtk = mtk.crasher()
                 if rmtk is None:
                     sys.exit(0)
-                if rmtk.port.cdc.vid != 0xE8D and rmtk.port.cdc.pid != 0x0003:
+                if rmtk.port.cdc.vid != 0xE8D or rmtk.port.cdc.pid != 0x0003:
                     self.warning("We couldn't enter preloader.")
                 filename = self.args.filename
                 if filename is None:
@@ -504,7 +519,7 @@ class Main(metaclass=LogBase):
                 rmtk = mtk.crasher()
                 if rmtk is None:
                     sys.exit(0)
-                if rmtk.port.cdc.vid != 0xE8D and rmtk.port.cdc.pid != 0x0003:
+                if rmtk.port.cdc.vid != 0xE8D or rmtk.port.cdc.pid != 0x0003:
                     self.warning("We couldn't enter preloader.")
                 filename = self.args.filename
                 if filename is None:
@@ -524,7 +539,9 @@ class Main(metaclass=LogBase):
             self.close()
         elif cmd == "crash":
             if mtk.preloader.init():
-                mtk = mtk.crasher(mode=getint(self.args.mode))
+                # --mode is optional; None means "try all crash modes"
+                mode = getint(self.args.mode) if self.args.mode is not None else None
+                mtk = mtk.crasher(mode=mode)
             mtk.port.close()
             self.close()
         elif cmd == "plstage":

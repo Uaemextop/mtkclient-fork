@@ -285,7 +285,8 @@ class LegacyExt(metaclass=LogBase):
                         mt.parse(data[idx:])
                         rdata = hwc.mtee(data=mt.data, keyseed=mt.keyseed, ivseed=mt.ivseed,
                                          aeskey1=aeskey1, aeskey2=aeskey2)
-                        open("tee_" + hex(idx) + ".dec", "wb").write(rdata)
+                        with open("tee_" + hex(idx) + ".dec", "wb") as _tf:
+                            _tf.write(rdata)
 
     def read_pubk(self):
         if self.mtk.config.chipconfig.efuse_addr is not None:
@@ -406,7 +407,8 @@ class LegacyExt(metaclass=LogBase):
             return retval
         elif self.config.chipconfig.sej_base is not None:
             if os.path.exists("tee.json"):
-                val = json.loads(open("tee.json", "r").read())
+                with open("tee.json", "r") as _tj:
+                    val = json.loads(_tj.read())
                 self.decrypt_tee(val["filename"], bytes.fromhex(val["data"]), bytes.fromhex(val["data2"]))
             if meid == b"":
                 if self.config.chipconfig.meid_addr is None:

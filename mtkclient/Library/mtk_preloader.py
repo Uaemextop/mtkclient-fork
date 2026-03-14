@@ -359,9 +359,9 @@ class Preloader(metaclass=LogBase):
             return b""
         pg.done()
         if len(flash) > 0 and filename != "":
-            with open("internal_flash.bin", "wb") as wf:
+            with open(filename, "wb") as wf:
                 wf.write(flash)
-                print("Done reading internal flash to \"internal_flash.bin\"")
+                print(f'Done reading internal flash to "{filename}"')
         elif len(flash) > 0:
             return flash
         sys.stdout.flush()
@@ -791,7 +791,10 @@ class Preloader(metaclass=LogBase):
             if status < 0xFF:
                 bytestowrite = len(data)
                 pos = 0
-                maxoutsize = self.mtk.port.cdc.EP_IN.wMaxPacketSize
+                if hasattr(self.mtk.port.cdc, 'EP_IN'):
+                    maxoutsize = self.mtk.port.cdc.EP_IN.wMaxPacketSize
+                else:
+                    maxoutsize = 0x200  # default for serial/COM port path
                 while bytestowrite > 0:
                     size = min(bytestowrite, maxoutsize)
                     self.usbwrite(data[pos:pos + size])

@@ -1,0 +1,1030 @@
+/*
+ * serial.c
+ *
+ * Implementation of ALL IOCTL_SERIAL_* handlers.
+ * Equivalent to the original Ctrl_* functions (section 8 / section 11).
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include "mtk_usb2ser.h"
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_BAUD_RATE
+ * ========================================================================= */
+VOID
+SerialSetBaudRate(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_BAUD_RATE   pBaud;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_BAUD_RATE), (PVOID *)&pBaud, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    if (pBaud->BaudRate == 0) {
+        WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+        return;
+    }
+
+    /*
+     * Accept any non-zero baud rate.  MTK devices support high-speed DA
+     * communication at 921600, 1152000, 3000000, and 3686400 bps depending
+     * on the chip family.  Rejecting unknown rates here would break those
+     * paths.  The device firmware will NAK the CDC SET_LINE_CODING request
+     * if the rate is unsupported — that error propagates back to the caller.
+     */
+    DevCtx->LineCoding.dwDTERate = pBaud->BaudRate;
+
+    /* Send updated line coding to device via CDC SET_LINE_CODING */
+    status = UsbControlSetLineCoding(DevCtx);
+
+    /*
+     * Ignore STATUS_NOT_SUPPORTED from the device (some MTK bootrom modes
+     * do not implement GET/SET_LINE_CODING but still work at any rate).
+     */
+    if (status == STATUS_NOT_SUPPORTED ||
+        status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_BAUD_RATE
+ * ========================================================================= */
+VOID
+SerialGetBaudRate(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_BAUD_RATE   pBaud;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_BAUD_RATE), (PVOID *)&pBaud, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    pBaud->BaudRate = DevCtx->LineCoding.dwDTERate;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_BAUD_RATE));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_LINE_CONTROL
+ * ========================================================================= */
+VOID
+SerialSetLineControl(
+    _In_ PDEVICE_CONTEXT    DevCtx,
+    _In_ WDFREQUEST         Request
+    )
+{
+    NTSTATUS                status;
+    PSERIAL_LINE_CONTROL    pLine;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_LINE_CONTROL), (PVOID *)&pLine, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /* Map Win32 stop bits to CDC bCharFormat */
+    switch (pLine->StopBits) {
+    case STOP_BIT_1:    DevCtx->LineCoding.bCharFormat = 0; break;
+    case STOP_BITS_1_5: DevCtx->LineCoding.bCharFormat = 1; break;
+    case STOP_BITS_2:   DevCtx->LineCoding.bCharFormat = 2; break;
+    default:
+        WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+        return;
+    }
+
+    /* Map Win32 parity to CDC bParityType */
+    switch (pLine->Parity) {
+    case NO_PARITY:     DevCtx->LineCoding.bParityType = 0; break;
+    case ODD_PARITY:    DevCtx->LineCoding.bParityType = 1; break;
+    case EVEN_PARITY:   DevCtx->LineCoding.bParityType = 2; break;
+    case MARK_PARITY:   DevCtx->LineCoding.bParityType = 3; break;
+    case SPACE_PARITY:  DevCtx->LineCoding.bParityType = 4; break;
+    default:
+        WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+        return;
+    }
+
+    /* Data bits: 5, 6, 7, 8, or 16 (CDC ACM extension used by some MTK DA) */
+    if (pLine->WordLength != 5 && pLine->WordLength != 6 &&
+        pLine->WordLength != 7 && pLine->WordLength != 8 &&
+        pLine->WordLength != 16) {
+        WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+        return;
+    }
+    DevCtx->LineCoding.bDataBits = pLine->WordLength;
+
+    /* Apply via CDC SET_LINE_CODING; ignore device-not-supported errors */
+    status = UsbControlSetLineCoding(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_LINE_CONTROL
+ * ========================================================================= */
+VOID
+SerialGetLineControl(
+    _In_ PDEVICE_CONTEXT    DevCtx,
+    _In_ WDFREQUEST         Request
+    )
+{
+    NTSTATUS                status;
+    PSERIAL_LINE_CONTROL    pLine;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_LINE_CONTROL), (PVOID *)&pLine, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /* Map CDC bCharFormat to Win32 stop bits */
+    switch (DevCtx->LineCoding.bCharFormat) {
+    case 0:  pLine->StopBits = STOP_BIT_1;    break;
+    case 1:  pLine->StopBits = STOP_BITS_1_5; break;
+    case 2:  pLine->StopBits = STOP_BITS_2;   break;
+    default: pLine->StopBits = STOP_BIT_1;    break;
+    }
+
+    /* Map CDC bParityType to Win32 parity */
+    switch (DevCtx->LineCoding.bParityType) {
+    case 0:  pLine->Parity = NO_PARITY;    break;
+    case 1:  pLine->Parity = ODD_PARITY;   break;
+    case 2:  pLine->Parity = EVEN_PARITY;  break;
+    case 3:  pLine->Parity = MARK_PARITY;  break;
+    case 4:  pLine->Parity = SPACE_PARITY; break;
+    default: pLine->Parity = NO_PARITY;    break;
+    }
+
+    pLine->WordLength = DevCtx->LineCoding.bDataBits;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_LINE_CONTROL));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_HANDFLOW
+ * ========================================================================= */
+VOID
+SerialSetHandflow(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_HANDFLOW    pFlow;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_HANDFLOW), (PVOID *)&pFlow, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /*
+     * Store handshake flow control settings.
+     * CDC ACM doesn't directly support hardware flow control,
+     * but we store the values for app compatibility.
+     */
+    DevCtx->HandFlow = *pFlow;
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_HANDFLOW
+ * ========================================================================= */
+VOID
+SerialGetHandflow(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_HANDFLOW    pFlow;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_HANDFLOW), (PVOID *)&pFlow, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pFlow = DevCtx->HandFlow;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_HANDFLOW));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_DTR
+ *
+ *  Note: Some MTK BROM/Preloader modes do not implement CDC
+ *  SET_CONTROL_LINE_STATE.  The USB request will NAK and the driver will
+ *  get STATUS_UNSUCCESSFUL.  We still update our local state and return
+ *  STATUS_SUCCESS so that pyserial / setcontrollinestate() does not fail.
+ * ========================================================================= */
+VOID
+SerialSetDtr(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS status = UsbControlSetDtr(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_CLR_DTR
+ * ========================================================================= */
+VOID
+SerialClrDtr(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS status = UsbControlClrDtr(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_RTS
+ * ========================================================================= */
+VOID
+SerialSetRts(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS status = UsbControlSetRts(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_CLR_RTS
+ * ========================================================================= */
+VOID
+SerialClrRts(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS status = UsbControlClrRts(DevCtx);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_DTRRTS
+ * ========================================================================= */
+VOID
+SerialGetDtrRts(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pDtrRts;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pDtrRts, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pDtrRts = 0;
+    if (DevCtx->DtrState) {
+        *pDtrRts |= SERIAL_DTR_STATE;
+    }
+    if (DevCtx->RtsState) {
+        *pDtrRts |= SERIAL_RTS_STATE;
+    }
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, sizeof(ULONG));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_MODEMSTATUS
+ * ========================================================================= */
+VOID
+SerialGetModemStatus(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pStatus;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pStatus, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pStatus = DevCtx->ModemStatus;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, sizeof(ULONG));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_BREAK_ON
+ * ========================================================================= */
+VOID
+SerialSetBreakOn(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    /*
+     * CDC SEND_BREAK with duration 0xFFFF = hold break state indefinitely.
+     * Ignore errors — some MTK BROM modes do not implement SEND_BREAK
+     * but the pyserial setbreak() call must still succeed.
+     */
+    NTSTATUS status = UsbControlSendBreak(DevCtx, 0xFFFF);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_BREAK_OFF
+ * ========================================================================= */
+VOID
+SerialSetBreakOff(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    /* CDC SEND_BREAK with duration 0 = release break state */
+    NTSTATUS status = UsbControlSendBreak(DevCtx, 0);
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_UNSUCCESSFUL) {
+        status = STATUS_SUCCESS;
+    }
+    WdfRequestComplete(Request, status);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_TIMEOUTS
+ * ========================================================================= */
+VOID
+SerialSetTimeouts(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_TIMEOUTS    pTimeouts;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_TIMEOUTS), (PVOID *)&pTimeouts, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /*
+     * Validate: if both ReadIntervalTimeout and ReadTotalTimeoutConstant
+     * are MAXULONG but ReadTotalTimeoutMultiplier is not MAXULONG and not 0,
+     * it's invalid.
+     */
+    if (pTimeouts->ReadIntervalTimeout == MAXULONG &&
+        pTimeouts->ReadTotalTimeoutConstant == MAXULONG &&
+        pTimeouts->ReadTotalTimeoutMultiplier != 0 &&
+        pTimeouts->ReadTotalTimeoutMultiplier != MAXULONG) {
+        WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
+        return;
+    }
+
+    DevCtx->Timeouts = *pTimeouts;
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_TIMEOUTS
+ * ========================================================================= */
+VOID
+SerialGetTimeouts(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_TIMEOUTS    pTimeouts;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_TIMEOUTS), (PVOID *)&pTimeouts, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pTimeouts = DevCtx->Timeouts;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_TIMEOUTS));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_CHARS
+ * ========================================================================= */
+VOID
+SerialSetChars(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS        status;
+    PSERIAL_CHARS   pChars;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_CHARS), (PVOID *)&pChars, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    DevCtx->SpecialChars = *pChars;
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_CHARS
+ * ========================================================================= */
+VOID
+SerialGetChars(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS        status;
+    PSERIAL_CHARS   pChars;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_CHARS), (PVOID *)&pChars, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pChars = DevCtx->SpecialChars;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_CHARS));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_QUEUE_SIZE
+ * ========================================================================= */
+VOID
+SerialSetQueueSize(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_QUEUE_SIZE  pSize;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(SERIAL_QUEUE_SIZE), (PVOID *)&pSize, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /*
+     * Resize the ring buffer when the caller requests more than the current
+     * allocation.  This matters during DA stage-2 communication at 921600
+     * baud where mtkclient may send IOCTL_SERIAL_SET_QUEUE_SIZE with a large
+     * InSize (e.g. 4096 or 65536) to avoid dropping received data.
+     *
+     * We only grow the buffer, never shrink it, and only if the device is
+     * not currently open (shrinking while open would lose data and is unsafe).
+     */
+    if (pSize->InSize > DevCtx->ReadBuffer.Size && !DevCtx->DeviceOpen) {
+        ULONG   newSize  = pSize->InSize;
+        PUCHAR  newBuf;
+
+        /*
+         * Align upwards to the next power of two, minimum 4KB.
+         * Large allocations (>= 64KB) are capped at 256KB to avoid
+         * exhausting non-paged pool on low-memory systems.
+         */
+        if (newSize < 4096) {
+            newSize = 4096;
+        } else if (newSize > (256 * 1024)) {
+            newSize = 256 * 1024;
+        }
+
+        newBuf = (PUCHAR)ExAllocatePool2(POOL_FLAG_NON_PAGED,
+                                          newSize, MTK_POOL_TAG);
+        if (newBuf != NULL) {
+            /* Swap in the new buffer under the ring-buffer lock */
+            WdfSpinLockAcquire(DevCtx->ReadBuffer.Lock);
+
+            ExFreePoolWithTag(DevCtx->ReadBuffer.Buffer, MTK_POOL_TAG);
+            DevCtx->ReadBuffer.Buffer      = newBuf;
+            DevCtx->ReadBuffer.Size        = newSize;
+            DevCtx->ReadBuffer.ReadOffset  = 0;
+            DevCtx->ReadBuffer.WriteOffset = 0;
+            DevCtx->ReadBuffer.DataLength  = 0;
+
+            WdfSpinLockRelease(DevCtx->ReadBuffer.Lock);
+        }
+    }
+
+    if (pSize->InSize > 0) {
+        DevCtx->InQueueSize = pSize->InSize;
+    }
+    if (pSize->OutSize > 0) {
+        DevCtx->OutQueueSize = pSize->OutSize;
+    }
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_SET_WAIT_MASK
+ * ========================================================================= */
+VOID
+SerialSetWaitMask(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pMask;
+    WDFREQUEST  oldWaitRequest;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pMask, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    /*
+     * Setting a new wait mask cancels any pending WAIT_ON_MASK.
+     * Complete the old one with events = 0.
+     */
+    status = WdfIoQueueRetrieveNextRequest(
+        DevCtx->PendingWaitMaskQueue, &oldWaitRequest);
+    if (NT_SUCCESS(status)) {
+        PULONG pEvents;
+        NTSTATUS st2 = WdfRequestRetrieveOutputBuffer(
+            oldWaitRequest, sizeof(ULONG), (PVOID *)&pEvents, NULL);
+        if (NT_SUCCESS(st2)) {
+            *pEvents = 0;
+        }
+        WdfRequestCompleteWithInformation(oldWaitRequest, STATUS_SUCCESS,
+                                          sizeof(ULONG));
+    }
+
+    WdfSpinLockAcquire(DevCtx->EventLock);
+    DevCtx->WaitMask    = *pMask;
+    DevCtx->EventHistory = 0;
+    WdfSpinLockRelease(DevCtx->EventLock);
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_WAIT_MASK
+ * ========================================================================= */
+VOID
+SerialGetWaitMask(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pMask;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pMask, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pMask = DevCtx->WaitMask;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, sizeof(ULONG));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_WAIT_ON_MASK
+ *  Equivalent to the original Ctrl_WaitOnMask (section 8)
+ * ========================================================================= */
+VOID
+SerialWaitOnMask(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pEvents;
+    ULONG       currentEvents;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pEvents, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    if (DevCtx->WaitMask == 0) {
+        *pEvents = 0;
+        WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                          sizeof(ULONG));
+        return;
+    }
+
+    /* Check if events have already occurred */
+    WdfSpinLockAcquire(DevCtx->EventLock);
+    currentEvents = DevCtx->EventHistory & DevCtx->WaitMask;
+    DevCtx->EventHistory = 0;
+    WdfSpinLockRelease(DevCtx->EventLock);
+
+    if (currentEvents != 0) {
+        *pEvents = currentEvents;
+        WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                          sizeof(ULONG));
+        return;
+    }
+
+    /* No events yet — queue the request for later completion */
+    status = WdfRequestForwardToIoQueue(Request, DevCtx->PendingWaitMaskQueue);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+    }
+}
+
+/* =========================================================================
+ *  SerialCompleteWaitOnMask — complete a pending WAIT_ON_MASK request
+ *  Called from interrupt notification and other event sources.
+ * ========================================================================= */
+VOID
+SerialCompleteWaitOnMask(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ ULONG           Events
+    )
+{
+    NTSTATUS    status;
+    WDFREQUEST  waitRequest;
+    ULONG       matchingEvents;
+
+    WdfSpinLockAcquire(DevCtx->EventLock);
+    DevCtx->EventHistory |= Events;
+    matchingEvents = DevCtx->EventHistory & DevCtx->WaitMask;
+    if (matchingEvents != 0) {
+        DevCtx->EventHistory = 0;
+    }
+    WdfSpinLockRelease(DevCtx->EventLock);
+
+    if (matchingEvents == 0) {
+        return;
+    }
+
+    /* Try to dequeue and complete the pending wait-on-mask request */
+    status = WdfIoQueueRetrieveNextRequest(
+        DevCtx->PendingWaitMaskQueue, &waitRequest);
+    if (NT_SUCCESS(status)) {
+        PULONG pEvents;
+        NTSTATUS st2 = WdfRequestRetrieveOutputBuffer(
+            waitRequest, sizeof(ULONG), (PVOID *)&pEvents, NULL);
+        if (NT_SUCCESS(st2)) {
+            *pEvents = matchingEvents;
+        }
+        WdfRequestCompleteWithInformation(waitRequest, STATUS_SUCCESS,
+                                          sizeof(ULONG));
+    }
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_PURGE
+ *  Equivalent to the original Ctrl_Purge
+ * ========================================================================= */
+VOID
+SerialPurge(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pPurgeFlags;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pPurgeFlags, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    if (*pPurgeFlags & SERIAL_PURGE_RXCLEAR) {
+        /* Clear the ring buffer */
+        RingBufferPurge(&DevCtx->ReadBuffer);
+    }
+
+    if (*pPurgeFlags & SERIAL_PURGE_RXABORT) {
+        /* Cancel all pending read requests */
+        WdfIoQueuePurgeSynchronously(DevCtx->PendingReadQueue);
+        WdfIoQueueStart(DevCtx->PendingReadQueue);
+    }
+
+    if (*pPurgeFlags & SERIAL_PURGE_TXCLEAR) {
+        /*
+         * Nothing to clear for TX: data has already been submitted to the USB
+         * host controller and cannot be recalled without aborting the entire
+         * pipe.  TXCLEAR means "discard the driver's TX queue"; since we use
+         * KMDF WdfUsbTargetPipeFormatRequestForWrite and send directly (no
+         * driver-side TX queue), this is a no-op.
+         */
+    }
+
+    if (*pPurgeFlags & SERIAL_PURGE_TXABORT) {
+        /*
+         * Abort all outstanding bulk-OUT (write) transfers, then reset the
+         * pipe to clear the USB endpoint halt/stall and data-toggle state.
+         *
+         * WdfUsbTargetPipeAbortSynchronously cancels any pending transfers
+         * but leaves the endpoint's data toggle and potential stall condition
+         * intact.  A subsequent WdfUsbTargetPipeResetSynchronously sends a
+         * "Clear Feature: ENDPOINT_HALT" control request to the device and
+         * resets the host-side data toggle, restoring the pipe to a fully
+         * operational state for new transfers.
+         *
+         * Without the reset, repeated PurgeComm(PURGE_TXABORT) calls (as
+         * issued by pyserial's reset_output_buffer()) can leave the pipe in
+         * a stalled state where every subsequent WriteFile returns
+         * ERROR_BAD_COMMAND (STATUS_INVALID_DEVICE_REQUEST).
+         *
+         * Any write requests that were pending will be completed with
+         * STATUS_CANCELLED by the completion callback.
+         */
+        if (DevCtx->BulkOutPipe != NULL) {
+            WdfUsbTargetPipeAbortSynchronously(
+                DevCtx->BulkOutPipe,
+                WDF_NO_HANDLE,
+                NULL
+                );
+            WdfUsbTargetPipeResetSynchronously(
+                DevCtx->BulkOutPipe,
+                WDF_NO_HANDLE,
+                NULL
+                );
+        }
+
+        /* Also discard any pending ZLP work item */
+        DevCtx->PendingZlpCompleteRequest = NULL;
+        DevCtx->ZlpBytesWritten           = 0;
+    }
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_COMMSTATUS
+ *  Equivalent to the original Ctrl_GetCommStatus
+ * ========================================================================= */
+VOID
+SerialGetCommStatus(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS        status;
+    PSERIAL_STATUS  pStatus;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_STATUS), (PVOID *)&pStatus, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    RtlZeroMemory(pStatus, sizeof(SERIAL_STATUS));
+    pStatus->AmountInInQueue  = RingBufferGetDataLength(&DevCtx->ReadBuffer);
+    pStatus->AmountInOutQueue = 0;
+    pStatus->EofReceived      = FALSE;
+    pStatus->WaitForImmediate = FALSE;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_STATUS));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_PROPERTIES
+ *  Equivalent to the original Ctrl_GetProperties
+ * ========================================================================= */
+VOID
+SerialGetProperties(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIAL_COMMPROP    pProp;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIAL_COMMPROP), (PVOID *)&pProp, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    RtlZeroMemory(pProp, sizeof(SERIAL_COMMPROP));
+
+    pProp->PacketLength       = sizeof(SERIAL_COMMPROP);
+    pProp->PacketVersion      = 2;
+    pProp->ServiceMask        = SERIAL_SP_SERIALCOMM;
+    pProp->MaxTxQueue         = 0;
+    pProp->MaxRxQueue         = 0;
+
+    /*
+     * Supported baud rates.
+     *
+     * MaxBaud = SERIAL_BAUD_USER signals to Win32 that the driver accepts
+     * any baud rate via IOCTL_SERIAL_SET_BAUD_RATE, not just the predefined
+     * constants.  This is required for MTK high-speed DA communication at
+     * 921600, 1152000, 3000000, and 3686400 bps.
+     *
+     * SettableBaud lists the standard Win32 rates + USER to advertise that
+     * non-standard rates are also accepted.
+     */
+    pProp->MaxBaud            = SERIAL_BAUD_USER;
+    pProp->SettableBaud       = SERIAL_BAUD_300   | SERIAL_BAUD_600   |
+                                SERIAL_BAUD_1200  | SERIAL_BAUD_2400  |
+                                SERIAL_BAUD_4800  | SERIAL_BAUD_9600  |
+                                SERIAL_BAUD_14400 | SERIAL_BAUD_19200 |
+                                SERIAL_BAUD_38400 | SERIAL_BAUD_56K   |
+                                SERIAL_BAUD_57600 | SERIAL_BAUD_115200 |
+                                SERIAL_BAUD_128K  | SERIAL_BAUD_USER;
+
+    pProp->ProvSubType        = SERIAL_SP_RS232;
+
+    pProp->ProvCapabilities   = SERIAL_PCF_DTRDSR      |
+                                SERIAL_PCF_RTSCTS      |
+                                SERIAL_PCF_CD          |
+                                SERIAL_PCF_PARITY_CHECK|
+                                SERIAL_PCF_TOTALTIMEOUTS |
+                                SERIAL_PCF_INTTIMEOUTS |
+                                SERIAL_PCF_SPECIALCHARS;
+
+    pProp->SettableParams     = SERIAL_SP_PARITY       |
+                                SERIAL_SP_BAUD         |
+                                SERIAL_SP_DATABITS     |
+                                SERIAL_SP_STOPBITS     |
+                                SERIAL_SP_HANDSHAKING  |
+                                SERIAL_SP_PARITY_CHECK |
+                                SERIAL_SP_CARRIER_DETECT;
+
+    /* Settable data bits: 5–8 plus 16 (CDC ACM extension) */
+    pProp->SettableData       = SERIAL_DATABITS_5 |
+                                SERIAL_DATABITS_6 |
+                                SERIAL_DATABITS_7 |
+                                SERIAL_DATABITS_8 |
+                                SERIAL_DATABITS_16;
+
+    pProp->SettableStopParity = SERIAL_STOPBITS_10 |
+                                SERIAL_STOPBITS_15 |
+                                SERIAL_STOPBITS_20 |
+                                SERIAL_PARITY_NONE |
+                                SERIAL_PARITY_ODD  |
+                                SERIAL_PARITY_EVEN |
+                                SERIAL_PARITY_MARK |
+                                SERIAL_PARITY_SPACE;
+
+    pProp->CurrentTxQueue     = DevCtx->OutQueueSize;
+    pProp->CurrentRxQueue     = DevCtx->InQueueSize;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIAL_COMMPROP));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_GET_STATS
+ * ========================================================================= */
+VOID
+SerialGetStats(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS            status;
+    PSERIALPERF_STATS   pStats;
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(SERIALPERF_STATS), (PVOID *)&pStats, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pStats = DevCtx->PerfStats;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS,
+                                      sizeof(SERIALPERF_STATS));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_CLEAR_STATS
+ * ========================================================================= */
+VOID
+SerialClearStats(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    RtlZeroMemory(&DevCtx->PerfStats, sizeof(SERIALPERF_STATS));
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_CONFIG_SIZE
+ *  Returns 0 = no provider-specific data
+ * ========================================================================= */
+VOID
+SerialConfigSize(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PULONG      pSize;
+
+    UNREFERENCED_PARAMETER(DevCtx);
+
+    status = WdfRequestRetrieveOutputBuffer(
+        Request, sizeof(ULONG), (PVOID *)&pSize, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    *pSize = 0;
+
+    WdfRequestCompleteWithInformation(Request, STATUS_SUCCESS, sizeof(ULONG));
+}
+
+/* =========================================================================
+ *  IOCTL_SERIAL_LSRMST_INSERT
+ *  Sets the escape character for LSR/MSR insertion
+ * ========================================================================= */
+VOID
+SerialLsrMstInsert(
+    _In_ PDEVICE_CONTEXT DevCtx,
+    _In_ WDFREQUEST      Request
+    )
+{
+    NTSTATUS    status;
+    PUCHAR      pEscape;
+
+    status = WdfRequestRetrieveInputBuffer(
+        Request, sizeof(UCHAR), (PVOID *)&pEscape, NULL);
+    if (!NT_SUCCESS(status)) {
+        WdfRequestComplete(Request, status);
+        return;
+    }
+
+    DevCtx->LsrMstInsert = *pEscape;
+    DevCtx->LsrMstInsertEnabled = (*pEscape != 0);
+
+    WdfRequestComplete(Request, STATUS_SUCCESS);
+}

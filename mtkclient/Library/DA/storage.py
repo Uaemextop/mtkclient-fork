@@ -308,7 +308,7 @@ class Storage(metaclass=LogBase):
                     self.flashsize = self.ufs.lu2_size
                 else:
                     parttype = "UFS-LUA1"
-                    self.flashsize = self.ufs.lu0_size
+                    self.flashsize = self.ufs.lu1_size
             elif parttype == "rpmb":
                 if not xml:
                     parttype = UFSPartitionType.RPMB

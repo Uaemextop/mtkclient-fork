@@ -136,47 +136,14 @@ class UsbClass(DeviceClass):
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb-1.0.dll")
             else:
                 self.backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb32-1.0.dll")
-        if self.backend is not None:
-            try:
-                self.backend.lib.libusb_set_option.argtypes = [c_void_p, c_int]
-                self.backend.lib.libusb_set_option(self.backend.ctx, 1)
-            except Exception:
-                self.backend = None
+        # Do not call libusb_set_option(ctx, LIBUSB_OPTION_USE_USBDK=1).
+        # Forcing UsbDk is not required — libusb uses WinUSB by default on
+        # Windows when a WinUSB or custom KMDF driver (e.g. mtk_usb2ser.sys)
+        # is installed.  Removing this call removes the hard dependency on
+        # UsbDk being present on the host.
 
     def set_fast_mode(self, enabled):
         self.fast = bool(enabled)
-
-    def verify_data(self, data, pre="RX:"):
-        if self.__logger.level == logging.DEBUG:
-            frame = inspect.currentframe()
-            stack_trace = traceback.format_stack(frame)
-            td = []
-            for trace in stack_trace:
-                if "verify_data" not in trace and "Port" not in trace:
-                    td.append(trace)
-            self.debug(td[:-1])
-
-        if isinstance(data, bytes) or isinstance(data, bytearray):
-            if data[:5] == b"<?xml":
-                try:
-                    rdata = b""
-                    for line in data.split(b"\n"):
-                        try:
-                            self.debug(pre + line.decode('utf-8'))
-                            rdata += line + b"\n"
-                        except Exception:
-                            v = hexlify(line)
-                            self.debug(pre + v.decode('utf-8'))
-                    return rdata
-                except Exception as err:
-                    self.debug(str(err))
-                    pass
-            if logging.DEBUG >= self.__logger.level:
-                self.debug(pre + hexlify(data).decode('utf-8'))
-        else:
-            if logging.DEBUG >= self.__logger.level:
-                self.debug(pre + hexlify(data).decode('utf-8'))
-        return data
 
     def get_interface_count(self):
         if self.vid is not None:
@@ -200,8 +167,12 @@ class UsbClass(DeviceClass):
         sbits = {1: 0, 1.5: 1, 2: 2}
         dbits = {5, 6, 7, 8, 16}
         pmodes = {0, 1, 2, 3, 4}
+        # Extended baud rate set: includes MTK high-speed DA rates (921600,
+        # 1152000, 3000000, 3686400) used during Legacy DA stage-1 speed
+        # negotiation (set_speed / set_speed_iot) and IoT UART baud changes.
         brates = {300, 600, 1200, 2400, 4800, 9600, 14400,
-                  19200, 28800, 38400, 57600, 115200, 230400, 460800, 921600}
+                  19200, 28800, 38400, 57600, 115200, 230400, 460800, 921600,
+                  1152000, 1500000, 2000000, 3000000, 3686400}
 
         if stopbits is not None:
             if stopbits not in sbits.keys():
@@ -229,12 +200,16 @@ class UsbClass(DeviceClass):
 
         if baudrate is not None:
             if baudrate not in brates:
-                brs = sorted(brates)
-                dif = [abs(br - baudrate) for br in brs]
-                best = brs[dif.index(min(dif))]
-                raise ValueError(
-                    f"Invalid baudrates, nearest valid is {best}")
+                # Accept any non-zero baudrate for device-specific use;
+                # only reject if it is definitely zero.
+                if baudrate == 0:
+                    raise ValueError("Baudrate must be non-zero")
+                # Use the requested rate as-is — the device will reject it
+                # via a CDC SET_LINE_CODING error if it is unsupported.
             self.baudrate = baudrate
+
+        if self.baudrate is None:
+            self.baudrate = 115200
 
         linecode = [
             self.baudrate & 0xff,
@@ -302,17 +277,50 @@ class UsbClass(DeviceClass):
         self.device = None
         self.EP_OUT = None
         self.EP_IN = None
-        devices = usb.core.find(find_all=True, bDeviceClass=devclass, backend=self.backend)
-        for dev in list(filter(lambda x: x.idVendor in [0x0E8D, 0x1004, 0x22d9, 0x0FCE], devices)):
-            if dev.idVendor in self.portconfig and dev.idProduct in self.portconfig[dev.idVendor]:
-                self.device = dev
-                self.vid = dev.idVendor
-                self.pid = dev.idProduct
-                self.interface = self.portconfig[dev.idVendor][dev.idProduct]
-                break
+
+        # Normalise portconfig to {vid: {pid: iface}} regardless of whether
+        # it was supplied as a dict or as a list of [vid, pid, iface] triples.
+        # Using a list (e.g. [[0x0e8d, 0x2000, -1]]) is the format produced by
+        # Mtk.setup() when a specific --vid/--pid is given, and the old code
+        # would fail because `vid in list_of_lists` never matched an integer.
+        if isinstance(self.portconfig, dict):
+            _portconfig = self.portconfig
+        else:
+            _portconfig = {}
+            for entry in self.portconfig:
+                if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                    v, p = int(entry[0]), int(entry[1])
+                    iface = entry[2] if len(entry) > 2 else -1
+                    _portconfig.setdefault(v, {})[p] = iface
+
+        def _find_device(dc):
+            """Return first matching device for the given bDeviceClass."""
+            devices = usb.core.find(find_all=True, bDeviceClass=dc, backend=self.backend)
+            if devices is None:
+                return None
+            for dev in devices:
+                if dev.idVendor not in _portconfig:
+                    continue
+                if dev.idProduct not in _portconfig[dev.idVendor]:
+                    continue
+                return dev
+            return None
+
+        # 1st pass: CDC class devices (bDeviceClass=0x02)
+        self.device = _find_device(devclass)
+        # 2nd pass: composite devices expose bDeviceClass=0x00; the actual
+        # CDC interface is enumerated through usbccgp.sys on Windows.
+        if self.device is None:
+            self.device = _find_device(0x00)
+
         if self.device is None:
             self.debug("Couldn't detect the device. Is it connected ?")
             return False
+
+        self.vid = self.device.idVendor
+        self.pid = self.device.idProduct
+        self.interface = _portconfig[self.vid][self.pid]
+
         try:
             self.configuration = self.device.get_active_configuration()
         except usb.core.USBError as e:

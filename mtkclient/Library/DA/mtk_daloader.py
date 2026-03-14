@@ -78,7 +78,8 @@ class DAloader(metaclass=LogBase):
                     config["m_sdmmc_ua_size"] = self.daconfig.legacy_storage.sdc.m_sdmmc_ua_size
         if not os.path.exists(self.mtk.config.hwparam_path):
             os.mkdir(self.mtk.config.hwparam_path)
-        open(os.path.join(self.mtk.config.hwparam_path, ".state"), "w").write(json.dumps(config))
+        with open(os.path.join(self.mtk.config.hwparam_path, ".state"), "w") as _sf:
+            _sf.write(json.dumps(config))
 
     def compute_hash_pos(self, da1, da2, da1sig_len, da2sig_len, v6):
         hashlen = len(da2) - da2sig_len
@@ -156,10 +157,11 @@ class DAloader(metaclass=LogBase):
 
     def reinit(self):
         if os.path.exists(os.path.join(self.mtk.config.hwparam_path, ".state")):
-            config = json.loads(open(os.path.join(self.mtk.config.hwparam_path, ".state"), "r").read())
+            with open(os.path.join(self.mtk.config.hwparam_path, ".state"), "r") as _sf:
+                config = json.loads(_sf.read())
             self.config.hwcode = config["hwcode"]
             meid_val = None
-            if hasattr(config, 'meid') and config.meid is not None:
+            if 'meid' in config and config['meid'] is not None:
                 self.config.meid = bytes.fromhex(config["meid"])
                 meid_val = self.config.meid.hex()
             if "socid" in config:
@@ -461,10 +463,10 @@ class DAloader(metaclass=LogBase):
     def encrypt_nvitem(self, filename=None, otp=None, seed=None, aeskey=None):
         with open(filename, "rb") as rf:
             if self.flashmode == DAmodes.XFLASH:
-                return self.xmlft.encrypt_nvitem(data=rf.read(), encrypt=False,
-                                                 otp=otp,
-                                                 seed=seed,
-                                                 aeskey=aeskey)
+                return self.xft.encrypt_nvitem(data=rf.read(), encrypt=False,
+                                               otp=otp,
+                                               seed=seed,
+                                               aeskey=aeskey)
             elif self.flashmode == DAmodes.XML:
                 return self.xmlft.encrypt_nvitem(data=rf.read(),
                                                  otp=otp,
@@ -476,7 +478,7 @@ class DAloader(metaclass=LogBase):
             if "0x" in arg:
                 value = int(arg, 16)
             else:
-                value = int(arg, 10)
+                value = int(arg)
         else:
             value = 0
         return value

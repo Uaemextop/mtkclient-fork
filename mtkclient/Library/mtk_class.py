@@ -2,6 +2,7 @@
 # MTK Flash Client (c) B.Kerler 2018-2025.
 # Licensed under GPLv3 License
 import os
+import sys
 import logging
 from struct import unpack
 from mtkclient.config.usb_ids import default_ids
@@ -35,6 +36,13 @@ class Mtk(metaclass=LogBase):
                                                                                   config.gui)
         self.eh = ErrorHandler()
         self.serialportname = serialportname
+        # On Windows, prefer the COM-port interface exposed by the custom KMDF
+        # driver (mtk_usb2ser.sys).  Setting serialportname to 'DETECT' causes
+        # Port to use SerialClass which calls pyserial and auto-discovers the
+        # MTK COM port — no libusb or UsbDk required.
+        if sys.platform == 'win32' and serialportname is None:
+            self.serialportname = 'DETECT'
+            serialportname = 'DETECT'
         if preinit:
             self.setup(self.vid, self.pid, self.interface, serialportname)
 
@@ -61,7 +69,8 @@ class Mtk(metaclass=LogBase):
                 if idx is None:
                     idx = -1
                 else:
-                    data[idx:idx + len(patchval)] = patchval
+                    patch = patchval[1]
+                    data[idx:idx + len(patch)] = patch
                     self.info(f'Patched "{patchval[2]}" in preloader')
                     patched = True
             else:
@@ -76,12 +85,6 @@ class Mtk(metaclass=LogBase):
             i += 1
         if not patched:
             self.warning("Failed to patch preloader security")
-        else:
-            # with open("preloader.patched", "wb") as wf:
-            #    wf.write(data)
-            #    print("Patched !")
-            # self.info(f"Patched preloader security: {hex(i)}")
-            data = data
         return data
 
     def patch_preloader_security_da2(self, data):
@@ -110,12 +113,6 @@ class Mtk(metaclass=LogBase):
             i += 1
         if not patched:
             self.warning("Failed to patch preloader security")
-        else:
-            # with open("preloader.patched", "wb") as wf:
-            #    wf.write(data)
-            #    print("Patched !")
-            # self.info(f"Patched preloader security: {hex(i)}")
-            data = data
         return data
 
     def parse_preloader(self, preloader):

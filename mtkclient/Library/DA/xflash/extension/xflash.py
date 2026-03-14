@@ -75,7 +75,8 @@ class XFlashExt(metaclass=LogBase):
         self.da2address = self.xflash.daconfig.da_loader.region[2].m_start_addr  # at_address
         daextensions = os.path.join(self.pathconfig.get_payloads_path(), "da_x.bin")
         if os.path.exists(daextensions):
-            daextdata = bytearray(open(daextensions, "rb").read())
+            with open(daextensions, "rb") as _ef:
+                daextdata = bytearray(_ef.read())
 
             register_devctrl = find_binary(self.da2, b"\x38\xB5\x05\x46\x0C\x20")
 
@@ -836,7 +837,8 @@ class XFlashExt(metaclass=LogBase):
                     mt.parse(data[idx:])
                     rdata = hwc.mtee(data=mt.data, keyseed=mt.keyseed, ivseed=mt.ivseed,
                                      aeskey1=aeskey1, aeskey2=aeskey2)
-                    open("tee_" + hex(idx) + ".dec", "wb").write(rdata)
+                    with open("tee_" + hex(idx) + ".dec", "wb") as _tf:
+                        _tf.write(rdata)
 
     def read_fuse(self, idx):
         if self.mtk.config.chipconfig.efuse_addr is not None:
@@ -1032,7 +1034,8 @@ class XFlashExt(metaclass=LogBase):
             return retval
         elif self.config.chipconfig.sej_base is not None:
             if os.path.exists("tee.json"):
-                val = json.loads(open("tee.json", "r").read())
+                with open("tee.json", "r") as _tj:
+                    val = json.loads(_tj.read())
                 self.decrypt_tee(val["filename"], bytes.fromhex(val["data"]), bytes.fromhex(val["data2"]))
             if meid == b"":
                 meid = self.custom_read(0x1008ec, 16)

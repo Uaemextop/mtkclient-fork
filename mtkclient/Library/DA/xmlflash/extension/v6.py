@@ -136,7 +136,8 @@ class XmlFlashExt(metaclass=LogBase):
         self.da2address = self.xflash.daconfig.da_loader.region[2].m_start_addr  # at_address
         daextensions = os.path.join(self.pathconfig.get_payloads_path(), "da_xml.bin")
         if os.path.exists(daextensions):
-            daextdata = bytearray(open(daextensions, "rb").read())
+            with open(daextensions, "rb") as _ef:
+                daextdata = bytearray(_ef.read())
             register_ptr = daextdata.find(b"\x11\x11\x11\x11")
             mmc_get_card_ptr = daextdata.find(b"\x22\x22\x22\x22")
             mmc_set_part_config_ptr = daextdata.find(b"\x33\x33\x33\x33")
@@ -883,7 +884,8 @@ class XmlFlashExt(metaclass=LogBase):
                     mt.parse(data[idx:])
                     rdata = hwc.mtee(data=mt.data, keyseed=mt.keyseed, ivseed=mt.ivseed,
                                      aeskey1=aeskey1, aeskey2=aeskey2)
-                    open("tee_" + hex(idx) + ".dec", "wb").write(rdata)
+                    with open("tee_" + hex(idx) + ".dec", "wb") as _tf:
+                        _tf.write(rdata)
 
     def protect(self, data):
         return data
@@ -1161,7 +1163,8 @@ class XmlFlashExt(metaclass=LogBase):
             return retval
         elif self.config.chipconfig.sej_base is not None:
             if os.path.exists("tee.json"):
-                val = json.loads(open("tee.json", "r").read())
+                with open("tee.json", "r") as _tj:
+                    val = json.loads(_tj.read())
                 self.decrypt_tee(val["filename"], bytes.fromhex(val["data"]), bytes.fromhex(val["data2"]))
             if meid == b"":
                 meid = self.custom_read(0x1008ec, 16)
